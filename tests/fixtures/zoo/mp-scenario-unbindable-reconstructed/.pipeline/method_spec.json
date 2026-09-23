@@ -1,0 +1,14 @@
+{
+  "comparison": {
+    "classification": {
+      "id": "motion_planning"
+    }
+  },
+  "scenario_assumptions": {
+    "obstacle_geometry": {
+      "normalized_value": "circle",
+      "evidence_quote": "We model all obstacles as circles.",
+      "paper_location": "Section III-B"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-softmax-gradient-block": {
+      "what": "For each output class i, this computes that class's block of the gradient of cross-entropy loss with respect to the final-layer weights W_i. The block is the penultimate-layer feature vector z(x; V), scaled by p_i minus an indicator that the hallucinated label y_hat equals i. Concatenating these class blocks gives the gradient embedding used to represent an unlabeled example for batch selection.",
+      "why_novel": "The derivative itself is standard softmax cross-entropy machinery. In BADGE, its distinctive use is to form a gradient embedding with the hallucinated predicted label y_hat: the residual p_i - I(y_hat = i) combines the model's class probabilities with z(x; V), so examples are compared in this gradient space rather than by uncertainty scores or feature-space diversity alone.",
+      "intuition": "Think of each block as the update the final classifier would receive if its current most likely class were treated as the label. A confident prediction makes p_i close to the indicator for its predicted class and leaves a small gradient, whereas uncertainty leaves larger residuals across classes. The feature vector then says which kind of input would cause that update, allowing BADGE to seek examples whose potential updates are both substantial and different from one another."
+    }
+  }
+}

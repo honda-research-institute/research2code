@@ -1,0 +1,71 @@
+{
+  "schema_version": "2.0.0",
+  "paradigm_id": "active_learning/batch_acquisition",
+  "dimensions": {
+    "training_example_count": {"expression": {"kind": "literal", "value": 4}},
+    "forward_batch_count": {"expression": {"kind": "literal", "value": 2}},
+    "pool_example_count": {"expression": {"kind": "literal", "value": 5}},
+    "selection_count": {"expression": {"kind": "literal", "value": 2}},
+    "test_example_count": {"expression": {"kind": "literal", "value": 3}},
+    "feature_width": {"expression": {"kind": "literal", "value": 784}},
+    "class_count": {"expression": {"kind": "literal", "value": 10}},
+    "hidden_feature_width": {"expression": {"kind": "literal", "value": 256}}
+  },
+  "data_loader": {
+    "load_data_returns": {
+      "x_pool": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "pool_example_count", "display_symbol": "N_pool"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"},
+      "y_pool": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "pool_example_count", "display_symbol": "N_pool"}], "device": "cpu", "constraint": {"kind": "class_id", "class_count_dimension": "class_count"}},
+      "x_test": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "test_example_count", "display_symbol": "N_test"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"},
+      "y_test": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "test_example_count", "display_symbol": "N_test"}], "device": "cpu", "constraint": {"kind": "class_id", "class_count_dimension": "class_count"}}
+    }
+  },
+  "architecture": {
+    "model": {
+      "class_name": "GradientEmbeddingMLP",
+      "constructor_args": {
+        "input_dim": {"dimension": {"dimension": "feature_width", "display_symbol": "D"}},
+        "n_classes": {"dimension": {"dimension": "class_count", "display_symbol": "K"}},
+        "hidden_dim": {"dimension": {"dimension": "hidden_feature_width", "display_symbol": "H"}}
+      },
+      "forward": {
+        "input": {
+          "x": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "forward_batch_count", "display_symbol": "B"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"}
+        },
+        "output": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "forward_batch_count", "display_symbol": "B"}, {"dimension": "class_count", "display_symbol": "K"}], "device": "cpu"}
+      },
+      "additional_methods": {
+        "forward_with_embedding": {
+          "input": {
+            "x": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "forward_batch_count", "display_symbol": "B"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"}
+          },
+          "output": {"kind": "opaque", "type_description": "tuple[torch.Tensor, torch.Tensor] of logits and penultimate embeddings", "reason": "Schema 2 has no tuple descriptor; forward separately certifies logits."}
+        }
+      }
+    }
+  },
+  "pluggable_component": {
+    "name": "select_batch",
+    "input": {
+      "model": {"kind": "opaque", "type_description": "trained GradientEmbeddingMLP", "reason": "The selector requires a trained model object with the embedding hook."},
+      "x_unlabeled": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "pool_example_count", "display_symbol": "N_pool"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"},
+      "batch_size": {"kind": "scalar", "dtype": "int64", "source": {"dimension": {"dimension": "selection_count", "display_symbol": "B_select"}}},
+      "seed": {"kind": "scalar", "dtype": "int64", "source": {"literal": 42}}
+    },
+    "output": {"kind": "opaque", "type_description": "list[int] of pool-relative selected positions", "reason": "The public BADGE signature returns a Python list, which schema 2 cannot type as an index vector."}
+  },
+  "training_loop": {
+    "function_name": "train_from_scratch",
+    "input": {
+      "model": {"kind": "opaque", "type_description": "fresh GradientEmbeddingMLP", "reason": "A class instance is constructed by the caller rather than synthesized as a tensor."},
+      "x_train": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "training_example_count", "display_symbol": "N"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"},
+      "y_train": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "training_example_count", "display_symbol": "N"}], "device": "cpu", "constraint": {"kind": "class_id", "class_count_dimension": "class_count"}},
+      "learning_rate": {"kind": "scalar", "dtype": "float32", "source": {"literal": 0.001}},
+      "max_epochs": {"kind": "scalar", "dtype": "int64", "source": {"literal": 1}},
+      "train_until_accuracy": {"kind": "scalar", "dtype": "float32", "source": {"literal": 0.99}},
+      "seed": {"kind": "scalar", "dtype": "int64", "source": {"literal": 42}}
+    },
+    "output": null
+  },
+  "optimizer_state": null,
+  "family_components": {}
+}

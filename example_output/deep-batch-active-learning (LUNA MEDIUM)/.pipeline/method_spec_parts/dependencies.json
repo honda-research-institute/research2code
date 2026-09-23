@@ -1,0 +1,1 @@
+{"dependencies":{"frameworks":["pytorch","numpy"],"pretrained_models":[],"compute":"CPU sufficient","estimated_time":"A smoke-scale selection run should complete in seconds on CPU; model training time depends on the supplied classifier and dataset."}}

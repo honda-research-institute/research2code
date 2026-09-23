@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-softmax-cross-entropy": {
+      "what": "This is the multiclass softmax cross-entropy loss for an input x with true class y. It takes the penultimate-layer representation z(x;V), scores it with each final-layer class weight vector W_j, and returns the log of the summed exponentiated scores minus the score W_y dot z(x;V) of the true class. Minimizing it raises the true class's score relative to the other K class scores.",
+      "why_novel": "This is standard softmax cross-entropy machinery, not the paper's novelty. It is included because writing the loss in terms of the final-layer weights W_j and representation z(x;V) exposes the quantities from which the method's gradient-based representation is built.",
+      "intuition": "Think of the final layer as holding one prototype direction W_j per class, while z(x;V) describes the input just before classification. The loss is small when the true class direction W_y aligns much more strongly with that representation than the competing class directions. If a dog image receives a high cat score as well as a dog score, the log-sum-exp term remains large, so the loss indicates that the classifier still needs to separate those alternatives."
+    }
+  }
+}

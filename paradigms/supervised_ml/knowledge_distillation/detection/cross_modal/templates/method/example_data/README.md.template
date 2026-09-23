@@ -1,0 +1,117 @@
+# example_data/
+
+Cross-modal detection KD data: the teacher and student operate on
+different input modalities. On first run, if no real data is present,
+`load_data("example_data/")` generates a synthetic paired dataset
+(random RGB images + random point clouds + box targets) and caches it
+under `example_data/_cache/`. Subsequent runs reload from the cache.
+
+The synthetic data is enough to verify the cross-modal pipeline executes
+end-to-end and that the shared-space distillation has matched shapes; it
+is NOT a meaningful detection benchmark. For real evaluation, swap in a
+paired-modality dataset (nuScenes, KITTI, Waymo) using one of the
+formats below.
+
+## Use your own data
+
+`load_data` checks formats in this priority order:
+`.pt` → paired-modality directory → synthetic fallback.
+
+### Option 1 — `.pt` (fastest)
+
+A single `.pt` file (any name) containing a dict:
+
+```python
+torch.save({
+    "student_inputs_train": [PIL_image, ...],            # list of PIL.Image.Image
+    "teacher_inputs_train": [point_cloud_tensor, ...],   # list of Tensor (N_points, 3)
+    "targets_train":        [target_dict, ...],
+    "student_inputs_test":  [PIL_image, ...],
+    "teacher_inputs_test":  [point_cloud_tensor, ...],
+    "targets_test":         [target_dict, ...],
+}, "example_data/my_dataset.pt")
+```
+
+The i-th element across all three lists in a split is the SAME scene —
+paired alignment is critical for distillation to work. Each `target_dict`
+has the format:
+
+```python
+{
+    "boxes":  torch.tensor([[x1, y1, x2, y2], ...], dtype=torch.float),   # xyxy
+    "labels": torch.tensor([class_idx, ...], dtype=torch.long),
+}
+```
+
+If a scene has no objects, pass empty tensors:
+`boxes=torch.zeros((0, 4), dtype=torch.float)` and
+`labels=torch.zeros((0,), dtype=torch.long)`.
+
+### Option 2 — Paired-modality directory
+
+A directory (any name) containing:
+
+```
+my_paired_dataset/
+├── images/                    # one image file per scene (.jpg, .png, etc.)
+├── point_clouds/              # one .pt file per scene with the point-cloud Tensor
+│                              # filenames must match `images/` basenames (e.g.,
+│                              # images/scene_0001.jpg + point_clouds/scene_0001.pt)
+└── annotations.json           # COCO-style annotations referencing image filenames
+```
+
+The loader:
+- pairs each image with its same-basename point-cloud file
+- maps each annotation to its image via `image_id`
+- converts COCO `[x, y, w, h]` boxes to `[x1, y1, x2, y2]`
+- samples `train_size + n_test` scenes deterministically (seeded shuffle)
+  and splits the result
+
+For real autonomous-driving datasets (nuScenes, KITTI, Waymo), use the
+respective SDK to convert into this layout. The point-cloud `.pt` files
+should contain torch Tensors of shape `(N_points, 3)` (or whichever
+shape the teacher's modality preprocessing expects — depth maps, voxel
+grids, etc. — match what your teacher checkpoint was trained on).
+
+### Option 3 — Synthetic cross-modal fallback (no setup)
+
+If neither a `.pt` file nor a paired directory is present, the loader
+generates a synthetic paired dataset on first run and caches it under
+`_cache/synthetic_cross_modal.pt`. The cache embeds the generation
+parameters (`train_size`, `n_test`, `seed`); changing any of those
+triggers regeneration.
+
+The synthetic generator produces:
+
+- **Images**: 64×64 RGB with 1-3 colored rectangles on a dark background
+- **Point clouds**: 256 points in a normalized 3D volume, with ~30% of
+  points concentrated near the box-center positions (so the cross-modal
+  pair is plausibly aligned and the teacher's point-cloud encoder has
+  "object structure" to find)
+- **Targets**: xyxy boxes (in image pixel coords) with random integer
+  class labels in `[0, 5)`
+
+The image and point cloud reflect the SAME synthetic scene — the box
+positions are shared between modalities, so the cross-modal alignment
+loss has a meaningful target. Sufficient for verifying the pipeline
+executes; not a real evaluation dataset.
+
+## Note on real-data alignment
+
+For paired-modality real datasets, the camera and point-cloud sensors
+must be calibrated and synchronized — otherwise the i-th image and i-th
+point cloud don't correspond to the same scene, and the distillation
+signal is destroyed silently. The standard autonomous-driving datasets
+(nuScenes, KITTI, Waymo) provide calibration matrices and synchronized
+timestamps; using them properly is the data preparation pipeline's
+responsibility.
+
+## Note on smoke vs. paper-scale
+
+Cross-modal detection KD papers typically train on full LiDAR-camera
+datasets (e.g., nuScenes has ~28K paired samples). Demo-scale here is
+200/50 by default — fast enough to run on a laptop CPU in minutes, large
+enough to verify the cross-modal distillation loop converges
+directionally. For paper-faithful results, the researcher must download
+real paired data and adjust `train_size` and `n_test` upward in the
+notebook's `params` block.

@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_3a_notebook",
+  "review_status": "issues_found",
+  "summary": "One important finding: §4.4 markdown misstates the monotonic direction of the geometric ranking score. All critical checks (retrain-from-scratch, index bookkeeping, evaluation semantics, acquisition round semantics) pass. Narrative-code alignment and paper citation accuracy are good.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "notebook_ranking_prose_monotonicity",
+      "severity": "important",
+      "target_agent": "notebook-generator",
+      "issue_type": "narrative_inaccuracy",
+      "file": ".pipeline/notebook_draft.py",
+      "location": "§4.4 markdown cell, line ~296",
+      "description": "The §4.4 paragraph says 'The geometric prior ensures we pick samples that are far from the current labeled set (high R_0 / distance)'. This is incorrect: R_0 / ||x - Dj|| is an inverse-distance score — it is HIGHER when distance is SMALLER (closer to the labeled set). The geometric ranking criterion (Eq. 13) selects candidates with the HIGHEST representativeness, which means samples CLOSEST to the labeled distribution (most representative), not farthest. The code (geometric_ranking → compute_geometric_prior → torch.topk) correctly picks top-K by highest R_0/distance, i.e., closest to labeled. The prose direction is inverted.",
+      "proposed_fix": "Replace 'far from the current labeled set (high R_0 / distance)' with 'closest to the current labeled set (high R_0 / distance, meaning highest geometric prior probability)', to correctly describe that the ranking selects the most representative (closest-to-labeled) candidates.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    }
+  ],
+  "checks_summary": [
+    {"check_id": "notebook_narrative_matches_code", "status": "pass", "note": "All §4 subsections match what the code below them does. Markdown descriptions of geometric prior, BALD scoring, geometric ranking, and core-set construction align with method.py implementations."},
+    {"check_id": "paper_citations_accurate", "status": "pass", "note": "All paper citations (Eq. 1, 5, 10, 11, 12, 13-14; Sections 3.1, 3.2, 4.1, 4.2, 4.3, 7.2, 7.9; Algorithm 1 Section 5) verified against paper_map.json and paper.md. All correct."},
+    {"check_id": "al_loop_evaluates_each_round", "status": "pass", "note": "train_eval_current() trains AND evaluates each round. learning_curve.appends after every call. No placeholder appends."},
+    {"check_id": "al_loop_retrains_from_scratch", "status": "pass", "note": "build_model() called fresh inside train_eval_current() each round, and train_eval_current is called inside the loop. No warm-starting."},
+    {"check_id": "al_loop_index_space_correct", "status": "pass", "note": "Maintained labeled_idx/unlabeled_idx arrays. chosen = unlabeled_idx[np.array(selected_pos)] maps local→global. np.union1d/np.setdiff1d keeps sets disjoint. No positional-offset arithmetic."},
+    {"check_id": "al_loop_acquisition_round_semantics", "status": "pass", "note": "Initial eval (1 point) + 6 rounds (1 point each) = 7 = num_rounds+1. No guarding of select_batch. Acquires then evaluates each round."},
+    {"check_id": "notebook_ranking_prose_monotonicity", "status": "fail", "note": "§4.4 claims 'far from labeled set (high R_0/distance)' but high R_0/distance means closer to labeled set. Direction inverted. See F001."}
+  ],
+  "caveats": [
+    "The notebook correctly avoids referencing initial_labeled (which has used_in_notebook: false in params.json) — the bootstrap uses construct_ellipsoid_core_set instead.",
+    "The R_0 scale mismatch (R_0=2000 for raw [0,255] pixels but MNIST is normalized to [0,1]) is disclosed in the title departures section (§0 'what this notebook does NOT do') but not explicitly in the §4.2 geometric prior subsection. This is a documentation hygiene issue for a future iteration, not a correctness finding — the notebook's overall approach of disclosing it upfront is adequate."
+  ]
+}

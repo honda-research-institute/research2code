@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "feasibility_at_spec": "reproducible",
+  "replication_feasibility_at_spec": "feasible",
+  "blocker_counts": {
+    "must_implement": 1,
+    "can_approximate": 0,
+    "cannot_implement": 0
+  },
+  "blockers": [
+    {
+      "requirement": "Compute per-example final-layer gradient embeddings from classifier probabilities and final-layer features.",
+      "status": "must_implement",
+      "reason": "This is the defining acquisition representation and is fully specified by the paper.",
+      "resolution": "Implement the final-layer gradient embedding directly from the classifier's final features and class probabilities, then use those vectors for acquisition."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "review_status": "issues_found",
+  "summary": "Pipeline output is well-structured and paper-faithful. All Pass 0 structured invariants pass: gradient-embedding computation, k-MEANS++ seeding, and retrain-from-scratch protocol are correctly implemented. The required forward_with_embedding model hook is present with correct semantics. One important finding: the notebook imports scikit-learn for PCA visualization but it is missing from requirements.txt. Two minor cosmetic inconsistencies in notebook TOC numbering and data format documentation.",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "important",
+      "target_agent": "notebook-generator",
+      "issue_type": "other",
+      "file": "notebook.ipynb",
+      "location": "cell 14 (§4.3 k-MEANS++ Seeding — PCA visualization)",
+      "description": "The notebook imports scikit-learn (`from sklearn.decomposition import PCA`) for the 2D gradient embedding projection plot, but scikit-learn is not listed in requirements.txt. A researcher who follows the Quick Start (`pip install -r requirements.txt`) and then runs the notebook will get an ImportError at this cell.",
+      "proposed_fix": "Add `scikit-learn` to requirements.txt. Alternatively, replace the PCA visualization with a pure numpy matplotlib scatter plot using two embedding dimensions directly."
+    },
+    {
+      "id": "F002",
+      "severity": "nice-to-have",
+      "target_agent": "notebook-generator",
+      "issue_type": "stale_documentation",
+      "file": "notebook.ipynb",
+      "location": "cell 2 (Table of Contents, §5 subsection entries)",
+      "description": "The table of contents lists §5 ('Running active learning end-to-end') and then jumps to §5.2 ('Learning curve'), skipping §5.1 ('The acquisition loop'). The field guide declares a 5.1 subsection for the acquisition loop, and the corresponding code cell exists, but lacks the ### 5.1 markdown heading anchor.",
+      "proposed_fix": "Add a `### 5.1 The acquisition loop` markdown subsection heading before the acquisition loop code cell, or add the 5.1 entry to the table of contents."
+    },
+    {
+      "id": "F003",
+      "severity": "nice-to-have",
+      "target_agent": "notebook-generator",
+      "issue_type": "stale_documentation",
+      "file": "notebook.ipynb",
+      "location": "cell 20 (§6 Use your own data, CSV format table)",
+      "description": "The §6 markdown describes CSV format as having a '`y` column' but data.py's implementation reads the last column as the label regardless of column name. The description should say 'last column is the label' to match the implementation.",
+      "proposed_fix": "Update the CSV format description in §6 to match data.py's actual behavior: 'last column is the integer label, all other columns are float features'."
+    }
+  ]
+}

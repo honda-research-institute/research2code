@@ -1,0 +1,19 @@
+{
+ "candidate_sha256": "af7a918acbca1ae9e00fde39805f8db8300fb4bdf01a7bbc8d6347b9ac14cdba",
+ "case_id": "rfc10008-cache-key-invented-algorithm",
+ "prohibited_interpretations": [
+  "hash(request content + metadata)",
+  "only needs the request URI"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "Invented algorithm plus unsupported oversimplification. The source requires the cache key to incorporate request content and related metadata; it names no hashing or serialization scheme, and it does not reduce GET caching to the URI.",
+ "required_disclosures": [],
+ "required_facts": [],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "rejected"
+}

@@ -1,0 +1,4 @@
+{
+  "applicable": false,
+  "reason": "no scale-dependent hyperparameters with a paper_value + calibration context declared"
+}

@@ -1,0 +1,40 @@
+.env
+.venv/
+.claude/
+.claude/settings.local.json
+.claude/projects/
+audit/run-reports/
+audit/archive/
+r2c_runs/
+r2c_runs_old/
+__pycache__/
+.pytest_cache/
+*.pyc
+.ruff_cache/
+r2c_output/
+imdb_cache/
+session-*.md
+nul
+claude.md
+transcript.md
+AGENTS.md
+
+
+# Dataset downloads from generated code (torchvision, sklearn, etc.)
+MNIST/
+CIFAR*/
+FakeData/
+data/
+
+.DS_Store
+transcript_*.md
+.ipynb_checkpoints/
+*.pyo
+.playwright-mcp
+# opencode agent scratch (agents may drop draft material here mid-dispatch)
+.opencode/scratch/
+
+# Raw run-evidence archive (internal transcripts and driver logs) stays
+# out of the tracked tree.
+tests/fixtures/evidence/transcripts/
+tests/fixtures/evidence/driver-logs/

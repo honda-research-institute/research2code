@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.0.0",
+  "sample_genuineness": {
+    "bad": {
+      "kind": "broadcast_mean",
+      "sample_count": 128,
+      "mu": [[12.0, 13.0, 14.0], [20.0, 19.0, 18.0]],
+      "scale": [[1.0, 1.2, 0.8], [1.5, 1.1, 0.9]],
+      "df": [[6.0, 7.0, 8.0], [5.0, 9.0, 10.0]],
+      "scale_key": "scale"
+    },
+    "good_scale": {
+      "kind": "student_t",
+      "seed": 8701,
+      "sample_count": 256,
+      "mu": [[12.0, 13.0, 14.0], [20.0, 19.0, 18.0]],
+      "scale": [[1.0, 1.2, 0.8], [1.5, 1.1, 0.9]],
+      "df": [[6.0, 7.0, 8.0], [5.0, 9.0, 10.0]],
+      "scale_key": "scale"
+    },
+    "good_sigma": {
+      "kind": "student_t",
+      "seed": 8702,
+      "sample_count": 256,
+      "mu": [[4.0, 5.0], [8.0, 9.0]],
+      "scale": [[0.7, 0.9], [1.2, 1.4]],
+      "df": [[7.0, 8.0], [6.0, 9.0]],
+      "scale_key": "sigma"
+    },
+    "unbindable": {
+      "kind": "student_t",
+      "seed": 8703,
+      "sample_count": 64,
+      "mu": [[1.0, 2.0]],
+      "scale": [[0.5, 0.5]],
+      "df": [[6.0, 6.0]],
+      "scale_key": "scale",
+      "extra_parameter": "variance"
+    }
+  },
+  "path_dependence": {
+    "bad": {
+      "kind": "independent_normal",
+      "seed": 8711,
+      "sample_count": 512,
+      "series_count": 3,
+      "horizon": 5
+    },
+    "good": {
+      "kind": "autoregressive_feedback",
+      "seed": 8712,
+      "sample_count": 512,
+      "series_count": 3,
+      "horizon": 5,
+      "feedback": 0.85,
+      "innovation_scale": 0.35
+    },
+    "unbindable": {
+      "kind": "independent_normal",
+      "seed": 8713,
+      "sample_count": 64,
+      "series_count": 2,
+      "horizon": 1
+    },
+    "not_applicable": {
+      "kind": "independent_normal",
+      "seed": 8714,
+      "sample_count": 64,
+      "series_count": 2,
+      "horizon": 3,
+      "autoregressive_required": false
+    },
+    "low_false_positive_sweep": {
+      "kind": "independent_normal",
+      "seed": 8800,
+      "seeds": [8800, 8801, 8802, 8803, 8804, 8805, 8806, 8807, 8808, 8809, 8810, 8811, 8812, 8813, 8814, 8815, 8816, 8817, 8818, 8819, 8820, 8821, 8822, 8823, 8824, 8825, 8826, 8827, 8828, 8829, 8830, 8831],
+      "sample_count": 100,
+      "series_count": 1,
+      "horizon": 2
+    }
+  },
+  "own_history_sensitivity": {
+    "bad": {
+      "graph": null,
+      "series_index": 1,
+      "baseline_history": [[2.0, 3.0, 4.0, 5.0], [10.0, 11.0, 12.0, 13.0], [30.0, 29.0, 31.0, 30.0]],
+      "perturbed_history": [[2.0, 3.0, 4.0, 5.0], [1000.0, 1100.0, 1200.0, 1300.0], [30.0, 29.0, 31.0, 30.0]],
+      "baseline_forecast": [[5.0, 5.5], [13.0, 14.0], [30.0, 30.5]],
+      "perturbed_forecast": [[5.0, 5.5], [13.0, 14.0], [30.0, 30.5]]
+    },
+    "good_graph_free": {
+      "graph": null,
+      "series_index": 1,
+      "baseline_history": [[2.0, 3.0, 4.0, 5.0], [10.0, 11.0, 12.0, 13.0], [30.0, 29.0, 31.0, 30.0]],
+      "perturbed_history": [[2.0, 3.0, 4.0, 5.0], [1000.0, 1100.0, 1200.0, 1300.0], [30.0, 29.0, 31.0, 30.0]],
+      "baseline_forecast": [[5.0, 5.5], [13.0, 14.0], [30.0, 30.5]],
+      "perturbed_forecast": [[5.0, 5.5], [620.0, 700.0], [30.0, 30.5]]
+    },
+    "numerical_noise": {
+      "graph": null,
+      "series_index": 1,
+      "baseline_history": [[2.0, 3.0, 4.0, 5.0], [10.0, 11.0, 12.0, 13.0], [30.0, 29.0, 31.0, 30.0]],
+      "perturbed_history": [[2.0, 3.0, 4.0, 5.0], [1000.0, 1100.0, 1200.0, 1300.0], [30.0, 29.0, 31.0, 30.0]],
+      "baseline_forecast": [[5.0, 5.5], [0.0, 0.0], [30.0, 30.5]],
+      "perturbed_forecast": [[5.0, 5.5], [1e-16, 1e-16], [30.0, 30.5]]
+    },
+    "wrong_intervention_factor": {
+      "graph": null,
+      "series_index": 1,
+      "baseline_history": [[2.0, 3.0, 4.0, 5.0], [10.0, 11.0, 12.0, 13.0], [30.0, 29.0, 31.0, 30.0]],
+      "perturbed_history": [[2.0, 3.0, 4.0, 5.0], [990.0, 1089.0, 1188.0, 1287.0], [30.0, 29.0, 31.0, 30.0]],
+      "baseline_forecast": [[5.0, 5.5], [13.0, 14.0], [30.0, 30.5]],
+      "perturbed_forecast": [[5.0, 5.5], [620.0, 700.0], [30.0, 30.5]]
+    },
+    "unbindable": {
+      "graph": null,
+      "series_index": 1,
+      "baseline_history": [[2.0, 3.0], [10.0, 11.0]],
+      "perturbed_history": null,
+      "baseline_forecast": [[4.0], [12.0]],
+      "perturbed_forecast": [[4.0], [20.0]]
+    }
+  },
+  "held_out_skill": {
+    "bad": {
+      "actuals": [10.0, 20.0],
+      "model_predictions": [9.0, 19.0],
+      "repeat_last": [10.0, 20.0],
+      "receipt_status": "valid"
+    },
+    "good": {
+      "actuals": [10.0, 20.0],
+      "model_predictions": [9.0, 19.0],
+      "repeat_last": [5.0, 15.0],
+      "receipt_status": "valid"
+    },
+    "unbindable": {
+      "actuals": [10.0, 20.0],
+      "model_predictions": [9.0, 19.0],
+      "repeat_last": [5.0, 15.0],
+      "receipt_status": "invalid"
+    }
+  },
+  "magnitude_collapse": {
+    "bad": {
+      "history_tail": [[40.0, 45.0, 50.0], [20.0, 25.0, 30.0]],
+      "forecast": [[0.08, 0.10], [0.05, 0.07]]
+    },
+    "good": {
+      "history_tail": [[40.0, 45.0, 50.0], [20.0, 25.0, 30.0]],
+      "forecast": [[42.0, 47.0], [22.0, 27.0]]
+    },
+    "mixed_entity_collapse": {
+      "history_tail": [[100.0, 100.0], [1.0, 1.0]],
+      "forecast": [[0.0, 0.0], [2.0, 2.0]]
+    },
+    "exact_threshold": {
+      "history_tail": [[100.0, 100.0]],
+      "forecast": [[1.0, 1.0]]
+    },
+    "unbindable": {
+      "history_tail": null,
+      "forecast": [[1.0, 2.0]]
+    },
+    "zero_history_unbindable": {
+      "history_tail": [[0.0, 0.0], [0.0, 0.0]],
+      "forecast": [[0.0], [0.0]]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "claims": [
+    {
+      "claim_type": "optimum",
+      "quote": "The argmax selects the class whose score is largest, so h_theta(x) is the classifier's predicted label.",
+      "formulas": ["Neural classifier prediction"],
+      "formal": {
+        "lhs": "h_theta(x)",
+        "rhs": "argmax_y f(x,theta)_y",
+        "relation": "argmax_equivalent",
+        "variables": [
+          {"name": "x", "domain": [0, 1], "role": "variable"},
+          {"name": "theta", "domain": [-10, 10], "role": "parameter"},
+          {"name": "y", "domain": [1, 10], "role": "variable"},
+          {"name": "K", "domain": [2, 10], "role": "parameter"}
+        ]
+      }
+    }
+  ]
+}

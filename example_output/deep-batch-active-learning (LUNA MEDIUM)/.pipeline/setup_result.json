@@ -1,0 +1,11 @@
+{
+  "repo_root": "<repo>",
+  "input_path": "<repo>/input_papers/deep-batch-active-learning.md",
+  "input_kind": "markdown",
+  "slug": "deep-batch-active-learning",
+  "run_dir": "<repo>/r2c_runs/deep-batch-active-learning",
+  "pipeline_dir": "<repo>/r2c_runs/deep-batch-active-learning/.pipeline",
+  "paper_md_path": "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper.md",
+  "paper_md_present": true,
+  "source_copy_path": "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/deep-batch-active-learning.md"
+}

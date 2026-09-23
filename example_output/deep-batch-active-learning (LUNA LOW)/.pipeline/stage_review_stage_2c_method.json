@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2c_method",
+  "review_status": "passed",
+  "summary": "All stage-specific semantic checks passed. The BADGE method computes hallucinated final-layer gradient embeddings on the live select_batch path and uses incremental k-MEANS++ distances; the annotated equations are structurally faithful to the paper.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "AL-kmeanspp-incremental-distances",
+      "status": "pass",
+      "note": "kmeans_plus_plus_seeding maintains a running nearest-center squared-distance vector and samples proportionally to it without an all-centers broadcast."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-gradient-embedding",
+      "status": "pass",
+      "note": "The softmax residual p_i - I(y_hat=i) is multiplied elementwise by the penultimate embedding for every class block, matching Eq. 1."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-softmax-cross-entropy",
+      "status": "pass",
+      "note": "The implementation uses softmax probabilities and argmax hallucinated labels to form the equivalent cross-entropy gradient expression required by the paper."
+    },
+    {
+      "check_id": "equation_anchor_missing",
+      "status": "pass",
+      "note": "Every eq-* paper-element annotation in method.py resolves to an equation element in paper_map.json."
+    }
+  ],
+  "caveats": [
+    "The zero-distance/equidistant k-MEANS++ fallback samples an unselected point because the paper's probability distribution is undefined when the distance sum is zero; this is a documented edge-case handling choice, not a mismatch at nondegenerate paper scale."
+  ]
+}

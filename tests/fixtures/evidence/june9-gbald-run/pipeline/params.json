@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0.0",
+  "params": {
+    "batch_size": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Section 7.4",
+      "note": "Paper uses batch_size=100 per data_setup."
+    },
+    "num_rounds": {
+      "value": 6,
+      "source": "paper",
+      "paper_section": "Section 7.4",
+      "note": "Paper uses 6 rounds."
+    },
+    "initial_labeled": {
+      "value": 20,
+      "source": "paper",
+      "paper_section": "Section 7.4",
+      "note": "Paper bootstraps with 20 uniformly-random labeled examples.",
+      "used_in_notebook": false,
+      "unused_reason": "This method bootstraps the labeled set via `construct_core_set(core_set_size)` (Stage 1 of the algorithm) \u2014 the initial labeled set IS the core-set. The spec's data_setup mentions `initial_labeled` for paradigm-fixed reasons but the algorithm's runtime path doesn't reference it. Kept in the dict for spec fidelity; ignore at runtime."
+    },
+    "pool_size": {
+      "value": 800,
+      "source": "system_default",
+      "paper_value": "full training set",
+      "reasoning": "Paper uses the full training set (typically 60k\u201373k samples) as the unlabeled pool. We subsample to 800 to keep each round's gradient-embedding pass over the whole pool cheap (the pool is re-scored every round, so this is the dominant cost of the acquisition loop). Note: this is a smoke-scale default, not a runtime estimate \u2014 the smoke gate is what actually verifies the notebook fits its per-cell time budget. Pool ratio (total_budget / pool_size) \u2248 0.65. This exceeds the paradigm field guide's `demo_scale.max_budget_to_pool_ratio` of 0.4 \u2014 methods may converge before diversity is meaningfully tested. Increase pool_size (or reduce num_rounds \u00d7 batch_size) for cleaner diversity-baseline comparisons."
+    },
+    "learning_rate": {
+      "value": 0.001,
+      "source": "system_inferred",
+      "reasoning": "Paper does not explicitly specify the learning rate (spec.training.learning_rate: 'Paper does not explicitly state the optimizer or learning rate. The paper follows [5] (BatchBALD) which uses Adam with d'). Selected 0.001 based on Adam-default convention following standard deep AL practice (Gal et al. 2017, Kirsch et al. 2019)."
+    },
+    "max_epochs": {
+      "value": 8,
+      "source": "system_inferred",
+      "reasoning": "Paper trains until training accuracy \u2265 99% with no explicit epoch cap. At smoke scale the labeled sets are tiny (\u2264 ~500 examples) and `train_until_accuracy` usually stops well before the cap; 8 is a low safety bound that keeps per-round training fast at smoke scale. Increase it for full-scale training."
+    },
+    "train_until_accuracy": {
+      "value": 0.99,
+      "source": "paper",
+      "paper_section": "Section 7.4",
+      "note": "Paper: train until training accuracy exceeds 99%."
+    },
+    "hidden_dim": {
+      "value": 256,
+      "source": "system_inferred",
+      "reasoning": "Paper architecture choice is data-type-dependent. We use hidden_dim=256 as the field-guide-typical AL convention."
+    },
+    "dropout_rate": {
+      "value": 0.5,
+      "source": "system_inferred",
+      "reasoning": "Bayesian-AL field guide recommends dropout in [0.25, 0.5] (Gal & Ghahramani 2016); 0.5 is the field-guide-typical default. Paper does not specify a dropout rate."
+    },
+    "mc_samples": {
+      "value": 20,
+      "source": "system_default",
+      "paper_value": 2000,
+      "reasoning": "Paper uses 2000 MC dropout samples. We use 20 \u2014 the bayesian-AL field-guide minimum for BALD's posterior estimate to be meaningful (Gal et al. recommend T \u2265 20). Larger T at paper scale gives a tighter estimate but dominates runtime at smoke scale."
+    },
+    "core_set_size": {
+      "value": 100,
+      "source": "system_default",
+      "paper_value": 5000,
+      "reasoning": "Paper states core_set_size=5000, but the generated method signature default is 100. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    },
+    "R_0": {
+      "value": 7.843,
+      "source": "system_default",
+      "paper_section": "Section 4.2, Eq. (5), Section 7.9",
+      "paper_value": 2000.0,
+      "reasoning": "AUTO-RESOLVED (A001): the paper value is 2000.0, but this run uses 7.843. Derivation: 2000.0 * (1/255) = 7.843. The geometric prior p(y|x,theta) = R_0/||x-D_j|| uses raw L2 distances calibrated on MNIST's [0,255] pixel scale. Under ToTensor() normalization, pixel distances shrink by ~255\u00d7, so R_0 must shrink proportionally to preserve the same probability threshold the paper calibrated. This is a scale-dependent hyperparameter mismatch that breaks the algorithm's intended behavior. See assumptions.md entry A001. Previous note: Distance threshold for the geometric prior probability model p(y|x,theta) = 1 if ||x - Dj|| <= R_0 else R_0 / ||x - Dj||. The value 2000 is calibrated for raw [0, 255] pixel distances on MNIST. Under [0,1] normalization, distances scale by 1/255 and this threshold becomes ~7.8. Under [-1,1] preprocessing, it becomes ~15.6. The generator must not silently use the raw value with normalized data."
+    },
+    "eta": {
+      "value": 0.9,
+      "source": "paper",
+      "note": "Paper-stated value recovered from paper_map."
+    },
+    "batch_returns": {
+      "value": 300,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (batch_returns=300). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec or make sure paper_map.json contains a clear batch_returns=<value> evidence entry so this value is resolved against paper-truth."
+    }
+  }
+}

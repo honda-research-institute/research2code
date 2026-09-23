@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2d",
+  "iteration": 1,
+  "validator_label": "element_tests:test_eq_softmax_cross_entropy.py",
+  "classification": "unclear",
+  "action": "halt",
+  "target_agent": null,
+  "finding": null,
+  "rationale": "The implementation follows the paper's stated gradient: with logits [0, ln 3], the predicted class is 1 and embedding z=2, so (p-one_hot)z is [0.5, -0.5] in class order. The test expects the reversed signs, so the test remains the apparent defect; however, the prior decision already routed this same module to r2c-test-generator and the identical failure persists, triggering the one-regeneration/oscillation guard rather than another dispatch.",
+  "confidence": "high",
+  "files_examined": [
+    "method/tests/test_eq_softmax_cross_entropy.py",
+    "method/method.py"
+  ]
+}

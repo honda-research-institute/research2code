@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "params": {
+    "batch_size": {
+      "value": 3,
+      "source": "paper",
+      "paper_section": "Section 7.4, Figure 5, Table 1 - MNIST initial=20, batch=3 for GBALD",
+      "note": "Paper uses batch_size=3 per data_setup."
+    },
+    "num_rounds": {
+      "value": 5,
+      "source": "system_default",
+      "paper_value": 200,
+      "reasoning": "Paper runs 200 rounds (~600 labels at batch_size=3). At smoke scale we run 5 rounds (~15 labels) \u2014 enough to see a learning curve emerge while keeping the acquisition loop (which re-trains and re-scores the pool every round) cheap to run on a laptop CPU at smoke scale."
+    },
+    "initial_labeled": {
+      "value": 20,
+      "source": "paper",
+      "paper_section": "Section 7.4, Figure 5, Table 1 - MNIST initial=20, batch=3 for GBALD",
+      "note": "Paper bootstraps with 20 uniformly-random labeled examples."
+    },
+    "pool_size": {
+      "value": 800,
+      "source": "system_default",
+      "paper_value": "full training set",
+      "reasoning": "Paper uses the full training set (typically 60k\u201373k samples) as the unlabeled pool. We subsample to 800 to keep each round's gradient-embedding pass over the whole pool cheap (the pool is re-scored every round, so this is the dominant cost of the acquisition loop). Note: this is a smoke-scale default, not a runtime estimate \u2014 the smoke gate is what actually verifies the notebook fits its per-cell time budget. Pool ratio (total_budget / pool_size) \u2248 0.04. This is at or below the paradigm field guide's `demo_scale.max_budget_to_pool_ratio` of 0.4 \u2014 diversity baselines are still meaningfully tested at this scale."
+    },
+    "learning_rate": {
+      "value": 0.001,
+      "source": "system_inferred",
+      "reasoning": "Paper does not explicitly specify the learning rate (spec.training.learning_rate: 'Paper does not specify explicit learning rate for the active learning loops. Standard Adam defaults used.'). Selected 0.001 based on Adam-default convention following standard deep AL practice (Gal et al. 2017, Kirsch et al. 2019)."
+    },
+    "max_epochs": {
+      "value": 8,
+      "source": "system_inferred",
+      "reasoning": "The paper states no epoch cap; per-round training stops at the convention accuracy threshold below. At smoke scale the labeled sets are tiny (\u2264 ~500 examples) and `train_until_accuracy` usually stops well before the cap; 8 is a low safety bound that keeps per-round training fast at smoke scale. Increase it for full-scale training."
+    },
+    "train_until_accuracy": {
+      "value": 0.99,
+      "source": "system_inferred",
+      "reasoning": "Deep-AL convention: BALD-line papers train each acquisition round to \u226599% training accuracy (Gal et al. 2017). This paper's spec states no explicit threshold, so the value is a field convention rather than a paper claim."
+    },
+    "hidden_dim": {
+      "value": 256,
+      "source": "system_inferred",
+      "reasoning": "Paper states no data-type-keyed MLP width. We use hidden_dim=256 as the field-guide-typical AL convention."
+    },
+    "dropout_rate": {
+      "value": 0.5,
+      "source": "paper",
+      "paper_section": "Section 7.4 - 0.5 dropout rate",
+      "note": "Paper-stated dropout rate (spec specific_features: 'Dropout rate of 0.5')."
+    },
+    "mc_samples": {
+      "value": 20,
+      "source": "system_default",
+      "paper_value": 2000,
+      "reasoning": "Paper uses 2000 MC dropout samples. We use 20 \u2014 the bayesian-AL field-guide minimum for BALD's posterior estimate to be meaningful (Gal et al. recommend T \u2265 20). Larger T at paper scale gives a tighter estimate but dominates runtime at smoke scale."
+    },
+    "R_0": {
+      "value": 2000.0,
+      "source": "paper",
+      "note": "Distance threshold for the geometric probability model p(y|x,theta) = R_0 / ||x - D_j|| for points outside the radius. Calibrated for raw [0, 255] pixel distances on MNIST (flattened images, L2 distance in input space). The value is meaningless for normalized data without rescaling. For input dimension d, a reasonable rescaling would be R_0_scaled = 2000.0 * (data_norm / 707) where 707 is the approximate L2 norm of a random raw MNIST image.",
+      "paper_section": "Section 4.2, Equation (5), Section 7.1 - R_0 = 2.0e+3 for all image datasets"
+    },
+    "eta": {
+      "value": 0.9,
+      "source": "paper",
+      "note": "Paper-stated value recovered from paper_map."
+    },
+    "batch_returns": {
+      "value": 100,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (batch_returns=100). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec or make sure paper_map.json contains a clear batch_returns=<value> evidence entry so this value is resolved against paper-truth."
+    }
+  }
+}

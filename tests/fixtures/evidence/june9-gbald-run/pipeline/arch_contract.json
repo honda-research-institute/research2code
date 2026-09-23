@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "paradigm_id": "active_learning/bayesian",
+  "data_loader": {
+    "load_data_returns": {
+      "x_pool": "(N_pool, n_features)",
+      "y_pool": "(N_pool,)",
+      "x_test": "(N_test, n_features)",
+      "y_test": "(N_test,)"
+    }
+  },
+  "architecture": {
+    "model": {
+      "class_name": "MCDropoutMLP",
+      "forward": {
+        "input": {
+          "x": "(B, n_features)"
+        },
+        "output_type": "tensor",
+        "output_shape": "(B, n_classes)"
+      },
+      "additional_methods": {}
+    }
+  },
+  "pluggable_component": {
+    "name": "select_batch",
+    "input_shapes": {
+      "x_unlabeled": "(N_pool, n_features)",
+      "x_labeled": "(N_labeled, n_features)"
+    },
+    "output_shape": "list[int] of length batch_size"
+  },
+  "training_loop": {
+    "function_name": "train_from_scratch",
+    "input_shapes": {
+      "x_train": "(N, n_features)",
+      "y_train": "(N,)"
+    }
+  }
+}

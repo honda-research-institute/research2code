@@ -1,0 +1,108 @@
+{
+  "target": "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning",
+  "counts": {
+    "pass": 7,
+    "fail": 0,
+    "flag_for_researcher": 1,
+    "warn": 1,
+    "unprobeable": 3
+  },
+  "verdicts": [
+    {
+      "probe_id": "US-10",
+      "verdict": "pass",
+      "message": "6 file(s) lint-clean (5 warning(s); engine: pyflakes)",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "US-2a",
+      "verdict": "warn",
+      "message": "eta: eta is source=paper but paper_section '' does not look like a paper locator",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "US-1",
+      "verdict": "pass",
+      "message": "params provenance probes clean over 13 entries",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "CT-3",
+      "verdict": "pass",
+      "message": "claims ledger built: 7 experiment claim(s) (0 comparative), every one explicitly untested_at_this_scale \u2014 the verification gap is visible, never silent",
+      "tier": "behavioral",
+      "evidence": "claims=['exp-uninformative-prior', 'exp-ranked-info-acquisitions', 'exp-main-comparison', 'exp-repeated-samples', 'exp-noisy-labels', 'exp-vs-batchbald', 'exp-core-set-size']",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "UB-6",
+      "verdict": "unprobeable",
+      "message": "notebook has no executed outputs (delivered unexecuted)",
+      "tier": "behavioral",
+      "evidence": "notebook.ipynb",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "AL-1",
+      "verdict": "unprobeable",
+      "message": "loop cell needs unknown name 'R_0_scaled' \u2014 extend the seeding table or probe by hand",
+      "tier": "behavioral",
+      "evidence": "notebook.ipynb:463b63c9",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "AL-3",
+      "verdict": "pass",
+      "message": "in-loop training builds a fresh model each round (fresh-weights behavior is AL-4's complementary check)",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "AL-6",
+      "verdict": "pass",
+      "message": "the delivered demo config exercises the acquisition loop (initial_labeled=20 < pool_size=800; budget 15 fits the remaining 780)",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "UB-5",
+      "verdict": "unprobeable",
+      "message": "training raised RuntimeError: shape '[-1, 1, 28, 28]' is invalid for input of size 1440",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "UB-7",
+      "verdict": "flag_for_researcher",
+      "message": "dead term channels in select_batch: compute_geometric_probability \u2014 output perturbation (cyclic shifts + dup-drop) never changes the selection; constant or discarded contribution",
+      "tier": "behavioral",
+      "evidence": "dead=['compute_geometric_probability']; alive=['compute_bald_scores']",
+      "finding_class": "M-004"
+    },
+    {
+      "probe_id": "CT-1",
+      "verdict": "pass",
+      "message": "selection differs from the degenerate nulls (first-k, seeded-random idioms) across 3 trial pools",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "AL-5",
+      "verdict": "pass",
+      "message": "contract holds (4 unique in-range indices) and the selection responds to model weights",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    }
+  ]
+}

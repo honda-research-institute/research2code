@@ -1,0 +1,255 @@
+{
+  "schema_version": "1.14.0",
+  "paper": {
+    "title": "DEEP BATCH ACTIVE LEARNING BY DIVERSE, UNCERTAIN GRADIENT LOWER BOUNDS",
+    "authors": "Jordan T. Ash, Chicheng Zhang, Akshay Krishnamurthy, John Langford, and Alekh Agarwal",
+    "repo_url": null
+  },
+  "core_method": {
+    "name": "BADGE: Batch Active Learning by Diverse Gradient Embeddings",
+    "summary": "BADGE represents each unlabeled example by the cross-entropy gradient at the final layer under its predicted label, then applies k-MEANS++ seeding to those embeddings to select an uncertain and diverse batch.",
+    "type": "algorithm",
+    "paper_sections": ["Algorithm 1", "Section 3", "Appendix A, Algorithm 2"],
+    "key_elements": ["alg-badge", "alg-gradient-embedding", "eq-gradient-embedding", "eq-softmax-gradient-block", "alg-kmeanspp-seeding", "eq-kmeanspp-probability"]
+  },
+  "paper_claims": {
+    "method_description": "BADGE uses the model's predicted label to form a hallucinated last-layer cross-entropy gradient for every unlabeled point. The gradient norm captures predictive uncertainty and its direction carries representation information; k-MEANS++ samples a batch that favors both large and separated gradient embeddings without a hand-tuned trade-off.",
+    "claimed_results": "The paper reports that BADGE generally performs as well as or better than the best comparison method across image and OpenML datasets, architectures, and batch sizes. It reports its strongest aggregate robustness relative to random, uncertainty, diversity, and hybrid active-learning comparisons, especially when batch size or architecture changes.",
+    "benchmark_scale": "231 experiments across SVHN, CIFAR-10, MNIST, and four OpenML datasets; three architectures; batch sizes 100, 1000, and 10000; five repeated runs per experiment."
+  },
+  "try_it_out": {
+    "definition": "Provide a trained multiclass PyTorch classifier and its current unlabeled feature tensor, then call BADGE to obtain positions of a diverse batch to label next.",
+    "user_provides": [
+      {
+        "name": "Unlabeled pool",
+        "description": "A tensor of candidate examples compatible with the classifier input.",
+        "type": "data"
+      },
+      {
+        "name": "Multiclass classifier",
+        "description": "A trained classifier exposing logits and its penultimate embedding for each input.",
+        "type": "model"
+      }
+    ],
+    "system_provides": [
+      {
+        "name": "BADGE batch selector",
+        "description": "A seeded function that computes hallucinated gradient embeddings and returns selected positions into the supplied unlabeled pool.",
+        "type": "code",
+        "symbol": "select_batch",
+        "symbol_kind": "function"
+      },
+      {
+        "name": "Classifier builder",
+        "description": "A compatible demonstration classifier with a penultimate-embedding hook.",
+        "type": "model",
+        "symbol": "build_model",
+        "symbol_kind": "function"
+      }
+    ]
+  },
+  "data_requirements": {
+    "format": "A labeled and unlabeled multiclass classification pool represented as tensors: x has shape (N, C, H, W) for images or (N, D) for tabular features, and y has integer class labels in [0, K-1].",
+    "example_datasets": ["MNIST", "SVHN", "CIFAR-10", "OpenML #6", "OpenML #155", "OpenML #156", "OpenML #184"],
+    "auto_download_feasible": true,
+    "auto_download_details": "MNIST, SVHN, and CIFAR-10 can be downloaded through torchvision; the demo can use MNIST.",
+    "synthetic_feasible": true,
+    "synthetic_description": "Generate a small separable multiclass tensor dataset to exercise gradient embeddings and seeded k-MEANS++ selection, although MNIST better illustrates the image-classification setting."
+  },
+  "dependencies": {
+    "frameworks": ["pytorch", "numpy"],
+    "pretrained_models": [],
+    "compute": "CPU sufficient",
+    "estimated_time": "A small MNIST active-learning demonstration runs in minutes on CPU."
+  },
+  "repo": {
+    "url": null,
+    "cloned": false,
+    "clone_path": null,
+    "key_files": []
+  },
+  "comparison": {
+    "classification": {
+      "id": "active_learning/batch_acquisition",
+      "detection_reasoning": "BADGE is a pool-based active learner that retrains after successive label-query rounds and selects B greater than one examples per round. Its hallucinated gradient embeddings and k-MEANS++ sampling jointly balance uncertainty and diversity, matching the batch_acquisition fingerprint rather than the Bayesian MC-dropout variant."
+    },
+    "description": "The paper compares BADGE with Random, CORESET, confidence, margin, entropy, and ALBL while holding the data, architecture, initial random set, label budget, retraining protocol, and batch-size condition fixed. This package implements only BADGE.",
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, batch_size, seed) -> List[int]",
+      "seed_param": "seed",
+      "description": "Compute predicted-label last-layer gradient embeddings for x_unlabeled and use seeded k-MEANS++ sampling to return exactly batch_size positions into that same tensor."
+    },
+    "controlled_variables": {
+      "unlabeled_pool": "All methods in the paper draw from the same current unlabeled pool.",
+      "initial_labeled_set": "Use the same randomly drawn initial labeled examples for a condition.",
+      "architecture": "Hold the neural architecture fixed within each dataset-architecture condition.",
+      "training_protocol": "Retrain each model from scratch with cross-entropy and Adam after each acquisition.",
+      "label_budget": "Evaluate methods at the same total number of queried labels."
+    },
+    "independent_variable": "The acquisition rule used to choose each batch of unlabeled examples.",
+    "evaluation_checkpoints": "Test accuracy after the initial training and after each acquisition-and-retraining round, indexed by total labeled examples.",
+    "primary_metric": "Test accuracy versus number of labels queried.",
+    "visualization": "A single BADGE learning curve of test accuracy against total labeled examples."
+  },
+  "critical_requirements": {
+    "model": {
+      "architecture": "A multiclass neural classifier with a softmax-compatible output layer and access to the activation immediately before that classifier layer; the paper evaluates MLP, ResNet-18, and VGG-11 architectures.",
+      "paper_section": "Section 3 and Section 4",
+      "specific_features": [
+        {
+          "feature": "Penultimate-layer embedding hook",
+          "why_essential": "The last-layer gradient embedding is the outer product of the predicted-label residual and the penultimate representation; returning logits in place of this embedding changes BADGE's diversity geometry.",
+          "severity": "essential",
+          "paper_section": "Section 3, Equation (1)"
+        },
+        {
+          "feature": "Multiclass output layer",
+          "why_essential": "BADGE constructs one gradient block per output class from predicted class probabilities.",
+          "severity": "essential",
+          "paper_section": "Section 3, multiclass softmax example"
+        }
+      ]
+    },
+    "training": {
+      "optimizer": "Adam variant of SGD",
+      "learning_rate": "0.001 for image data and 0.0001 for non-image data",
+      "protocol": "retrain from scratch",
+      "mc_samples": null,
+      "num_epochs": null,
+      "seed": null,
+      "paper_section": "Section 4"
+    },
+    "data_setup": {
+      "initial_labeled": 100,
+      "batch_size": 100,
+      "total_budget": 35000,
+      "num_rounds": 349,
+      "batch_returns": null,
+      "benchmark_name": "SVHN, ResNet, batch size 100 learning-curve condition",
+      "per_dataset_values": null,
+      "special_protocol": "Initialize with M=100 random labels, acquire B=100 labels per round, and retrain from scratch after each acquisition.",
+      "paper_section": "Algorithm 1 and Section 4"
+    },
+    "blockers": [
+      {
+        "requirement": "Predicted-label last-layer gradient embeddings",
+        "status": "must_implement",
+        "reason": "This is BADGE's uncertainty-and-representation mechanism; using probabilities or input features instead changes the acquisition rule.",
+        "resolution": "Compute the predicted class, form the cross-entropy residual for every class, multiply each residual by the true penultimate activation, and flatten the class blocks per candidate."
+      },
+      {
+        "requirement": "Seeded k-MEANS++ selection over gradient embeddings",
+        "status": "must_implement",
+        "reason": "The sampler supplies the within-batch diversity component of BADGE.",
+        "resolution": "Choose the first candidate uniformly using the supplied seed, then sample each subsequent candidate proportionally to its squared distance from the nearest already selected gradient embedding."
+      }
+    ],
+    "param_glossary": [
+      {
+        "name": "M",
+        "aliases": ["initial_labeled"],
+        "meaning_quote": "M=100 being the number of initial random labeled examples",
+        "paper_section": "Section 4",
+        "paper_value": 100
+      },
+      {
+        "name": "B",
+        "aliases": ["batch_size"],
+        "meaning_quote": "batch size B varying from  $\\{100,1000,10000\\}$ .",
+        "paper_section": "Section 4",
+        "paper_value": null
+      }
+    ],
+    "scale_dependent_hyperparameters": [],
+    "required_model_methods": [
+      {
+        "name": "forward_with_embedding",
+        "signature": "forward_with_embedding(self, x: Tensor) -> tuple[Tensor, Tensor]",
+        "returns_description": "Tuple of (logits, penultimate_embedding), where logits are the multiclass output scores and penultimate_embedding is the activation immediately before the final classifier layer, with shape (B, hidden_dim).",
+        "purpose": "BADGE forms each output-layer gradient block by multiplying the predicted-label residual by the penultimate representation.",
+        "called_from": "method/method.py::compute_gradient_embeddings, called by select_batch before k-MEANS++ sampling.",
+        "paper_section": "Section 3, Equation (1)"
+      }
+    ]
+  },
+  "methodology_replication_contract": {
+    "schema_version": "1.0",
+    "elements": [
+      {
+        "element_id": "hallucinated-last-layer-gradient-embeddings",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Algorithm 1 and Section 3, Equation (1)",
+        "paper_evidence": "For every unlabeled example, BADGE computes cross-entropy gradients with the model's predicted label and with respect to the final output layer.",
+        "technical_concept": "Predicted-label last-layer gradient embedding",
+        "required_behavior": "For each candidate, obtain logits and its real penultimate activation, use argmax(logits) as the hypothetical label, and construct the final-layer cross-entropy gradient embedding from the class residuals and that activation.",
+        "demo_scale_implementation": "Vectorize logits and penultimate embeddings over the smoke-sized pool, form one residual-times-embedding block per class, and flatten the blocks without replacing them with scalar uncertainty scores.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": ["Do not replace predicted-label gradient embeddings with entropy, margin, confidence, raw logits, probabilities, input-space vectors, or random scores."],
+        "required_controls": ["Use one fixed trained model snapshot for all candidate embeddings in an acquisition round.", "Keep candidate order aligned with the exact x_unlabeled tensor passed to select_batch."],
+        "fairness_checks": ["Every candidate must receive the same predicted-label gradient computation before selection.", "The embedding returned by the model hook must be the real penultimate activation rather than copied logits."],
+        "feasibility_rationale": "Algorithm 1 and Equation (1) specify the computation and it is practical on a small multiclass pool.",
+        "verification_expectations": ["The acquisition path calls forward_with_embedding and uses argmax-predicted labels.", "The generated embedding has one residual-scaled penultimate block per output class."],
+        "verification_probe_refs": ["claims.contribution_floor"],
+        "blockers": [],
+        "paper_element_ids": ["alg-gradient-embedding", "eq-gradient-embedding", "eq-softmax-gradient-block"]
+      },
+      {
+        "element_id": "kmeanspp-gradient-batch-selection",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Algorithm 1, Section 3, and Appendix A, Algorithm 2",
+        "paper_evidence": "BADGE selects the queried set by k-MEANS++ initialization over the hallucinated gradient embeddings.",
+        "technical_concept": "Seeded k-MEANS++ sampling over gradient embeddings",
+        "required_behavior": "Choose the first embedding uniformly, then select each later unique candidate with probability proportional to its squared Euclidean distance from its nearest already selected embedding, until batch_size positions are returned.",
+        "demo_scale_implementation": "Maintain a running nearest-squared-distance vector over the gradient embeddings and use a seeded random generator for each sampling draw.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": ["Do not select the top batch_size gradient norms.", "Do not replace k-MEANS++ sampling with deterministic nearest-center, farthest-first, k-DPP, or random selection."],
+        "required_controls": ["Use the supplied seed for the first-center and all subsequent weighted draws.", "Return only unique positions in range of x_unlabeled and return exactly the requested batch when enough candidates exist."],
+        "fairness_checks": ["Distances must be computed in the BADGE gradient-embedding space, not in raw input or logits space.", "Each draw must update nearest distances relative to all centers selected so far."],
+        "feasibility_rationale": "The sampling procedure is explicitly given in Appendix A and can be implemented efficiently for a smoke-scale pool.",
+        "verification_expectations": ["The selector retains a running nearest-distance vector rather than materializing all candidate-center distances.", "Repeated calls with the same inputs and seed return the same valid positions."],
+        "verification_probe_refs": ["al_loop.acquisition_contract"],
+        "blockers": [],
+        "paper_element_ids": ["alg-kmeanspp-seeding", "eq-kmeanspp-distance", "eq-kmeanspp-probability", "concept-diverse-uncertain-batches"]
+      },
+      {
+        "element_id": "retrain-after-each-acquisition",
+        "role": "supporting_mechanism",
+        "replication_status": "must_replicate",
+        "paper_section": "Algorithm 1 and Section 4",
+        "paper_evidence": "After querying each selected batch, the labeled set is enlarged and a model is trained again; the experiments avoid warm starting and retrain from scratch.",
+        "technical_concept": "Active-learning retraining protocol",
+        "required_behavior": "After each label acquisition, construct a fresh model and train it on the entire current labeled set before the next acquisition or evaluation.",
+        "demo_scale_implementation": "Use the same fresh-model, cross-entropy, and Adam training path at each smoke-scale acquisition round.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": ["Do not warm-start the prior round's model."],
+        "required_controls": ["Evaluate each checkpoint with the model trained on exactly the labeled set counted at that checkpoint."],
+        "fairness_checks": ["Keep the model architecture and training configuration fixed across rounds."],
+        "feasibility_rationale": "Fresh retraining is directly specified and is tractable with a small dataset and model.",
+        "verification_expectations": ["The notebook creates a fresh model inside the acquisition-round training path."],
+        "verification_probe_refs": ["al_loop.fresh_retrain"],
+        "blockers": [],
+        "paper_element_ids": ["alg-badge", "concept-retrain-from-scratch", "hyp-training-protocol"]
+      }
+    ]
+  },
+  "methodology_contract_pack": {
+    "schema_version": "1.0",
+    "summary": "The demo must compute predicted-label final-layer gradient embeddings and use seeded k-MEANS++ over them for every BADGE acquisition batch.",
+    "core_methodology_element_ids": ["hallucinated-last-layer-gradient-embeddings", "kmeanspp-gradient-batch-selection"],
+    "implementation_obligations": ["Compute predicted-label final-layer cross-entropy gradient embeddings from real penultimate activations.", "Select each batch with seeded k-MEANS++ sampling in gradient-embedding space.", "Retrain a fresh classifier after each queried batch."],
+    "approved_approximations": [],
+    "forbidden_substitutions": ["Do not replace gradient embeddings with scalar uncertainty or input-space features.", "Do not replace k-MEANS++ with top-k uncertainty, farthest-first, k-DPP, or random selection.", "Do not warm-start across acquisition rounds."],
+    "required_controls": ["Use one fixed trained model snapshot for all candidates within a round.", "Thread the supplied seed through every sampling draw.", "Keep selected positions aligned to the current unlabeled tensor."],
+    "verification_expectations": ["The selector calls the penultimate-embedding hook and returns valid pool-relative positions.", "The k-MEANS++ helper updates nearest distances incrementally.", "The notebook rebuilds the model for each round."]
+  },
+  "replication_feasibility": {
+    "schema_version": "1.0",
+    "verdict": "feasible",
+    "blockers": [],
+    "approved_approximations": []
+  },
+  "feasibility": "reproducible"
+}

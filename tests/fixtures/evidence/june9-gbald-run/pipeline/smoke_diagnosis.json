@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "target_agent": "r2c-method-coder",
+  "target_file": "method/method.py",
+  "bug_shape": "uncatalogued",
+  "root_cause": "compute_geometric_prior uses keepdim=True at line 83 (torch.min(distances, dim=1, keepdim=True).values), producing a (N, 1) shaped tensor instead of (N,). When geometric_ranking calls torch.topk(rep_probs, k) on this 2D tensor, torch.topk defaults to dim=-1 which has size 1, so selecting k > 1 raises \"selected index k out of range\".",
+  "proposed_fix": "Change line 83 of method/method.py from `torch.min(distances, dim=1, keepdim=True).values` to `torch.min(distances, dim=1).values` (remove keepdim=True). This returns a 1D tensor of shape (N,) which is what rep_probs needs to be for torch.topk to work correctly on it.",
+  "reasoning": "Smoke iterations 0-1 fixed import bugs (matplotlib_inline, torch.nn). This is a new layer exposed after those fixes. The error fires in geometric_ranking at method/method.py:204 in torch.topk(rep_probs, n_select). rep_probs comes from compute_geometric_prior at line 198. Walking upstream: compute_geometric_prior line 83 uses keepdim=True which makes min_distances shape (N, 1). torch.where at line 86 preserves that shape, so probs is (N, 1). The comment at line 65 says (N_unlabeled,) but the actual shape is (N, 1). When geometric_ranking passes this to torch.topk, the 2D tensor has last dimension size 1, so topk with k>1 fails. The bug is at the keepdim=True site in compute_geometric_prior — method/method.py is owned by r2c-method-coder.",
+  "value_origin_trace": [
+    "notebook cell 25, line 11: geometric_ranking(x_candidates, x_labeled, R_0, batch_outputs) — entry point of failing call",
+    "method/method.py:204: torch.topk(rep_probs, n_select) — torch.topk fails because rep_probs is 2D (N, 1) with last dim size 1, but n_select > 1",
+    "method/method.py:198: rep_probs = compute_geometric_prior(x_candidates, x_labeled, R_0) — computes shape (N, 1) instead of (N,)",
+    "method/method.py:83: min_distances = torch.min(distances, dim=1, keepdim=True).values — keepdim=True makes shape (N, 1) instead of (N,), breaking downstream torch.topk",
+    "r2c-method-coder: owner of method/method.py, keepdim=True is the bug site"
+  ],
+  "paper_fidelity_check": "This is a pure tensor shape bug with no paper-fidelity implications. Removing keepdim=True makes rep_probs a 1D tensor, which is geometrically and mathematically correct — each candidate should have a single scalar representativeness probability. The fix aligns with the paper's Eq. 13 which computes a scalar probability per candidate."
+}

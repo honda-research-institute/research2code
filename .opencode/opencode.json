@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": true,
+  "model": "{env:R2C_MODEL}",
+  "permission": {
+    "todowrite": "allow",
+    "todoread": "allow",
+    "external_directory": "deny"
+  }
+}

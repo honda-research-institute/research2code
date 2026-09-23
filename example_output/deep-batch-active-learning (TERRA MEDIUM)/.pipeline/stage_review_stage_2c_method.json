@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2c_method",
+  "review_status": "passed",
+  "summary": "All stage-2c semantic checks passed. The implementation computes predicted-label final-layer gradient embeddings and performs seeded incremental k-MEANS++ selection over those embeddings.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "paper_element_implementations_match_paper",
+      "status": "pass",
+      "note": "All annotated BADGE elements are implemented on the live select_batch path with penultimate activations, predicted labels, and gradient-space sampling."
+    },
+    {
+      "check_id": "paper_scale_faithful_implementation",
+      "status": "pass",
+      "note": "The same gradient-embedding and k-MEANS++ logic runs at demo and paper scale; the pool-size clamp does not replace algorithmic behavior."
+    },
+    {
+      "check_id": "simplifications_flagged",
+      "status": "pass",
+      "note": "The only smoke-pool accommodation, clamping an oversized request to available candidates, is explicitly marked paper-fidelity."
+    },
+    {
+      "check_id": "pluggable_function_actually_does_the_method",
+      "status": "pass",
+      "note": "select_batch calls the hallucinated-gradient computation followed by k-MEANS++ rather than a score-ranking or random fallback."
+    },
+    {
+      "check_id": "random_seeds_threaded",
+      "status": "pass",
+      "note": "A local generator constructed from seed supplies both the uniform first-center draw and every subsequent weighted draw."
+    },
+    {
+      "check_id": "AL-kmeanspp-incremental-distances",
+      "status": "pass",
+      "note": "The sampler retains and updates one nearest-squared-distance vector, without all-center tensor materialization."
+    },
+    {
+      "check_id": "AL-method-pluggable-no-hidden-state",
+      "status": "pass",
+      "note": "select_batch neither mutates the pool nor stores acquisition state and returns pool-relative indices from its supplied tensor."
+    },
+    {
+      "check_id": "AL-stage1-coreset-behaves",
+      "status": "pass",
+      "note": "Not applicable: BADGE has no Stage-1 core-set constructor; its declared initialization is the notebook-owned random labeled bootstrap."
+    },
+    {
+      "check_id": "AL-method-ranking-monotonicity",
+      "status": "pass",
+      "note": "No scalar ranking claim is made; subsequent centers are sampled from the correctly squared nearest-distance distribution."
+    },
+    {
+      "check_id": "methodology_replication_contract",
+      "status": "pass",
+      "note": "Both core methodology elements are preserved: real penultimate predicted-label gradient blocks and seeded k-MEANS++ over those blocks."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-gradient-embedding",
+      "status": "pass",
+      "note": "The live embedding path constructs the output-layer cross-entropy gradient under the argmax hypothetical label."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-classifier-prediction",
+      "status": "pass",
+      "note": "argmax over logits is equivalent to argmax over the paper's softmax probabilities."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-softmax-cross-entropy",
+      "status": "pass",
+      "note": "Softmax probabilities feed the exact cross-entropy derivative represented by the residual vector; explicit loss evaluation is unnecessary for this closed-form gradient."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-softmax-gradient-block",
+      "status": "pass",
+      "note": "residuals.unsqueeze(-1) multiplied by embedding.unsqueeze(1) implements each (p_i - I(y_hat=i))z block before flattening."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-kmeanspp-distance",
+      "status": "pass",
+      "note": "The maintained vector is the squared Euclidean distance to the nearest selected center, updated by elementwise minimum."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-kmeanspp-probability",
+      "status": "pass",
+      "note": "Sampling normalizes squared nearest-center distances, with selected positions zeroed to preserve unique centers."
+    }
+  ],
+  "caveats": [
+    "The implementation uses the closed-form softmax cross-entropy derivative rather than constructing the scalar loss and differentiating it; this is mathematically equivalent to Equation (1)."
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "explanations": {
+    "eq-classifier-prediction": {
+      "intuition": "The network is making its best current guess: among all class outputs, take the largest one. That guess lets BADGE ask, in effect, how the model's parameters would be pushed if this unlabeled example really had the class the model currently favors; the later gradient representation can then distinguish confident, redundant guesses from informative ones.",
+      "what": "For an input x, the neural network f(x; \u03b8) produces one score or probability f(x; \u03b8)_y for each of K classes. The classifier h_\u03b8(x) returns the class index y with the largest such output. In BADGE, this predicted class supplies the hallucinated label used when forming a gradient embedding for an unlabeled point.",
+      "why_novel": "This argmax prediction rule is standard multiclass-classification machinery, not a new contribution by itself. Its role here is to provide the predicted label that BADGE uses in its hallucinated gradient construction, which the paper positions as a way to combine uncertainty and diversity in batch selection."
+    },
+    "eq-cross-entropy": {
+      "intuition": "The loss asks one simple question: how much probability did the model give the answer that turned out to be correct? Assigning the true class probability close to one gives a loss near zero, whereas assigning it a very small probability produces a large penalty, so minimizing the loss pushes probability toward the observed label.",
+      "what": "This loss takes the classifier's predicted class-probability vector p and the true class y. The indicator I(y=i) selects only the probability assigned to the true class, so the K-class sum reduces to ln(1/p_y), equivalently -log(p_y); training minimizes this quantity over labeled examples.",
+      "why_novel": "This is standard cross-entropy training loss, not a novel component of BADGE. It supplies the ordinary supervised objective for the neural classifier rather than introducing a separate uncertainty-diversity trade-off."
+    },
+    "eq-gradient-embedding": {
+      "intuition": "Treat the model's current guess as a provisional label and ask how the output layer would need to move to support that guess. A confident prediction produces a gradient consistent with little need to change, whereas uncertainty can yield a larger or more informative update direction. Points whose g_x vectors point in different directions represent potentially different ways the model could need to change, so selecting separated vectors avoids filling a batch with nearly identical uncertain examples.",
+      "what": "For an unlabeled input x, this computes g_x, the gradient of the cross-entropy loss with respect to the output-layer parameters theta_out. The loss is evaluated using the network's current predicted label y_hat(x) as a stand-in for the unavailable true label, with all parameters evaluated at the current model theta_t. This vector is the point's representation in BADGE's hallucinated gradient space, which is subsequently used to choose a batch.",
+      "why_novel": "Cross-entropy and a last-layer gradient are standard machinery; the distinctive use here is to form that gradient with the hallucinated label y_hat(x) for each unlabeled point. BADGE then selects points that are both high magnitude and disparate in this gradient representation, rather than using predictive uncertainty or input-space diversity alone."
+    },
+    "eq-gradient-norm": {
+      "intuition": "Think of the gradient magnitude as how strongly the final classifier would need to move if this point were assigned label y. If the network already gives y high probability, the negative term -2p_y makes that hypothetical correction smaller; if y has low probability, the correction is larger. The representation norm then scales this signal by how large the point's last hidden-layer feature vector is.",
+      "what": "This equation computes the squared Euclidean norm of the last-layer gradient embedding g_x^y for input x under a chosen label y. It multiplies the squared norm of the penultimate representation z(x;V) by a probability-dependent factor: the sum of squared class probabilities p_i^2, plus 1, minus twice the probability p_y assigned to y. Thus both the feature scale and how the model scores the selected label determine the gradient's magnitude.",
+      "why_novel": "The norm identity itself is standard algebra from the last-layer softmax-gradient blocks, rather than a new loss or optimization objective. Its role in BADGE is to make explicit why a hallucinated-label gradient can encode uncertainty: choosing a label y with low p_y increases the displayed factor, while the gradient embedding can also be used for batch diversity."
+    },
+    "eq-kmeanspp-distance": {
+      "intuition": "Imagine that the selected centers already mark regions represented in the batch. A candidate with small D_t(x) lies near one of those marked regions and is therefore redundant under this distance measure; a candidate with large D_t(x) reaches into a region not yet covered. The equation does not itself measure uncertainty\u2014it only says how separated a candidate is from the current centers.",
+      "what": "For a candidate point x, D_t(x) is the Euclidean distance from x to its nearest already selected center in C_{t-1}. It produces one nonnegative distance score used to characterize how close the candidate is to the current set of centers.",
+      "why_novel": "This is standard nearest-center distance machinery rather than a novel equation by itself. In BADGE's broader selection strategy, it supplies the diversity component: a point far from every existing center is distinct in the representation space where the method performs selection."
+    },
+    "eq-kmeanspp-probability": {
+      "intuition": "A point already close to a chosen center represents much the same region of G, so it gets little chance of being selected again. A point far from every chosen center has a much larger squared-distance weight and is more likely to represent a new region. Squaring the distance accentuates that preference while retaining randomness, rather than forcing every next choice to be the single farthest point.",
+      "what": "This rule draws the next center c_t from the gradient-embedding set G. Each candidate x receives weight D_t(x)^2, where D_t(x) is its distance to the nearest center already selected; normalizing these weights by their sum turns them into sampling probabilities. The selected center is therefore one part of the batch-construction procedure rather than a deterministic highest-distance choice.",
+      "why_novel": "The squared-distance sampling rule is standard k-MEANS++ machinery, not a new equation by itself. In BADGE, it is used to construct a batch from the paper's hallucinated gradient embeddings, so the standard rule supplies the diversity component alongside the embedding magnitudes that encode predictive uncertainty."
+    },
+    "eq-softmax-cross-entropy": {
+      "intuition": "Think of the final layer as holding one prototype direction W_j per class, while z(x;V) describes the input just before classification. The loss is small when the true class direction W_y aligns much more strongly with that representation than the competing class directions. If a dog image receives a high cat score as well as a dog score, the log-sum-exp term remains large, so the loss indicates that the classifier still needs to separate those alternatives.",
+      "what": "This is the multiclass softmax cross-entropy loss for an input x with true class y. It takes the penultimate-layer representation z(x;V), scores it with each final-layer class weight vector W_j, and returns the log of the summed exponentiated scores minus the score W_y dot z(x;V) of the true class. Minimizing it raises the true class's score relative to the other K class scores.",
+      "why_novel": "This is standard softmax cross-entropy machinery, not the paper's novelty. It is included because writing the loss in terms of the final-layer weights W_j and representation z(x;V) exposes the quantities from which the method's gradient-based representation is built."
+    },
+    "eq-softmax-gradient-block": {
+      "intuition": "Think of each block as the update the final classifier would receive if its current most likely class were treated as the label. A confident prediction makes p_i close to the indicator for its predicted class and leaves a small gradient, whereas uncertainty leaves larger residuals across classes. The feature vector then says which kind of input would cause that update, allowing BADGE to seek examples whose potential updates are both substantial and different from one another.",
+      "what": "For each output class i, this computes that class's block of the gradient of cross-entropy loss with respect to the final-layer weights W_i. The block is the penultimate-layer feature vector z(x; V), scaled by p_i minus an indicator that the hallucinated label y_hat equals i. Concatenating these class blocks gives the gradient embedding used to represent an unlabeled example for batch selection.",
+      "why_novel": "The derivative itself is standard softmax cross-entropy machinery. In BADGE, its distinctive use is to form a gradient embedding with the hallucinated predicted label y_hat: the residual p_i - I(y_hat = i) combines the model's class probabilities with z(x; V), so examples are compared in this gradient space rather than by uncertainty scores or feature-space diversity alone."
+    }
+  },
+  "math_sanity": {
+    "consistent": 0,
+    "dropped": 7,
+    "entries_claim_free": 8,
+    "entries_examined": 8,
+    "entries_total": 8,
+    "not_checkable": 0,
+    "refuted": 0
+  },
+  "schema_version": "1.0.0"
+}

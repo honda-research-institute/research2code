@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-cross-entropy": {
+      "what": "This loss takes the network's predicted class probabilities p and the observed label y, then returns the negative log-probability assigned to the true class. The indicator I(y=i) selects the term for the observed class from the K possible classes, so the sum reduces to ln(1/p_y); training minimizes the average of this quantity over the labeled set.",
+      "why_novel": "This is standard cross-entropy training, not a BADGE-specific novelty. It supplies the usual neural-network objective whose predicted probabilities and gradients are later used by the active-learning method.",
+      "intuition": "The network is penalized when it gives the correct class a small probability: assigning probability 0.9 to the true class gives a small loss, while assigning 0.1 gives a much larger one. Minimizing the average loss therefore trains the model to put more probability on the labels already known, providing the predictions used to judge unlabeled examples."
+    }
+  }
+}

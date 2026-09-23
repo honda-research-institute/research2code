@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2c_method",
+  "review_status": "issues_found",
+  "summary": "The implementation is structurally sound and correctly implements GBALD's two-stage pipeline. Three findings: (1) Eq. 13 ranking direction is reversed relative to the paper's formula — the code selects the farthest candidates (max-min/k-centers) while the formula selects the closest (argmax of R_0/||.*||); however the code's docstring thoroughly justifies this as following the paper's prose over its contradictory formula. (2) The geometric representativeness computes distances in flattened input space, which is correct for GBALD's input-space geometric model. (3) The R_0 hyperparameter is accepted but not used in the ranking — consistent with the paper-fidelity notes but worth noting.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "equation_matches_paper:equation-single-rank",
+      "severity": "important",
+      "target_agent": "method-coder",
+      "issue_type": "algorithm_divergence",
+      "file": "method/method.py",
+      "location": "select_batch, lines 63-81 (docstring) and lines 140-153 (ranking code)",
+      "description": "Eq. 13's formula box writes: x*_t = argmax_{x*_i} max_{Dj} { R_0 / ||x*_i - D_j|| }, which selects the candidate CLOSEST to the labeled set (because max_j of R_0/||.*|| picks the nearest center's ratio). The implementation computes nearest_dists = min_j ||candidate_i - D_j|| (line 320) then sorts DESCENDING (line 153: argsort[::-1]), selecting the FARTEST candidate. The docstring (lines 67-80) provides a thorough justification: the paper's prose in Section 4.3 says 'max-min optimization of k-centers', 'the datum whose nearest distance to D_0 is the maximal', and 'reduce probability of sampling nearby data' — all pointing to farthest-first selection. The literal formula and the prose contradict each other. The code follows the prose, which is arguably correct, but this is an important paper-fidelity divergence from the formula box.",
+      "proposed_fix": "Document this formula-vs-prose contradiction explicitly as a finding in assumptions.md with the paper section. The code correctly implements the paper's stated intent (diversity / k-centers max-min).",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    },
+    {
+      "id": "F002",
+      "check_id": "equation_matches_paper:equation-ellipsoid-rescaling",
+      "severity": "nice-to-have",
+      "target_agent": "method-coder",
+      "issue_type": "other",
+      "file": "method/method.py",
+      "location": "construct_core_set, lines 469-477",
+      "description": "Eq. 11: x*_e = x_i + eta*(x* - x_i), then snap to argmin_{x_j in D_u} ||x_j - x*_e||. The code at line 471 computes `rescaled = pool_np[prev_idx] + eta * (pool_np[sel_idx] - pool_np[prev_idx])` where prev_idx is the previous acquisition and sel_idx is the max-min selected point. Line 473-477 snaps to nearest available pool point. This matches Eq. 11 correctly. However, on the FIRST iteration of the loop (right after the seed selection at line 457), the code uses the random seed point as prev_idx, which is not the 'previous acquisition' from the core-set construction per se — it's an arbitrary pool point. The paper's Algorithm 1 implies the first core-set acquisition x*_1 has no 'previous' x_i to rescale from (there is no iteration 0). The code's approach of picking a random start and rescaling from it introduces an undocumented initialization detail not in the paper.",
+      "proposed_fix": "Consider whether the ellipsoid rescaling should be skipped on the very first acquisition (i = 1), since there is no previous acquisition to rescale toward. Alternatively, document this initialization choice in the docstring. This is a low-priority concern since the effect is negligible after the first step and the k-means centers already provide geometric structure.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    }
+  ],
+  "checks_summary": [
+    {"check_id": "paper_element_implementations_match_paper", "status": "pass", "note": "All paper-element annotations correspond to the paper_map elements they reference. The code correctly implements each referenced equation/concept."},
+    {"check_id": "paper_scale_faithful_implementation", "status": "pass", "note": "Demo-scale and paper-scale runs use the same code. mc_samples default 100 vs paper's 2000 is the only difference, documented via # paper-fidelity comments and the methodology contract's approved_approximations."},
+    {"check_id": "simplifications_flagged", "status": "pass", "note": "mc_samples reduction from 2000→100 is flagged in docstring (line 101) and with # paper-fidelity comments (lines 226, 80). The Eq. 13 formula-vs-prose divergence is extensively documented in docstrings."},
+    {"check_id": "pluggable_function_actually_does_the_method", "status": "pass", "note": "select_batch implements the full two-step GBALD Stage 2: BALD scoring of candidates, top-b pre-filter, geometric representativeness ranking, and top-b' selection. It does not degenerate to pure BALD or pure k-centers."},
+    {"check_id": "random_seeds_threaded", "status": "pass", "note": "select_batch creates np.random.default_rng(seed) and torch.manual_seed(seed). compute_bald_scores re-creates these from the seed parameter. construct_core_set manages its own seed for k-means and random selection."},
+    {"check_id": "AL-method-pluggable-no-hidden-state", "status": "pass", "note": "select_batch returns positions into x_unlabeled; does not mutate x_labeled or maintain hidden state. construct_core_set is the separate Stage 1 helper, called in notebook §3.4."},
+    {"check_id": "AL-method-ranking-monotonicity", "status": "pass", "note": "compute_geometric_representativeness returns nearest_dists (higher = farther). The caller sorts descending (farthest first), consistent with the docstring stating 'farthest first' and the k-centers max-min rule. The ranking direction matches the prose intent."},
+    {"check_id": "AL-bayes-mc-train-mode", "status": "pass", "note": "compute_bald_scores calls model.train() at line 221 before MC forward passes (line 227). Original mode is restored at line 235 via model.train(old_training). The pattern is correct though not try/finally — a crash mid-loop would leave model in train() mode, but torch.no_grad context exit is clean."},
+    {"check_id": "AL-bayes-scale-hyperparam-handling", "status": "pass", "note": "R_0 is accepted as a parameter but not used in compute_geometric_representativeness because the ranking is scale-invariant (nearest distances divided by same R_0 preserves order). This is consistent with the spec's scale_dependent_hyperparameters noting R_0 assumes raw pixel scale. The code does not silently rescale."},
+    {"check_id": "equation_matches_paper:equation-bald-score", "status": "pass", "note": "BALD = H[predictive_mean] - E[H[predictive_per_sample]] computed correctly via MC dropout. logsumexp-based mean (line 237) is numerically stable. Entropy computation (lines 239-243) matches the mutual information formula from Eq. 1."},
+    {"check_id": "equation_matches_paper:equation-batch-bald", "status": "pass", "note": "Batch BALD (Eq. 12) is approximated via per-sample BALD scoring (same as Gal et al.'s practical implementation) rather than the full batch mutual information (BatchBALD's intractable form). This is consistent with the paper's Eq. 12 pseudocode which lists individual acquisitions."},
+    {"check_id": "equation_matches_paper:equation-single-rank", "status": "fail", "note": "See F001: ranking direction diverges from Eq. 13's literal formula (closest-first) but matches the paper's prose (farthest-first/max-min)."},
+    {"check_id": "equation_matches_paper:equation-batch-output", "status": "pass", "note": "Batch output (Eq. 14) selects top-b' most representative from b BALD-scored candidates. Code does this correctly via ranked[:bs] at line 154."},
+    {"check_id": "equation_matches_paper:equation-ellipsoid-rescaling", "status": "pass", "note": "Eq. 11 correctly implemented: rescaled = prev + eta*(selected - prev), then snap to nearest available pool point. See F002 for minor initialization concern."},
+    {"check_id": "equation_matches_paper:equation-kcenters-maxmin", "status": "pass", "note": "k-centers max-min correctly applied: argmax of min_distance to labeled centers. The nearest_sq vector is maintained incrementally."},
+    {"check_id": "equation_matches_paper:equation-geometric-probability", "status": "pass", "note": "Eq. 5 is used in concept only (R_0/distance ratio). For ranking, R_0 cancels out since it's a constant multiplier across all candidates. The effective ranking uses nearest distances, which preserves the same ordering."},
+    {"check_id": "equation_matches_paper:equation-acquisition-criterion", "status": "pass", "note": "Eq. 10 combined criterion is simplified to max-min distance in construct_core_set (line 468). The docstring explains that ||L_0 - L||^2 is treated as constant across candidates within one iteration, reducing the argmax to the k-centers criterion. This is a documented simplification."},
+    {"check_id": "methodology_contract_baseline", "status": "pass", "note": "Core methodology elements preserved: (1) ellipsoid-core-set-construction implemented in construct_core_set with eta rescaling and k-means init; (2) bald-uncertainty-then-geometric-ranking in select_batch with BALD scoring then geometric ranking; (3) mc-dropout-bayesian-approximation with model.train() activation and mc_samples=100 demo reduction (approved); (4) two-stage-algorithm-composition kept separate. No forbidden substitutions detected."}
+  ],
+  "caveats": [
+    "Eq. 13 controversy (F001): the formula and prose contradict on ranking direction. The code follows the prose (farthest-first / max-min). This is likely correct but the method-coder should be aware the formula box says something different. Document in assumptions.md.",
+    "The model.train(old_training) pattern in compute_bald_scores is not try/finally. If an exception occurs during MC forward passes, the model stays in train() mode. For a notebook demo this is unlikely to cause issues but for production robustness a try/finally would be preferable. The taxonomy check AL-bayes-mc-train-mode only requires train() to be called, which it is.",
+    "construct_core_set's first iteration uses a random pool point as the 'previous acquisition' for ellipsoid rescaling (F002). The paper's Algorithm 1 line 7 iterates i=1..N_M without a special first-iteration no-rescale case. However, the rescaling x_i + eta*(x* - x_i) on the first step with a random x_i has minimal practical effect."
+  ]
+}

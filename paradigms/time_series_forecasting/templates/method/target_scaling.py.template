@@ -1,0 +1,493 @@
+"""Portable training-only target scaling for forecasting packages.
+
+The helper fits scale state over one caller-supplied, half-open fitting range
+and keys every scale by a typed stable entity identity.  It is deliberately
+pure: it returns a JSON-compatible state mapping and never writes the
+pipeline-owned ``.pipeline/target_scaling_state.json`` artifact.
+
+``fitting_range`` is a lineage carrier, not trust by itself.  This module
+checks that the mapping has the exact version-one shape before copying it into
+the state.  Only the R2C pipeline can certify the carrier by rebinding the
+returned state to its independently minted split-lineage receipt.
+
+The implementation depends only on NumPy.  Torch tensors are supported by
+duck typing so a generated package does not acquire a torch dependency merely
+for target scaling.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+from collections.abc import Mapping, Sequence
+
+import numpy as np
+
+
+STATE_SCHEMA_VERSION = "1.0.0"
+SUPPORTED_MODES = ("none", "per_series_affine")
+OUTPUT_INVERSION_RULES = {
+    "location": "multiply_scale",
+    "samples": "multiply_scale",
+    "distribution_scale": "multiply_absolute_scale",
+    "variance": "multiply_squared_scale",
+    "unitless_shape": "unchanged",
+}
+
+# Frozen family policy.  The pipeline owns this contract and verifies that a
+# returned state still carries its exact canonical digest.
+TARGET_SCALING_POLICY = {
+    "schema_version": "1.0.0",
+    "mode": "per_series_affine",
+    "supported_modes": ["none", "per_series_affine"],
+    "fitting_role": "fitting",
+    "entity_id_root": "batch.entity_ids",
+    "target_root": "batch.targets",
+    "target_entity_axis": 0,
+    "target_protocol_axis": 1,
+    "statistic": "mean_absolute",
+    "centering": "none",
+    "epsilon": 1.0e-8,
+    "nonfinite_policy": "reject",
+    "zero_series_policy": "unit_scale_when_all_absolute_values_lte_epsilon",
+    "state_artifact": ".pipeline/target_scaling_state.json",
+    "output_inversion": dict(OUTPUT_INVERSION_RULES),
+}
+
+_CONTRACT_DIGESTS = {
+    "none": "ba37abf1c769f9404c58adc621fbfa766e9a15c41cb678f4d11e3fcc0de7e27f",
+    "per_series_affine": "c72778504341ef4d00fa223c3532758b00c19b098ade2158a8b153a5145ccb6f",
+}
+_FITTING_RANGE_KEYS = {
+    "validator",
+    "target_root",
+    "model_id",
+    "start",
+    "stop",
+    "certainty",
+}
+_STATE_KEYS = {
+    "schema_version",
+    "contract_digest",
+    "mode",
+    "entity_id_root",
+    "target_root",
+    "target_entity_axis",
+    "target_protocol_axis",
+    "fitting_lineage",
+    "statistic",
+    "centering",
+    "epsilon",
+    "nonfinite_policy",
+    "zero_series_policy",
+    "state_artifact",
+    "output_inversion",
+    "entity_count",
+    "entries",
+    "state_digest",
+}
+
+
+class TargetScalingError(ValueError):
+    """The generated package's closed target-scaling contract was violated."""
+
+
+def _canonical_json(value: object) -> str:
+    try:
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise TargetScalingError(
+            f"target scaling state is not canonical JSON: {exc}"
+        ) from exc
+
+
+def _digest(value: object) -> str:
+    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _policy(mode: str) -> dict[str, object]:
+    if mode not in SUPPORTED_MODES:
+        raise TargetScalingError(
+            f"unsupported target scaling mode {mode!r}; expected one of "
+            f"{list(SUPPORTED_MODES)!r}"
+        )
+    policy = dict(TARGET_SCALING_POLICY)
+    policy["mode"] = mode
+    policy["supported_modes"] = list(SUPPORTED_MODES)
+    policy["output_inversion"] = dict(OUTPUT_INVERSION_RULES)
+    digest = _digest(policy)
+    if digest != _CONTRACT_DIGESTS[mode]:
+        raise RuntimeError(
+            "the generated target-scaling policy no longer matches its fixed digest"
+        )
+    return policy
+
+
+def _typed_identity(
+    value: object,
+    *,
+    root: str,
+) -> tuple[dict[str, object], tuple[str, object]]:
+    if isinstance(value, np.generic):
+        value = value.item()
+    if isinstance(value, bool):
+        raise TargetScalingError(
+            f"{root} contains boolean identity {value!r}; expected integer or string"
+        )
+    if isinstance(value, int):
+        return {"type": "integer", "value": value}, ("integer", value)
+    if isinstance(value, str) and value:
+        return {"type": "string", "value": value}, ("string", value)
+    raise TargetScalingError(
+        f"{root} contains unsupported identity {value!r}; expected integer or string"
+    )
+
+
+def _typed_identities(
+    values: object,
+    *,
+    root: str,
+) -> list[tuple[dict[str, object], tuple[str, object]]]:
+    if hasattr(values, "detach") and hasattr(values, "cpu"):
+        values = values.detach().cpu().tolist()
+    elif isinstance(values, np.ndarray):
+        values = values.tolist()
+    if isinstance(values, (str, bytes)) or not isinstance(values, Sequence):
+        raise TargetScalingError(
+            f"{root} must be a nonempty one-dimensional stable-id sequence"
+        )
+    raw = list(values)
+    if not raw or any(isinstance(item, (list, tuple, dict)) for item in raw):
+        raise TargetScalingError(
+            f"{root} must be a nonempty one-dimensional stable-id sequence"
+        )
+    typed = [_typed_identity(item, root=root) for item in raw]
+    seen: set[tuple[str, object]] = set()
+    duplicates: list[dict[str, object]] = []
+    for serialized, key in typed:
+        if key in seen:
+            duplicates.append(serialized)
+        seen.add(key)
+    if duplicates:
+        raise TargetScalingError(
+            f"{root} contains duplicate typed stable ids {duplicates!r}"
+        )
+    return typed
+
+
+def _fitting_lineage(fitting_range: Mapping[str, object]) -> dict[str, object]:
+    if not isinstance(fitting_range, Mapping) or set(fitting_range) != _FITTING_RANGE_KEYS:
+        keys = set(fitting_range) if isinstance(fitting_range, Mapping) else set()
+        raise TargetScalingError(
+            "fitting_range must be the exact caller-supplied lineage mapping; "
+            f"missing={sorted(_FITTING_RANGE_KEYS - keys)}, "
+            f"unknown={sorted(keys - _FITTING_RANGE_KEYS)}"
+        )
+    validator = fitting_range.get("validator")
+    target_root = fitting_range.get("target_root")
+    model_id = fitting_range.get("model_id")
+    start = fitting_range.get("start")
+    stop = fitting_range.get("stop")
+    certainty = fitting_range.get("certainty")
+    if validator != "eval_split_lineage" or certainty != "exact":
+        raise TargetScalingError(
+            "fitting_range must retain eval_split_lineage/exact carrier labels; "
+            "those labels are not certification without pipeline rebinding"
+        )
+    if not isinstance(target_root, str) or not target_root:
+        raise TargetScalingError("fitting_range.target_root must be a nonempty string")
+    if not isinstance(model_id, str) or not model_id:
+        raise TargetScalingError("fitting_range.model_id must be a nonempty string")
+    if (
+        isinstance(start, bool)
+        or isinstance(stop, bool)
+        or not isinstance(start, int)
+        or not isinstance(stop, int)
+        or start < 0
+        or stop <= start
+    ):
+        raise TargetScalingError(
+            "fitting_range must contain one nonempty absolute half-open interval"
+        )
+    return {
+        "validator": validator,
+        "target_root": target_root,
+        "model_id": model_id,
+        "start": start,
+        "stop": stop,
+        "certainty": certainty,
+    }
+
+
+def _numpy_targets(targets: object, *, target_root: str) -> np.ndarray:
+    if hasattr(targets, "detach") and hasattr(targets, "cpu"):
+        array = targets.detach().cpu().numpy()
+    elif isinstance(targets, np.ndarray):
+        array = targets
+    else:
+        raise TargetScalingError(
+            f"{target_root} must be a NumPy array or torch tensor"
+        )
+    if array.dtype.kind != "f":
+        raise TargetScalingError(
+            f"{target_root} must use a real floating dtype; got {array.dtype}"
+        )
+    return np.asarray(array)
+
+
+def fit_target_scaling_state(
+    entity_ids: object,
+    targets: object,
+    fitting_range: Mapping[str, object],
+    *,
+    mode: str = "per_series_affine",
+) -> dict[str, object]:
+    """Fit and return pure JSON-compatible state over ``[start, stop)`` only."""
+    policy = _policy(mode)
+    lineage = _fitting_lineage(fitting_range)
+    ids = _typed_identities(entity_ids, root=str(policy["entity_id_root"]))
+    array = _numpy_targets(targets, target_root=str(policy["target_root"]))
+    entity_axis = int(policy["target_entity_axis"])
+    protocol_axis = int(policy["target_protocol_axis"])
+    if array.ndim <= max(entity_axis, protocol_axis):
+        raise TargetScalingError(
+            f"{policy['target_root']} shape {array.shape!r} does not carry the "
+            f"fixed entity/protocol axes {(entity_axis, protocol_axis)!r}"
+        )
+    if array.shape[entity_axis] != len(ids):
+        raise TargetScalingError(
+            f"{policy['target_root']} entity-axis size {array.shape[entity_axis]} "
+            f"does not match {policy['entity_id_root']} count {len(ids)}"
+        )
+    start = int(lineage["start"])
+    stop = int(lineage["stop"])
+    if stop > array.shape[protocol_axis]:
+        raise TargetScalingError(
+            f"caller-supplied fitting range [{start}, {stop}) is outside "
+            f"{policy['target_root']} protocol-axis size {array.shape[protocol_axis]}"
+        )
+
+    aligned = np.moveaxis(array, (entity_axis, protocol_axis), (0, 1))
+    fitting = aligned[:, start:stop, ...]
+    epsilon = float(policy["epsilon"])
+    entries: list[dict[str, object]] = []
+    for index, (serialized_id, _) in enumerate(ids):
+        values = np.asarray(fitting[index], dtype=np.float64).reshape(-1)
+        if mode == "none":
+            statistic_value: float | None = None
+            scale = 1.0
+            observation_count = 0
+            resolution = "mode_none"
+        else:
+            if not np.isfinite(values).all():
+                raise TargetScalingError(
+                    f"{policy['target_root']} has non-finite fitting values for "
+                    f"stable id {serialized_id!r}; policy is reject"
+                )
+            absolute = np.abs(values)
+            statistic_value = float(np.mean(absolute))
+            observation_count = int(values.size)
+            if bool(np.all(absolute <= epsilon)):
+                scale = 1.0
+                resolution = "unit_scale"
+            else:
+                scale = statistic_value
+                resolution = "not_applied"
+            if not math.isfinite(scale) or scale <= 0.0:
+                raise TargetScalingError(
+                    f"invalid fitted scale {scale!r} for stable id {serialized_id!r}"
+                )
+        entries.append({
+            "entity_id": serialized_id,
+            "statistic_value": statistic_value,
+            "scale": scale,
+            "fitting_observation_count": observation_count,
+            "zero_series_resolution": resolution,
+            "certainty": "exact",
+        })
+    entries.sort(key=lambda entry: _canonical_json(entry["entity_id"]))
+
+    state: dict[str, object] = {
+        "schema_version": STATE_SCHEMA_VERSION,
+        "contract_digest": _CONTRACT_DIGESTS[mode],
+        "mode": mode,
+        "entity_id_root": policy["entity_id_root"],
+        "target_root": policy["target_root"],
+        "target_entity_axis": entity_axis,
+        "target_protocol_axis": protocol_axis,
+        "fitting_lineage": lineage,
+        "statistic": policy["statistic"],
+        "centering": policy["centering"],
+        "epsilon": epsilon,
+        "nonfinite_policy": policy["nonfinite_policy"],
+        "zero_series_policy": policy["zero_series_policy"],
+        "state_artifact": policy["state_artifact"],
+        "output_inversion": dict(OUTPUT_INVERSION_RULES),
+        "entity_count": len(entries),
+        "entries": entries,
+    }
+    state["state_digest"] = _digest(state)
+    return state
+
+
+def _scale_lookup(
+    state: Mapping[str, object],
+    entity_ids: object,
+) -> tuple[list[float], dict[str, object]]:
+    if not isinstance(state, Mapping) or set(state) != _STATE_KEYS:
+        raise TargetScalingError("target scaling state has an unsupported shape")
+    normalized = json.loads(_canonical_json(dict(state)))
+    state_digest = normalized.pop("state_digest", None)
+    if not isinstance(state_digest, str) or state_digest != _digest(normalized):
+        raise TargetScalingError("target scaling state failed its canonical digest")
+    normalized["state_digest"] = state_digest
+    mode = normalized.get("mode")
+    if mode not in SUPPORTED_MODES or normalized.get("contract_digest") != _CONTRACT_DIGESTS[mode]:
+        raise TargetScalingError("target scaling state disagrees with the fixed family policy")
+    if normalized.get("output_inversion") != OUTPUT_INVERSION_RULES:
+        raise TargetScalingError("target scaling state has unsupported output inversion rules")
+    raw_entries = normalized.get("entries")
+    if (
+        not isinstance(raw_entries, list)
+        or normalized.get("entity_count") != len(raw_entries)
+        or not raw_entries
+    ):
+        raise TargetScalingError("target scaling state has incoherent entity entries")
+
+    lookup: dict[tuple[str, object], float] = {}
+    for entry in raw_entries:
+        if not isinstance(entry, Mapping):
+            raise TargetScalingError("target scaling state has a malformed entity entry")
+        raw_id = entry.get("entity_id")
+        if not isinstance(raw_id, Mapping) or set(raw_id) != {"type", "value"}:
+            raise TargetScalingError("target scaling state has a malformed typed identity")
+        serialized, key = _typed_identity(raw_id.get("value"), root="state.entries")
+        if serialized["type"] != raw_id.get("type"):
+            raise TargetScalingError("target scaling state has a mismatched typed identity")
+        if key in lookup:
+            raise TargetScalingError(
+                f"target scaling state repeats typed identity {dict(raw_id)!r}"
+            )
+        scale = entry.get("scale")
+        if (
+            isinstance(scale, bool)
+            or not isinstance(scale, (int, float))
+            or not math.isfinite(float(scale))
+            or float(scale) <= 0.0
+        ):
+            raise TargetScalingError(
+                f"target scaling state has invalid scale {scale!r}"
+            )
+        lookup[key] = float(scale)
+
+    typed = _typed_identities(
+        entity_ids,
+        root=str(normalized.get("entity_id_root", "batch.entity_ids")),
+    )
+    unknown = [serialized for serialized, key in typed if key not in lookup]
+    if unknown:
+        raise TargetScalingError(
+            f"state root {normalized.get('state_artifact')!r} has no scale for "
+            f"typed stable ids {unknown!r}"
+        )
+    return [lookup[key] for _, key in typed], normalized
+
+
+def _reshape_scales(values: object, scales: list[float], *, entity_axis: int) -> object:
+    shape = getattr(values, "shape", None)
+    try:
+        shape = tuple(shape)
+    except TypeError:
+        raise TargetScalingError(
+            "scaled values must be a NumPy array or torch tensor"
+        ) from None
+    ndim = len(shape)
+    if entity_axis < 0:
+        entity_axis += ndim
+    if entity_axis < 0 or entity_axis >= ndim:
+        raise TargetScalingError(
+            f"entity axis {entity_axis} is outside output shape {shape!r}"
+        )
+    if shape[entity_axis] != len(scales):
+        raise TargetScalingError(
+            f"output entity-axis size {shape[entity_axis]} does not match "
+            f"stable-id count {len(scales)}"
+        )
+    reshape = [1] * ndim
+    reshape[entity_axis] = len(scales)
+    if isinstance(values, np.ndarray):
+        if values.dtype.kind != "f":
+            raise TargetScalingError(
+                f"scaled NumPy values must be floating; got {values.dtype}"
+            )
+        return np.asarray(scales, dtype=values.dtype).reshape(reshape)
+    if hasattr(values, "new_tensor") and hasattr(values, "reshape"):
+        if not getattr(values.dtype, "is_floating_point", False):
+            raise TargetScalingError(
+                f"scaled torch values must be floating; got {values.dtype}"
+            )
+        return values.new_tensor(scales).reshape(reshape)
+    raise TargetScalingError("scaled values must be a NumPy array or torch tensor")
+
+
+def transform_targets(
+    values: object,
+    entity_ids: object,
+    state: Mapping[str, object],
+    *,
+    entity_axis: int = 0,
+) -> object:
+    """Divide target values by scales joined through typed stable identities."""
+    scales, _ = _scale_lookup(state, entity_ids)
+    return values / _reshape_scales(values, scales, entity_axis=entity_axis)
+
+
+def inverse_forecast_output(
+    values: object,
+    entity_ids: object,
+    state: Mapping[str, object],
+    *,
+    output_role: str,
+    entity_axis: int = 0,
+) -> object:
+    """Return one typed forecast output to original target units."""
+    if output_role not in OUTPUT_INVERSION_RULES:
+        raise TargetScalingError(
+            f"unsupported forecast output role {output_role!r}; expected one of "
+            f"{sorted(OUTPUT_INVERSION_RULES)!r}"
+        )
+    scales, normalized = _scale_lookup(state, entity_ids)
+    if normalized["output_inversion"].get(output_role) != OUTPUT_INVERSION_RULES[output_role]:
+        raise TargetScalingError(
+            f"target scaling state disagrees with the {output_role!r} inversion rule"
+        )
+    scale_array = _reshape_scales(values, scales, entity_axis=entity_axis)
+    if output_role == "variance":
+        return values * scale_array * scale_array
+    if output_role == "unitless_shape":
+        return values * (scale_array / scale_array)
+    if output_role == "distribution_scale":
+        if isinstance(scale_array, np.ndarray):
+            scale_array = np.abs(scale_array)
+        else:
+            scale_array = scale_array.abs()
+    return values * scale_array
+
+
+__all__ = [
+    "OUTPUT_INVERSION_RULES",
+    "STATE_SCHEMA_VERSION",
+    "SUPPORTED_MODES",
+    "TARGET_SCALING_POLICY",
+    "TargetScalingError",
+    "fit_target_scaling_state",
+    "inverse_forecast_output",
+    "transform_targets",
+]

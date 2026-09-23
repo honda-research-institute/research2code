@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2x_params",
+  "review_status": "passed",
+  "summary": "All stage-2x parameter provenance and demo-reachability checks passed. The configuration retains the paper's B=100 batch regime while documenting smoke-scale deviations.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "paper_source_values_match_paper",
+      "status": "pass",
+      "note": "The paper-sourced values are supported by Section 4: M=100, B includes 100, image learning rate is 0.001, and training continues until accuracy exceeds 99%."
+    },
+    {
+      "check_id": "system_default_reasoning_explains_deviation",
+      "status": "pass",
+      "note": "Both smoke-scale defaults state the corresponding paper condition and explain their runtime-motivated deviations."
+    },
+    {
+      "check_id": "AL-params-demo-reachability",
+      "status": "pass",
+      "note": "initial_labeled=100 is below pool_size=12000; five acquisitions of B=100 leave 11,400 candidates, so every round can execute."
+    },
+    {
+      "check_id": "methodology_replication_contract",
+      "status": "pass",
+      "note": "The parameter artifact preserves the contract-relevant paper regime by retaining B=100; its only scale reductions concern rounds and pool size, not either core BADGE mechanism."
+    }
+  ],
+  "caveats": []
+}

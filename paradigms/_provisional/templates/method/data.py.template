@@ -1,0 +1,164 @@
+"""Data loading for {{ method_name }}.
+
+This method belongs to a research family that is new to the R2C paradigm
+library ({{ family_id }}), so data loading starts family-neutral: the loader
+reads whatever local dataset you provide and returns it as a dict of named
+arrays. Nothing is ever downloaded.
+
+The method's declared entry point (what ultimately consumes this data):
+
+    {{ interface_signature }}
+
+Provide data in one of these formats under `method/example_data/` (or pass
+an explicit `path=`). Formats are checked in this priority order:
+
+  - `.npz`  — numpy archive; every array is returned under its key
+  - `.json` — a JSON object mapping names to (nested) numeric lists
+  - `.csv`/`.tsv` — one entry per delimited file, keyed by the file's stem;
+              each table
+              is a dict mapping column name -> numpy array (numeric columns
+              become float arrays with NaN for blanks, other columns stay
+              string arrays; a headerless all-numeric file is returned as
+              one 2-D array instead)
+
+Bundle metadata (`PROVENANCE.json`, `README.md`) sits beside the data and is
+never loaded as data.
+"""
+# NOTE (B-11): the loader helpers below are the canonical copies; the
+# time_series_forecasting family loader started from these and now
+# legitimately diverges (demo-data provisioning). Fix shared bugs here
+# first, then check the family copy on its own evidence.
+
+
+from __future__ import annotations
+
+import csv
+import json
+import os
+from pathlib import Path
+
+import numpy as np
+
+DEFAULT_DATA_DIR = Path(__file__).parent / "example_data"
+
+# Files that describe the bundle rather than carry it (written by R2C's
+# demo-bundle materializer next to the tables it bundles).
+_METADATA_NAMES = {"PROVENANCE.json", "README.md"}
+
+
+def _find_with_ext(directory: Path, ext: str) -> list[Path]:
+    if not directory.is_dir():
+        return []
+    return sorted(
+        p for p in directory.iterdir()
+        if p.suffix.lower() == ext
+        and p.is_file()
+        and p.name not in _METADATA_NAMES
+        and not p.name.startswith(".")
+    )
+
+
+def _load_npz(path: Path) -> dict:
+    with np.load(path) as archive:
+        return {name: np.asarray(archive[name]) for name in archive.files}
+
+
+def _load_json(path: Path) -> dict:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"{path.name}: expected a JSON object mapping names to arrays, "
+            f"got {type(payload).__name__}"
+        )
+    return {name: np.asarray(value) for name, value in payload.items()}
+
+
+def _numeric_or_str_column(values: list[str]) -> np.ndarray:
+    """A column becomes float (blank -> NaN) when every non-blank cell parses
+    as a number; otherwise it stays a string array."""
+    parsed: list[float] = []
+    for cell in values:
+        if cell == "":
+            parsed.append(float("nan"))
+            continue
+        try:
+            parsed.append(float(cell))
+        except ValueError:
+            return np.asarray(values, dtype=str)
+    return np.asarray(parsed, dtype=float)
+
+
+def _load_csv(path: Path) -> dict | np.ndarray:
+    """One CSV/TSV table, preserving mixed columns by delimiter."""
+    delimiter = "\t" if path.suffix.lower() == ".tsv" else ","
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = [row for row in csv.reader(handle, delimiter=delimiter) if row]
+    if not rows:
+        raise ValueError(f"{path.name}: file has no rows")
+    header = rows[0]
+    try:
+        [float(cell) for cell in header]
+    except ValueError:
+        columns = list(zip(*(r + [""] * (len(header) - len(r)) for r in rows[1:])))
+        return {
+            name: _numeric_or_str_column(list(col))
+            for name, col in zip(header, columns)
+        }
+    return np.asarray([[float(cell) for cell in row] for row in rows], dtype=float)
+
+
+def _load_csv_dir(paths: list[Path]) -> dict:
+    return {path.stem: _load_csv(path) for path in paths}
+
+
+def load_data(path: str | os.PathLike | None = None, *, seed: int = 0) -> dict:
+    """Load a local dataset as a dict of named numpy arrays.
+
+    If `path` is None, reads from `method/example_data/`. `path` may also
+    point directly at a single data file. `seed` is accepted for interface
+    uniformity with other R2C loaders; file-based loading is deterministic,
+    so it is unused here.
+    """
+    del seed  # deterministic file loading; kept for loader-interface uniformity
+    location = DEFAULT_DATA_DIR if path is None else Path(path)
+
+    if location.is_file():
+        suffix = location.suffix.lower()
+        if suffix == ".npz":
+            return _load_npz(location)
+        if suffix == ".json":
+            return _load_json(location)
+        if suffix in {".csv", ".tsv"}:
+            loaded = _load_csv(location)
+            return {location.stem: loaded} if isinstance(loaded, dict) else {"data": loaded}
+        raise ValueError(
+            f"unsupported dataset format {location.suffix!r} at {location}; "
+            f"supported: .npz, .json, .csv, .tsv"
+        )
+
+    npz = _find_with_ext(location, ".npz")
+    if npz:
+        return _load_npz(npz[0])
+    js = _find_with_ext(location, ".json")
+    if js:
+        return _load_json(js[0])
+    tables = sorted(
+        _find_with_ext(location, ".csv") + _find_with_ext(location, ".tsv")
+    )
+    if tables:
+        if len(tables) == 1:
+            loaded = _load_csv(tables[0])
+            return {tables[0].stem: loaded} if isinstance(loaded, dict) else {"data": loaded}
+        return _load_csv_dir(tables)
+
+    raise FileNotFoundError(
+        f"no local dataset found under {location} — place a "
+        f".npz/.json/.csv/.tsv "
+        f"file there (see method/example_data/README.md for the formats). "
+        f"This package never downloads data at runtime. When R2C built this "
+        f"package it attempted to bundle a demo-scale extract of the "
+        f"paper's own cited public dataset; if example_data/ has no "
+        f"PROVENANCE.json, that acquisition found no anonymously fetchable "
+        f"source (the build log's dataset_acquisition record says exactly "
+        f"what was tried and why each source was rejected)."
+    )

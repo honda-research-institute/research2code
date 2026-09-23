@@ -1,0 +1,339 @@
+schema_version: "1.0"
+metadata:
+  title: "main/v3 integration SSOT"
+  owner: "maintainers"
+  runtime_boundary: "Maintainer docs only; the pipeline runtime does not read this SSOT."
+  v3_reference:
+    - "docs/ssot/*.yaml"
+    - "bin/docs/refresh_docs.py"
+    - "marker-based AUTO block injection"
+
+stages:
+  - id: stage_0
+    display_name: "Stage 0 - Setup & Paper Ingestion"
+    category: setup_analysis
+    active_form: "Setting up + parsing paper"
+  - id: stage_1
+    display_name: "Stage 1 - Paper Decomposition & Method Analysis"
+    category: setup_analysis
+    active_form: "Analyzing paper"
+  - id: stage_1x
+    display_name: "Stage 1.x - Method Explanation (METHOD.md)"
+    category: setup_analysis
+    active_form: "Explaining the method"
+  - id: stage_2a
+    display_name: "Stage 2.a - Package Scaffold"
+    category: package_generation
+    active_form: "Scaffolding package"
+  - id: stage_2b
+    display_name: "Stage 2.b - Architecture & Training"
+    category: package_generation
+    active_form: "Generating architecture"
+  - id: stage_2c
+    display_name: "Stage 2.c - Method Implementation"
+    category: package_generation
+    active_form: "Generating method"
+  - id: stage_2d
+    display_name: "Stage 2.d - Package Finalization"
+    category: package_generation
+    active_form: "Finalizing package"
+  - id: stage_2x
+    display_name: "Stage 2.x - Parameter Derivation"
+    category: package_generation
+    active_form: "Deriving parameters"
+  - id: stage_3a
+    display_name: "Stage 3.a - Notebook Authoring"
+    category: notebook_smoke
+    active_form: "Generating notebook"
+  - id: stage_3b
+    display_name: "Stage 3.b - Notebook Rendering"
+    category: notebook_smoke
+    active_form: "Rendering notebook"
+  - id: stage_3c
+    display_name: "Stage 3.c - Smoke Execution"
+    category: notebook_smoke
+    active_form: "Running smoke gate"
+  - id: stage_4
+    display_name: "Stage 4 - Paper-Fidelity Review"
+    category: review_routing
+    active_form: "Reviewing paper fidelity"
+  - id: stage_5
+    display_name: "Stage 5 - Findings Routing"
+    category: review_routing
+    active_form: "Routing findings"
+
+agents:
+  - id: r2c-decomposer
+    file: .opencode/agents/r2c-decomposer.md
+    model_tier: Think
+    role: "Paper Map producer"
+    stages: [stage_1]
+  - id: r2c-method-analyzer
+    file: .opencode/agents/r2c-method-analyzer.md
+    model_tier: Think
+    role: "method_spec.json producer"
+    stages: [stage_1]
+  - id: r2c-architecture-coder
+    file: .opencode/agents/r2c-architecture-coder.md
+    model_tier: Code
+    role: "model.py and training.py producer"
+    stages: [stage_2b]
+  - id: r2c-method-coder
+    file: .opencode/agents/r2c-method-coder.md
+    model_tier: Code
+    role: "method.py producer"
+    stages: [stage_2c]
+  - id: r2c-test-generator
+    file: .opencode/agents/r2c-test-generator.md
+    model_tier: Code
+    role: "per-element test producer (method/tests/)"
+    stages: [stage_2d]
+  - id: r2c-notebook-generator
+    file: .opencode/agents/r2c-notebook-generator.md
+    model_tier: Code
+    role: "notebook draft producer"
+    stages: [stage_3a]
+  - id: r2c-stage-reviewer
+    file: .opencode/agents/r2c-stage-reviewer.md
+    model_tier: Think
+    role: "per-stage semantic reviewer"
+    stages: [stage_1, stage_2b, stage_2c, stage_2x, stage_3a]
+  - id: r2c-smoke-diagnostician
+    file: .opencode/agents/r2c-smoke-diagnostician.md
+    model_tier: Think
+    role: "smoke failure diagnostician"
+    stages: [stage_3c]
+  - id: r2c-paper-fidelity-reviewer
+    file: .opencode/agents/r2c-paper-fidelity-reviewer.md
+    model_tier: Code
+    role: "end-to-end paper-fidelity reviewer"
+    stages: [stage_4]
+  - id: r2c-halt-judge
+    file: .opencode/agents/r2c-halt-judge.md
+    model_tier: Think
+    role: "halt and recovery classifier"
+    stages: [stage_1, stage_2b, stage_2c, stage_2d, stage_3a, stage_3c, stage_4]
+
+validators:
+  - id: validate_paper_map
+    file: scripts/validate_paper_map.py
+    stage_id: stage_1
+    artifact: paper_map
+  - id: validate_method_spec
+    file: scripts/validate_method_spec.py
+    stage_id: stage_1
+    artifact: method_spec
+  - id: check_feasibility
+    file: scripts/check_feasibility.py
+    stage_id: stage_1
+    artifact: feasibility_gate
+  - id: validate_scaffolder_output
+    file: scripts/validate_scaffolder_output.py
+    stage_id: stage_2a
+    artifact: researcher_readme
+  - id: validate_architecture_coder_output
+    file: scripts/validate_architecture_coder_output.py
+    stage_id: stage_2b
+    artifact: method_file
+  - id: validate_arch_contract
+    file: scripts/validate_arch_contract.py
+    stage_id: stage_2b
+    artifact: arch_contract
+  - id: validate_method_coder_output
+    file: scripts/validate_method_coder_output.py
+    stage_id: stage_2c
+    artifact: method_file
+  - id: validate_params_output
+    file: scripts/validate_params_output.py
+    stage_id: stage_2x
+    artifact: params
+  - id: validate_notebook_output
+    file: scripts/validate_notebook_output.py
+    stage_id: stage_3b
+    artifact: notebook
+  - id: smoke_run_notebook
+    file: scripts/smoke_run_notebook.py
+    stage_id: stage_3c
+    artifact: notebook
+  - id: validate_review_report
+    file: scripts/validate_review_report.py
+    stage_id: stage_4
+    artifact: review_report
+  - id: validate_final_manifest
+    file: scripts/validate_final_manifest.py
+    stage_id: stage_5
+    artifact: final_manifest
+
+artifact_types:
+  - id: report_md
+    source: final_manifest
+    description: "Researcher-facing run report front door."
+  - id: paper_markdown
+    source: final_manifest
+    description: "Parsed paper Markdown."
+  - id: paper_map
+    source: final_manifest
+    description: "Structured paper element map."
+  - id: method_spec
+    source: final_manifest
+    description: "Method analysis and methodology-fidelity contract."
+  - id: feasibility_gate
+    source: final_manifest
+    description: "Stage 1 feasibility decision."
+  - id: method_md
+    source: final_manifest
+    description: "Standalone method explanation (METHOD.md) — best-effort, survives downstream failure."
+  - id: method_explanations
+    source: final_manifest
+    description: "Structured explanation sidecar METHOD.md is generated from."
+  - id: researcher_readme
+    source: final_manifest
+    description: "Researcher-facing package README."
+  - id: method_file
+    source: final_manifest
+    description: "Importable method package Python file."
+  - id: method_data_format
+    source: final_manifest
+    description: "Example data format documentation."
+  - id: arch_contract
+    source: final_manifest
+    description: "Structured architecture and shape contract."
+  - id: requirements
+    source: final_manifest
+    description: "Runtime requirements file."
+  - id: test_coverage_index
+    source: final_manifest
+    description: "Per-element test coverage README (method/tests/) — honest index of tested, weak, and not-shipped elements."
+  - id: element_tests
+    source: final_manifest
+    description: "Per-element test results record (statuses, drops, mutation labels) the coverage README summarizes."
+  - id: params
+    source: final_manifest
+    description: "Derived runtime parameters."
+  - id: notebook_source
+    source: final_manifest
+    description: "Notebook source draft."
+  - id: notebook
+    source: final_manifest
+    description: "Rendered notebook."
+  - id: target_scaling_state
+    source: final_manifest
+    description: "Pipeline-validated training-only target scaling state keyed by typed stable entity identity."
+  - id: training_history
+    source: final_manifest
+    description: "Pipeline-validated structured training and model-selection history bound to exact ranges and the evaluated checkpoint."
+  - id: review_report
+    source: final_manifest
+    description: "Paper-fidelity review report."
+  - id: deferred_findings
+    source: final_manifest
+    description: "Findings deferred from automatic repair."
+  - id: assumptions
+    source: final_manifest
+    description: "Researcher-facing assumptions audit."
+  - id: known_issues
+    source: final_manifest
+    description: "Known issues carried to delivery."
+  - id: driver_state
+    source: final_manifest
+    description: "Driver state snapshot."
+  - id: event_log
+    source: final_manifest
+    description: "Append-only run event log."
+  - id: progress_state
+    source: final_manifest
+    description: "Filesystem-fed live progress projection."
+
+candidate_artifacts:
+  - stage_id: stage_1
+    artifact_id: method_spec
+    display_name: "Stage 1 / Method Spec"
+    canonical_rel_path: .pipeline/method_spec.json
+    current_projection: .pipeline/current/stage_1/method_spec.json
+    validator: "validate_method_spec.py --strict"
+
+integration_status:
+  - id: step_1
+    display_name: "Methodology-fidelity contract"
+    status: "Deterministic implementation complete; live smoke pending"
+    v3_mapping:
+      - "methodology_replication_contract"
+      - "methodology_contract_pack"
+      - "replication_feasibility"
+    notes: "Main keeps strict schemas and existing reviewer/halt behavior."
+  - id: step_2
+    display_name: "Additive event log and run lock"
+    status: "Deterministic implementation complete; live smoke pending"
+    v3_mapping:
+      - "run_events.jsonl"
+      - "event replay projection"
+      - "run-directory lock"
+    notes: "Replay is mirror-only; sentinels remain runtime authority."
+  - id: step_3
+    display_name: "Final manifest"
+    status: "Deterministic implementation complete; live smoke pending"
+    v3_mapping:
+      - "final_manifest.json"
+      - "artifact hashing"
+      - "blocked/degraded check semantics"
+    notes: "Manifest is generated from main artifacts and event replay."
+  - id: step_4
+    display_name: "Candidate promotion prep"
+    status: "Prep slice complete; live producer wiring pending"
+    v3_mapping:
+      - "candidate directories"
+      - "content-addressed promoted artifacts"
+      - "current projections"
+      - "artifact promotion events"
+    notes: "Only stage_1/method_spec is registered; canonical writes are unchanged."
+  - id: step_5
+    display_name: "Stage-agnostic dispatch reconciliation"
+    status: "Deterministic implementation complete; live smoke pending"
+    v3_mapping:
+      - "dispatch reconciliation concept"
+      - "candidate-present recovery"
+      - "partial-candidate failure"
+      - "auditable reconciliation events"
+    notes: "Runs at startup and before each stage; no-op unless registered candidate attempts exist."
+  - id: step_6
+    display_name: "SSOT docs tooling"
+    status: "Implemented for maintainer-side documentation drift checks"
+    v3_mapping:
+      - "docs/ssot YAML"
+      - "refresh/check workflow"
+      - "AUTO marker injection"
+    notes: "Runtime does not read this SSOT."
+  - id: step_7
+    display_name: "Dataset registry decision"
+    status: "Deferred"
+    v3_mapping:
+      - "dataset registry remains out of scope"
+    notes: "Revisit only when concrete dataset materialization work needs it."
+  - id: step_8
+    display_name: "Regression gate and acceptance suite"
+    status: "Checklist prepared; live smoke pending"
+    v3_mapping:
+      - "integrated acceptance gate"
+      - "deterministic test gate"
+      - "live smoke evidence template"
+      - "output-quality invariants"
+    notes: "Prepared while Coding agent is blocked; completion requires live smoke coverage."
+  - id: field_guide_hardening
+    display_name: "Field-guide hardening"
+    status: "Retired; taxonomy pack readiness and role views own this surface"
+    v3_mapping:
+      - "taxonomy pack SSOT is canonical"
+      - "role-scoped generated documentation"
+      - "advisory readiness validation"
+      - "runtime consumers read taxonomy/build-plan APIs"
+    notes: "Retired guide files are deleted; validate_field_guides.py remains as a backwards-compatible command name for taxonomy pack readiness."
+  - id: field_guide_authoring
+    display_name: "Automated taxonomy-pack proposal workflow"
+    status: "Maintainer-side gap report, proposal tooling, and slash command implemented; live smoke pending"
+    v3_mapping:
+      - "structured gap artifacts"
+      - "candidate proposal packets"
+      - "role/coupling review before promotion"
+      - "opencode-safe command surface for authoring dispatch"
+      - "taxonomy pack proposal path is canonical"
+    notes: "Stage 1 can surface taxonomy gaps; /r2c-paradigms backgrounds pack proposal authoring, and promotion remains explicit."

@@ -1,0 +1,95 @@
+{
+  "dispatches_counted": 42,
+  "per_agent": {
+    "r2c-architecture-coder": {
+      "cache_read": 1199737,
+      "cache_write": 75466,
+      "input": 69,
+      "output": 6674,
+      "prompt": 1199806,
+      "reasoning": 1485
+    },
+    "r2c-decomposer": {
+      "cache_read": 143797,
+      "cache_write": 65127,
+      "input": 27,
+      "output": 5366,
+      "prompt": 143824,
+      "reasoning": 301
+    },
+    "r2c-halt-judge": {
+      "cache_read": 62917,
+      "cache_write": 27549,
+      "input": 12,
+      "output": 792,
+      "prompt": 62929,
+      "reasoning": 226
+    },
+    "r2c-method-analyzer": {
+      "cache_read": 533265,
+      "cache_write": 338948,
+      "input": 63,
+      "output": 6861,
+      "prompt": 533328,
+      "reasoning": 2467
+    },
+    "r2c-method-coder": {
+      "cache_read": 521964,
+      "cache_write": 46844,
+      "input": 42,
+      "output": 2827,
+      "prompt": 522006,
+      "reasoning": 674
+    },
+    "r2c-method-explainer": {
+      "cache_read": 84275,
+      "cache_write": 88134,
+      "input": 48,
+      "output": 3103,
+      "prompt": 84323,
+      "reasoning": 726
+    },
+    "r2c-notebook-generator": {
+      "cache_read": 458207,
+      "cache_write": 75591,
+      "input": 30,
+      "output": 5778,
+      "prompt": 458237,
+      "reasoning": 1173
+    },
+    "r2c-paper-fidelity-reviewer": {
+      "cache_read": 237361,
+      "cache_write": 80848,
+      "input": 15,
+      "output": 1405,
+      "prompt": 237376,
+      "reasoning": 412
+    },
+    "r2c-stage-reviewer": {
+      "cache_read": 1221132,
+      "cache_write": 318826,
+      "input": 93,
+      "output": 6840,
+      "prompt": 1221225,
+      "reasoning": 3052
+    },
+    "r2c-test-generator": {
+      "cache_read": 1239344,
+      "cache_write": 328557,
+      "input": 243,
+      "output": 12243,
+      "prompt": 1239587,
+      "reasoning": 8963
+    }
+  },
+  "schema_version": "1.0",
+  "totals": {
+    "cache_read": 5701999,
+    "cache_write": 1445890,
+    "input": 642,
+    "output": 51889,
+    "prompt": 5702641,
+    "reasoning": 19479
+  },
+  "updated_at": "2026-09-04T16:59:00Z"
+}

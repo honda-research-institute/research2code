@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "feasibility_at_spec": "reproducible",
+  "blocker_counts": {
+    "must_implement": 1,
+    "can_approximate": 1,
+    "cannot_implement": 0
+  },
+  "blockers": [
+    {
+      "requirement": "MC dropout must be active during BALD scoring (model.train() mode)",
+      "status": "must_implement",
+      "reason": "Without dropout active at inference, MC samples are identical, BALD scores are zero, and the method silently degenerates to random sampling. This is the canonical silent-failure mode for Bayesian AL.",
+      "resolution": "The method.py BALD-scoring function must explicitly call model.train() before MC forward passes and restore eval() afterward (try/finally pattern)."
+    },
+    {
+      "requirement": "Distance threshold R_0 calibrated for data preprocessing scale",
+      "status": "can_approximate",
+      "reason": "R_0 = 2000 is calibrated for raw unnormalized [0,255] pixel distances on MNIST. Under different preprocessing (e.g., [0,1] normalization), the threshold becomes meaningless. The generator must detect scale mismatch.",
+      "resolution": "Record R_0 in scale_dependent_hyperparameters with assumes_data_scale='raw_pixel_unnormalized'. The generator uses the paper value if preprocessing matches or halts on mismatch."
+    }
+  ]
+}

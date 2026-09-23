@@ -1,0 +1,25 @@
+[
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_1",
+    "iteration": 0,
+    "validator_label": "validate_paper_map.py",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-decomposer",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The paper map has one property element with the minority `prop-` prefix while the other property elements use `property-`. This is a stable-ID consistency defect in the decomposer's artifact, not a taxonomy or schema conflict; the map currently contains no cross-references to that property, but all dependency and related-equation references must remain consistent if any are present or introduced.",
+      "proposed_fix": "Rename `prop-hallucinated-gradient-lower-bound` to `property-hallucinated-gradient-lower-bound` and update every `dependencies` and `related_equations` entry in the paper map that refers to its old ID. Preserve the element's content, type, and existing valid references."
+    },
+    "rationale": "The validator's prefix rule explicitly rejects confusable prefixes within a single element type, and the paper map confirms that this lone `prop-` property appears alongside two `property-` elements. The schema permits stable cross-references and the producer owns both the element ID and any references, so this is directly repairable by the decomposer; no prior decision indicates oscillation.",
+    "confidence": "high",
+    "files_examined": [
+      "scripts/validate_paper_map.py",
+      "schemas/paper_map.py",
+      "r2c_runs/deep-batch-active-learning/.pipeline/paper_map.json",
+      "schemas/judge_decision.py"
+    ]
+  }
+]

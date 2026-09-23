@@ -1,0 +1,63 @@
+proposal:
+  proposal_id: 20260728-motion_planning-rl_collision_avoidance
+  source_paper_slug: SRL
+  source_gap_report: .pipeline/paradigm_gap_report.json
+  decision: new_subparadigm_needed
+  target_paradigm_id: motion_planning/rl_collision_avoidance
+  target_taxonomy_id: CLC-MP/rl_collision_avoidance
+  extends: motion_planning
+  title: Rl Collision Avoidance
+pack:
+  schema_version: '1.0'
+  status: provisional
+  legacy_paradigm: motion_planning/rl_collision_avoidance
+  extends: motion_planning
+  taxonomy_id: CLC-MP/rl_collision_avoidance
+  fingerprint:
+    what_it_is: A deep reinforcement learning method for multi-agent collision avoidance
+      that induces socially compliant navigation behaviors through reward shaping.
+      The method trains a symmetrical multiagent neural network with a norm-inducing
+      reward penalty to learn cooperation-free collision avoidance policies that respect
+      social norms (e.g., passing on the right).
+    not_this: []
+  scaffold_hints:
+    interface_hint: plan(start, goal, environment, dynamics, seed, *paradigm_extras_by_name)
+      -> PlanResult
+  priors:
+    source_paper: SRL
+    evidence:
+    - paper_section: Section III (Approach)
+      quote_or_observation: This work presents the socially aware multiagent collision
+        avoidance with deep reinforcement learning algorithm (SA-CADRL)... first describe
+        a strategy for shaping normative behaviors for a two-agent system in the RL
+        framework, and then generalize the method to multiagent scenarios.
+      relevance: The paper explicitly identifies itself as a deep RL approach to collision
+        avoidance, not a classical planner.
+    - paper_section: Section II-A (Background)
+      quote_or_observation: 'The objective is to develop a policy, pi : (st, s_tilde_o)
+        -> ut, that minimizes the expected time to goal E[tg] while avoiding collision
+        with nearby agents.'
+      relevance: The method formulates a closed-loop RL policy, exactly the signal
+        motion_planning's route_elsewhere routes away from.
+    - paper_section: Algorithm 1
+      quote_or_observation: 'Deep V-learning for SA-CADRL: initialize value net, experience
+        sets, epsilon-greedy trajectory generation, RMSprop updates over episodes.'
+      relevance: "Core algorithm is a deep value-learning RL training loop \u2014\
+        \ not a tree search, roadmap, or optimization solver."
+    - paper_section: Section III-A
+      quote_or_observation: To induce a particular norm, a small bias can be introduced
+        in the RL training process in favor of one set of behaviors over others. For
+        instance, to encourage passing on the right, states with another agent approaching
+        from the undesirable side can be penalized.
+      relevance: "The novelty is reward shaping for social norms within an RL framework\
+        \ \u2014 an RL-specific technique, not a classical planning technique."
+    - paper_section: Section III-B
+      quote_or_observation: To capture the multiagent system's symmetrical structure,
+        a neural network with weight-sharing and max-pooling layers is employed.
+      relevance: Multiagent architecture contribution is specific to RL value networks,
+        not applicable to classical planner taxonomies.
+  semantic_checks: []
+  smoke_bugs: []
+  open_questions:
+  - Maintainer must decide whether this provisional pack earns a canonical taxonomy
+    node.

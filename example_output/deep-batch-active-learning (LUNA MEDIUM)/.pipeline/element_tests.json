@@ -1,0 +1,31 @@
+{
+  "dropped": {
+    "test_concept_hallucinated_label.py": "vacuity floor after one corrective dispatch: no assertions at all",
+    "test_eq_gradient_block.py": "vacuity floor after one corrective dispatch: no assertions at all",
+    "test_eq_gradient_embedding.py": "vacuity floor after one corrective dispatch: no assertions at all",
+    "test_eq_softmax_definition.py": "vacuity floor after one corrective dispatch: no assertions at all",
+    "test_eq_softmax_model.py": "vacuity floor after one corrective dispatch: no assertions at all"
+  },
+  "eligible": [
+    "alg-badge",
+    "alg-kmeans-plus-plus",
+    "concept-hallucinated-label",
+    "eq-gradient-block",
+    "eq-gradient-embedding",
+    "eq-softmax-definition",
+    "eq-softmax-model"
+  ],
+  "schema_version": "1.0.0",
+  "statuses": {
+    "alg-badge": {
+      "detail": "no numeric constant or comparison to perturb",
+      "module": "test_alg_badge.py",
+      "status": "no_mutant"
+    },
+    "alg-kmeans-plus-plus": {
+      "detail": "numeric constant 2 -> 3 (line 68)",
+      "module": "test_alg_kmeans_plus_plus.py",
+      "status": "tested"
+    }
+  }
+}

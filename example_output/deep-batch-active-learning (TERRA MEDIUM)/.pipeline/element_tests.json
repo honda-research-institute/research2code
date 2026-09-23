@@ -1,0 +1,80 @@
+{
+  "dropped": {},
+  "eligible": [
+    "alg-badge",
+    "alg-gradient-embedding",
+    "alg-kmeanspp-seeding",
+    "concept-diverse-uncertain-batches",
+    "concept-pool-based-active-learning",
+    "eq-classifier-prediction",
+    "eq-cross-entropy",
+    "eq-gradient-embedding",
+    "eq-kmeanspp-distance",
+    "eq-kmeanspp-probability",
+    "eq-softmax-cross-entropy",
+    "eq-softmax-gradient-block"
+  ],
+  "schema_version": "1.0.0",
+  "statuses": {
+    "alg-badge": {
+      "detail": "numeric constant 0 -> 1 (line 133)",
+      "module": "test_alg_badge.py",
+      "status": "weak"
+    },
+    "alg-gradient-embedding": {
+      "detail": "no numeric constant or comparison to perturb",
+      "module": "test_alg_gradient_embedding.py",
+      "status": "no_mutant"
+    },
+    "alg-kmeanspp-seeding": {
+      "detail": "numeric constant 2 -> 3 (line 75)",
+      "module": "test_alg_kmeanspp_seeding.py",
+      "status": "tested"
+    },
+    "concept-diverse-uncertain-batches": {
+      "detail": "numeric constant 0 -> 1 (line 133)",
+      "module": "test_concept_diverse_uncertain_batches.py",
+      "status": "weak"
+    },
+    "concept-pool-based-active-learning": {
+      "detail": "numeric constant 0 -> 1 (line 133)",
+      "module": "test_concept_pool_based_active_learning.py",
+      "status": "weak"
+    },
+    "eq-classifier-prediction": {
+      "detail": "no numeric constant or comparison to perturb",
+      "module": "test_eq_classifier_prediction.py",
+      "status": "no_mutant"
+    },
+    "eq-cross-entropy": {
+      "detail": "numeric constant 0.001 -> 1.001 (line 27)",
+      "module": "test_eq_cross_entropy.py",
+      "status": "weak"
+    },
+    "eq-gradient-embedding": {
+      "detail": "numeric constant 2 -> 3 (line 39)",
+      "module": "test_eq_gradient_embedding.py",
+      "status": "tested"
+    },
+    "eq-kmeanspp-distance": {
+      "detail": "numeric constant 2 -> 3 (line 75)",
+      "module": "test_eq_kmeanspp_distance.py",
+      "status": "tested"
+    },
+    "eq-kmeanspp-probability": {
+      "detail": "numeric constant 2 -> 3 (line 75)",
+      "module": "test_eq_kmeanspp_probability.py",
+      "status": "tested"
+    },
+    "eq-softmax-cross-entropy": {
+      "detail": "numeric constant 2 -> 3 (line 39)",
+      "module": "test_eq_softmax_cross_entropy.py",
+      "status": "tested"
+    },
+    "eq-softmax-gradient-block": {
+      "detail": "no numeric constant or comparison to perturb",
+      "module": "test_eq_softmax_gradient_block.py",
+      "status": "no_mutant"
+    }
+  }
+}

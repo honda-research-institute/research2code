@@ -1,0 +1,16 @@
+{
+  "claims": [
+    {
+      "claim_type": "monotonicity",
+      "quote": "A point far from every chosen center has a much larger squared-distance weight and is more likely to represent a new region.",
+      "formulas": ["k-MEANS++ sampling probability"],
+      "formal": {
+        "lhs": "pow(D, 2)",
+        "relation": "monotone_increasing",
+        "variables": [
+          {"name": "D", "domain": [0, 100], "role": "variable"}
+        ]
+      }
+    }
+  ]
+}

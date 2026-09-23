@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2b_architecture",
+  "review_status": "issues_found",
+  "summary": "The architecture correctly exposes a real penultimate activation through forward_with_embedding and preserves a final linear classifier. The module documents the MLP substitution, but does not explicitly state the fidelity limitation or silent failure introduced by replacing the paper's benchmark CNN/backbone with an MLP.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "architecture_substitution_documented",
+      "severity": "important",
+      "target_agent": "architecture-coder",
+      "issue_type": "simplification_unflagged",
+      "file": "method/model.py",
+      "location": "module docstring, lines 1-19",
+      "description": "The module clearly says it ships a two-layer flattened-input MLP instead of reproducing the paper's benchmark backbone, but it only describes the silent failure of omitting the embedding hook. It does not explain that the MLP-on-image substitution changes the representation/inductive-bias setting and therefore limits fidelity to the paper's CNN benchmark claims.",
+      "proposed_fix": "Add a concise Known departures note to the module docstring stating that the flattened MLP is a smoke-scale substitution for the paper's image backbones, and that its learned representation and resulting acquisition behavior are not a reproduction of the CNN benchmark; retain the existing hook-failure warning. ",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    }
+  ],
+  "checks_summary": [
+    {
+      "check_id": "essential_features_implemented_not_just_annotated",
+      "status": "pass",
+      "note": "The essential final-layer gradient-embedding access is implemented by returning logits and the encoder's real penultimate activation."
+    },
+    {
+      "check_id": "architecture_substitution_documented",
+      "status": "fail",
+      "note": "The MLP substitution is named, but its benchmark-fidelity limitation and substitution-specific silent failure are not explicitly documented."
+    },
+    {
+      "check_id": "training_protocol_matches_paper",
+      "status": "pass",
+      "note": "training.py follows the supplied spec: SGD, learning rate 0.001, fresh initialization, cross-entropy, and the 0.99 stopping criterion."
+    },
+    {
+      "check_id": "AL-batch-forward-embedding",
+      "status": "pass",
+      "note": "forward_with_embedding returns the encoder output immediately before the final linear classifier, not logits reused as embeddings."
+    }
+  ],
+  "caveats": [
+    "The supplied spec requires SGD, while the paper's Section 4 experimental text describes Adam; this review judged training protocol against the supplied spec and found the artifact compliant."
+  ]
+}

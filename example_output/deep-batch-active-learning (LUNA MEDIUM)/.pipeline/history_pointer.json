@@ -1,0 +1,21 @@
+{
+  "batch_manifest": null,
+  "driver_args": {
+    "fresh": true,
+    "stop_after": null
+  },
+  "history_dir": "<repo>/r2c_runs/_history",
+  "host": "laptop",
+  "input_kind": "markdown",
+  "invocation_id": "deep-batch-active-learning-20260904T154749Z-82bc2f",
+  "invocation_index": 1,
+  "ledger_schema_version": "1.0.0",
+  "lineage_id": "deep-batch-active-learning-20260904T154749Z",
+  "paper_input": "deep-batch-active-learning",
+  "paper_sha256": "2aa2899ae9d8d682dd75ca1da861691ebc545a4c45bb005998dec400d47644dc",
+  "run_tag": null,
+  "slug": "deep-batch-active-learning",
+  "started_at": "2026-09-04T15:47:49Z",
+  "tree_commit": "671c72c67678a4faf5e45b251d950ce0bdea66d2",
+  "tree_dirty": true
+}

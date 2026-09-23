@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "feasibility_at_spec": "reproducible",
+  "replication_feasibility_at_spec": "feasible",
+  "blocker_counts": {
+    "must_implement": 2,
+    "can_approximate": 0,
+    "cannot_implement": 0
+  },
+  "blockers": [
+    {
+      "requirement": "Hallucinated last-layer gradient embeddings",
+      "status": "must_implement",
+      "reason": "The paper specifies this defining acquisition representation.",
+      "resolution": "Compute predicted-label final-layer cross-entropy gradient embeddings."
+    },
+    {
+      "requirement": "k-MEANS++ diversity sampling",
+      "status": "must_implement",
+      "reason": "Appendix A specifies the sampler.",
+      "resolution": "Apply sequential k-MEANS++ squared nearest-distance sampling."
+    }
+  ]
+}

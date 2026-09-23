@@ -1,0 +1,122 @@
+{
+  "session_id": "ses_152c7c45affeJ68nqwNG1DIRQ7",
+  "port": 4096,
+  "slug": "bayesian-active-learning",
+  "stages": [
+    {
+      "stage_id": "stage_0",
+      "stage_label": "Stage 0 - Setup & Paper Ingestion",
+      "status": "completed",
+      "notes": "paper.md present at /home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/paper.md",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "status": "skipped",
+      "notes": "stage_1 outputs + complete-sentinel present; no prior halt",
+      "paths_written": [
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/method_spec.json",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/paper_map.json",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/stage_review_stage_1_analyzer.json"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2a",
+      "stage_label": "Stage 2.a - Package Scaffold",
+      "status": "skipped",
+      "notes": "stage_2a outputs + complete-sentinel present; no prior halt",
+      "paths_written": [
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/README.md",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/method/data.py",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/method/example_data/README.md"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2b",
+      "stage_label": "Stage 2.b - Architecture & Training",
+      "status": "skipped",
+      "notes": "stage_2b outputs + complete-sentinel present; no prior halt",
+      "paths_written": [
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/method/model.py",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/method/training.py",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/stage_review_stage_2b_architecture.json",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/arch_contract.json"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2c",
+      "stage_label": "Stage 2.c - Method Implementation",
+      "status": "skipped",
+      "notes": "stage_2c outputs + complete-sentinel present; no prior halt",
+      "paths_written": [
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/method/method.py",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/stage_review_stage_2c_method.json"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "status": "skipped",
+      "notes": "stage_2d.complete + upstream content digest matches",
+      "paths_written": [
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/method/__init__.py",
+        "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/requirements.txt"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2x",
+      "stage_label": "Stage 2.x - Parameter Derivation",
+      "status": "completed",
+      "notes": "derive_params + validator + review clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "status": "completed",
+      "notes": "notebook-generator + render + validator + review clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_3b",
+      "stage_label": "Stage 3.b - Notebook Rendering",
+      "status": "completed",
+      "notes": "render clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_3c",
+      "stage_label": "Stage 3.c - Smoke Execution",
+      "status": "completed",
+      "notes": "smoke gate clean after judge cap-recovery (iteration 3+1)",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_4",
+      "stage_label": "Stage 4 - Paper-Fidelity Review",
+      "status": "completed",
+      "notes": "paper-fidelity review + validator clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_5",
+      "stage_label": "Stage 5 - Findings Routing",
+      "status": "completed",
+      "notes": "auto-routed 1 group(s); 1 important deferred; 1 stage-review nice-to-have logged; 7 stage-review caveat(s) logged",
+      "paths_written": [],
+      "halt_artifact": null
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "review_status": "issues_found",
+  "summary": "The PDWA implementation faithfully replicates the paper's algorithm with all six evaluation terms, obstacle prediction, dynamic window constraint, and argmax selection. Pass 0 checks passed for obstacle-prediction, dynamic-window-constraint, evaluation-function, optimal-path-selection, robot-kinematic-model, and scale_dependent_hyperparameters. One important finding: the smoke demo uses static obstacles which does not exercise the prediction mechanism during actual planning (though prediction is demonstrated in notebook cells). Three nice-to-have findings from stage_2x_params remain unresolved (d_safe and beta provenance metadata).",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "important",
+      "target_agent": "package-scaffolder",
+      "issue_type": "undocumented_assumption",
+      "file": "method/data.py",
+      "location": "_NAMED_PROBLEMS['two_rooms_simple'], lines 128-141",
+      "description": "The benchmark-protocol element in methodology_replication_contract requires 'obstacles must have non-zero velocity to exercise prediction' (required_controls). The two_rooms_simple environment has 2 static rectangle obstacles with no velocity field. While the notebook demonstrates obstacle prediction in §4.2 (cell 10), the actual planning run in §5 uses static obstacles, so the prediction mechanism is not exercised on a live runtime path during planning. This violates the methodology contract's required_controls.",
+      "proposed_fix": "Add velocity fields to the obstacles in two_rooms_simple (e.g., 'velocity': [vx, vy]) and update the plan() function to use these velocities directly instead of inferring from consecutive positions. Alternatively, document this as an approved smoke-scale deviation where prediction is demonstrated but not exercised in the main planning run.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    },
+    {
+      "id": "F002",
+      "severity": "important",
+      "target_agent": "method-coder",
+      "issue_type": "undocumented_assumption",
+      "file": "method/method.py",
+      "location": "plan(), lines 430-431",
+      "description": "The seed parameter creates rng = np.random.default_rng(seed) (line 430) but rng is never used anywhere in plan(). This was flagged in stage_2c_method review (F001) but remains unresolved. While PDWA is deterministic and the seed may be consumed by environment/demo code, the pluggable-component signature requires seed and the field-guide contract expects deterministic reproducibility via seed.",
+      "proposed_fix": "Either: (a) add a comment explaining PDWA is deterministic and the seed is consumed by environment/demo code, or (b) if the seed should affect planning behavior (e.g., velocity grid ordering), thread rng into stochastic operations.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    },
+    {
+      "id": "F003",
+      "severity": "nice-to-have",
+      "target_agent": "parameter-deriver",
+      "issue_type": "provenance_reasoning_inaccurate",
+      "file": ".pipeline/params.json",
+      "location": "params.d_safe, line 12",
+      "description": "d_safe has paper_value=0.1 with reasoning 'Paper states d_safe=0.1'. This is incorrect. The paper explicitly states d_safe = V_max/4 (Eq. 9), which with V_max=1.5 evaluates to 0.375, not 0.1. This was flagged in stage_2x_params review (F002) but remains unresolved.",
+      "proposed_fix": "Update paper_value to 0.375 and update reasoning to: 'Paper states d_safe = V_max/4 (Eq. 9); with V_max=1.5 this equals 0.375. Runtime default is None (computed dynamically from dynamics.V_max/4).'",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    },
+    {
+      "id": "F004",
+      "severity": "nice-to-have",
+      "target_agent": "parameter-deriver",
+      "issue_type": "provenance_reasoning_inaccurate",
+      "file": ".pipeline/params.json",
+      "location": "params.beta_1 through params.beta_5, lines 18-43",
+      "description": "All five beta parameters have paper_value=0.1 with reasoning claiming 'Paper states beta_X=0.1'. This is factually wrong. The paper never states numerical values for beta coefficients — Section 3.3 explicitly says 'The selection of these coefficients was determined through empirical tuning.' Additionally, the paper requires beta_1 < beta_2 < beta_3 < beta_4 < beta_5 (monotonically increasing), so they cannot all equal 0.1. This was flagged in stage_2x_params review (F003) but remains unresolved.",
+      "proposed_fix": "Remove paper_value for all betas and update reasoning to: 'The paper requires beta_1 < beta_2 < beta_3 < beta_4 < beta_5 (Section 3.3) and states values are determined through empirical tuning. It never states specific numerical values. Signature defaults (1.0–5.0) satisfy the monotonic requirement.'",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    },
+    {
+      "id": "F005",
+      "severity": "nice-to-have",
+      "target_agent": "notebook-generator",
+      "issue_type": "narrative_inaccuracy",
+      "file": "notebook.ipynb",
+      "location": "cell 1 (title cell), lines 18-19",
+      "description": "The title cell claims 'A demonstration on a smoke-scale environment with 3-4 moving obstacles' but two_rooms_simple has 2 static rectangle obstacles. While the notebook demonstrates obstacle prediction in §4.2, the actual planning uses static obstacles. This is a minor narrative inaccuracy.",
+      "proposed_fix": "Update the title cell to say '2 static obstacles' or 'static obstacles' instead of '3-4 moving obstacles'.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    }
+  ]
+}

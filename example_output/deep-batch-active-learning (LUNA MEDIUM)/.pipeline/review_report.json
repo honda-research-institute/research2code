@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "review_status": "issues_found",
+  "summary": "The BADGE selector and notebook live path preserve final-layer gradient embeddings followed by k-MEANS++ seeding, with no baseline implementation or invalid paper-element annotations. Three documentation/contract issues remain: the spec still records the optimizer as generic SGD, the notebook incorrectly describes the implementation as SGD, and the architecture substitution lacks the previously requested fidelity warning.",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "important",
+      "target_agent": "analyzer",
+      "issue_type": "provenance_reasoning_inaccurate",
+      "file": ".pipeline/method_spec.json",
+      "location": "critical_requirements.training.optimizer, lines 112-119",
+      "description": "The paper-map training protocol specifies the Adam variant of SGD, while the structured method spec still records the optimizer as plain SGD. The generated training implementation uses Adam, so the paper-truth contract and the produced package disagree.",
+      "proposed_fix": "Record Adam explicitly in critical_requirements.training.optimizer, optionally noting that the paper calls it an Adam variant of SGD."
+    },
+    {
+      "id": "F002",
+      "severity": "important",
+      "target_agent": "notebook-generator",
+      "issue_type": "narrative_inaccuracy",
+      "file": "notebook.ipynb",
+      "location": "markdown cells for the opening departures list and §3.3 Training",
+      "description": "The notebook says it uses the package's SGD implementation and that the training function uses the supplied SGD protocol, but method/training.py constructs torch.optim.Adam. This gives the researcher the wrong account of the runnable training protocol even though the code follows the paper's Adam wording.",
+      "proposed_fix": "Describe the implementation as Adam, and distinguish it from any smoke-scale epoch-cap or architecture departures."
+    },
+    {
+      "id": "F003",
+      "severity": "important",
+      "target_agent": "architecture-coder",
+      "issue_type": "simplification_unflagged",
+      "file": "method/model.py",
+      "location": "module docstring, lines 1-19",
+      "description": "The module names the flattened MLP substitution but does not state that changing the paper's image backbones to an MLP changes the learned representation and inductive bias, so acquisition behavior is not a reproduction of the paper's CNN/ResNet benchmark claims. The existing hook warning does not cover this fidelity limitation.",
+      "proposed_fix": "Add a concise Known departures note explaining that the flattened MLP is a smoke-scale architecture substitution and is not benchmark-faithful to the paper's image-backbone results."
+    },
+    {
+      "id": "F004",
+      "severity": "important",
+      "target_agent": "parameter-deriver",
+      "issue_type": "provenance_reasoning_inaccurate",
+      "file": ".pipeline/params.json",
+      "location": "params.pool_size.reasoning, lines 24-28",
+      "description": "The pool-size provenance says that diversity baselines are meaningfully tested at this scale, but this single-method package intentionally implements and runs no baselines. The claim conflicts with the scope contract and can make the smoke setting sound like a comparison experiment.",
+      "proposed_fix": "Replace the baseline language with a statement that the pool ratio preserves a meaningful pool for BADGE's own diversity-sensitive acquisition checks."
+    }
+  ]
+}

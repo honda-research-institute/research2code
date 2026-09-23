@@ -1,0 +1,18 @@
+{
+ "case_id": "rfc10008-redirect-imperative",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "In all four cases, the server is suggesting that the user agent can accomplish its original QUERY request by sending a similar QUERY request to the new target URI referenced by the Location.",
+   "span": {
+    "end": 15077,
+    "start": 14887
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "After a 301, 302, 307, or 308 response, the client must resend the QUERY request to the URI in the Location field."
+}

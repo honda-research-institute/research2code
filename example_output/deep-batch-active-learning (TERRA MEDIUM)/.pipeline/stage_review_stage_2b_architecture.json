@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2b_architecture",
+  "review_status": "passed",
+  "summary": "All stage-2b semantic checks passed. The architecture exposes BADGE's real penultimate activation, documents its smoke-scale MLP substitution, and the fresh-training helper follows the paper's Adam, learning-rate, and stopping protocol.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "essential_features_implemented_not_just_annotated",
+      "status": "pass",
+      "note": "GradientEmbeddingMLP implements both annotated essentials: its classifier produces multiclass raw logits and forward_with_embedding returns the encoder activation used immediately by that classifier."
+    },
+    {
+      "check_id": "architecture_substitution_documented",
+      "status": "pass",
+      "note": "The model module docstring identifies the shipped two-affine-layer MLP as a smoke-scale substitution and explains that a replacement without the real penultimate hook would invalidate BADGE's gradient-embedding geometry."
+    },
+    {
+      "check_id": "training_protocol_matches_paper",
+      "status": "pass",
+      "note": "train_from_scratch uses Adam, cross-entropy, the image-data learning rate 0.001, and stops at 99% training accuracy or an explicitly documented smoke-scale epoch cap; fresh construction is owned by the caller as required by the protocol."
+    },
+    {
+      "check_id": "AL-batch-forward-embedding",
+      "status": "pass",
+      "note": "forward_with_embedding computes z once through encoder and returns (classifier(z), z), so its embedding is the real penultimate activation rather than logits or input features."
+    },
+    {
+      "check_id": "methodology_replication_contract_baseline",
+      "status": "pass",
+      "note": "The stage-relevant core contract is preserved: the model provides real penultimate activations with multiclass logits for predicted-label final-layer gradient embeddings; no forbidden embedding substitution is present."
+    }
+  ],
+  "caveats": []
+}

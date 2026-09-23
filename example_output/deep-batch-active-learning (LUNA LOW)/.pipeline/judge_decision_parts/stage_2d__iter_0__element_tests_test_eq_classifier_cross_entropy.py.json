@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2d",
+  "iteration": 0,
+  "validator_label": "element_tests:test_eq_classifier_cross_entropy.py",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-test-generator",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The test's final numeric assertion is not entailed by the paper element: with the test's explicitly assigned logits [2, -1], cross-entropy is log(1 + exp(-3)) ≈ 0.048587, not 0.126928. The element only specifies the cross-entropy formula, which the preceding probability-equivalence assertion correctly checks; this hard-coded expected value is a test defect.",
+    "proposed_fix": "Regenerate test_eq_classifier_cross_entropy.py to remove or correct the unjustified hard-coded numeric assertion, while retaining an assertion grounded in the stated cross-entropy identity and the configured logits if desired. Do not change BADGEClassifier.forward for this failure."
+  },
+  "rationale": "The implementation returns raw classifier logits, and the test's first two assertions correctly verify the paper's stated CE identity. The failing constant conflicts with the test setup itself: logits 2 and -1 give a three-unit margin and CE about 0.0486; 0.126928 corresponds to a different margin. Because the paper element does not state that numeric value, ownership belongs to the generated test, and no prior decision routed this module to the test generator.",
+  "confidence": "high",
+  "files_examined": [
+    "method/tests/test_eq_classifier_cross_entropy.py",
+    "method/model.py",
+    ".pipeline/arch_contract.json",
+    "scripts/validate_arch_contract.py"
+  ]
+}

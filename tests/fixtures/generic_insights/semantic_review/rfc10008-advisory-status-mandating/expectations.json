@@ -1,0 +1,19 @@
+{
+ "candidate_sha256": "0ee8e093960d6db086b44238bb6e3515a6d01f51c4a2de1d2926f9431c9415e6",
+ "case_id": "rfc10008-advisory-status-mandating",
+ "prohibited_interpretations": [
+  "MUST return 415",
+  "MUST return 422"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "Advisory-to-mandatory strengthening. The source says 415 'is appropriate' and 422 'can be used'; the real Section 2.1 MUSTs mandate failing/rejecting the request, not specific status codes. A bound but misapplied real MUST also fails semantic review.",
+ "required_disclosures": [],
+ "required_facts": [],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "rejected"
+}

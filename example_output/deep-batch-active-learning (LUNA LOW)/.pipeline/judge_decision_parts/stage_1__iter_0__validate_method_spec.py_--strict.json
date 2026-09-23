@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_1",
+  "iteration": 0,
+  "validator_label": "validate_method_spec.py --strict",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-method-analyzer",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The MethodSpec binds element 'kmeanspp-gradient-selection' to the non-existent verification probe 'AL-kmeanspp-incremental-distances'. The matched taxonomy node declares the exact probe 'al_loop.microharness' for this methodology verification surface, so the analyzer must repair the probe binding rather than alter generated code or the taxonomy. Re-check the complete methodology-fidelity invariant while re-emitting: the element's acceptable_approximations and replication_status, methodology_contract_pack.approved_approximations, and replication_feasibility.verdict/approved_approximations must remain mutually consistent.",
+    "proposed_fix": "Replace the unknown verification_probe_refs value with an exact taxonomy-declared probe that genuinely verifies the k-MEANS++ obligation (most directly the applicable declared probe for the method path), or use [] if no declared probe genuinely verifies it. Re-emit the full MethodSpec and preserve agreement across every methodology acceptable-approximations and replication-feasibility field; do not fix only the first reported field or invent a taxonomy reference."
+  },
+  "rationale": "The validator explicitly computes the closed set of semantic_checks[].probe values from the resolved populated taxonomy node and rejects the authored ref before downstream generation. The artifact's classification resolves to the populated batch_acquisition node, whose allowed refs do not include 'AL-kmeanspp-incremental-distances'; this is a local Stage 1 analyzer output error, not a validator bug or upstream taxonomy failure. The related methodology fields currently show empty approved-approximation sets and feasible/must-replicate declarations, so the analyzer can repair the binding while preserving that whole invariant.",
+  "confidence": "high",
+  "files_examined": [
+    "scripts/validate_method_spec.py",
+    "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+    "docs/ssot/taxonomies.yaml"
+  ]
+}

@@ -1,0 +1,3367 @@
+# =============================================================================
+# R2C taxonomy — single SSOT (replaces paradigms/**/FIELD_GUIDE.md)
+# =============================================================================
+# Schema: docs/ssot/taxonomy-node-schema.md
+# Status: runtime SSOT. Nodes marked `status: populated` are live: the pipeline
+# serves them directly through scripts/taxonomy.py. Nodes marked `status:
+# reserved` are placeholders for families nobody has run yet — they carry only
+# provisional "seed" checks, which advise reviewers and never gate a run. A
+# reserved node becomes real by being populated (see the extension-path section
+# of docs/ssot/taxonomy-node-schema.md).
+#
+# Method axis:  Root -> Family -> Variant (-> sub_variants)
+# Task axis:    Domain -> leaf
+# Classification is a (method_variant, task_domain) tuple.
+# =============================================================================
+
+schema_version: "2.0"
+
+# -----------------------------------------------------------------------------
+# Pipeline-wide review checks, defined ONCE here instead of being copied into every
+# node. `taxonomy._node_stage_review_focus` prepends the
+# stage-matching universal checks to a served node's own checks, de-duped by id:
+# a node specializing a universal (same id) OVERRIDES it (node-wins). The 14 ids are
+# the checks that appeared in >=2 retired guide `stage_review_focus` blocks;
+# severity follows the retired-guide floor mapping (critical->error, important/nice->warning).
+# Seed-only: pipeline-wide, never auto-promoted per node.
+# -----------------------------------------------------------------------------
+universal_checks:
+  # --- stage 1: analyzer ---
+  - id: core_method_summary_matches_paper
+    stage: stage_1_analyzer
+    check: >
+      core_method.summary names the actual mechanism the paper contributes, not a
+      generic restatement of the problem area.
+    silent_failure: "A vague summary passes schema validation but misrepresents the contribution."
+    severity: warning
+    status: seed
+  - id: critical_requirements_essential_features
+    stage: stage_1_analyzer
+    check: >
+      Only architecture-load-bearing features are tagged severity: essential — not
+      everything the method merely uses.
+    silent_failure: "Over-tagging essential features forces unnecessary architecture constraints downstream."
+    severity: warning
+    status: seed
+  # --- stage 2b: architecture ---
+  - id: essential_features_implemented_not_just_annotated
+    stage: stage_2b_architecture
+    check: >
+      Each "# essential: <name>" annotation in model.py is actually implemented, not
+      just labelled.
+    silent_failure: "An annotated-but-unimplemented feature passes structural validators while the method loses its mechanism."
+    severity: error
+    status: seed
+  - id: architecture_substitution_documented
+    stage: stage_2b_architecture
+    check: >
+      Any architecture substitution (a simpler model for the paper's, reduced depth) is
+      named in the module docstring with the silent-failure mode it introduces.
+    silent_failure: "Undocumented substitutions mislead users about paper fidelity."
+    severity: warning
+    status: seed
+  - id: training_protocol_matches_paper
+    stage: stage_2b_architecture
+    check: >
+      training.py's optimizer, learning rate, training protocol, and stopping criterion
+      match spec.critical_requirements.training.
+    silent_failure: "A regime change (SGD for the paper's Adam, warm-start for retrain-from-scratch) disguised as a faithful port."
+    severity: warning
+    status: seed
+  # --- stage 2c: method ---
+  - id: paper_element_implementations_match_paper
+    stage: stage_2c_method
+    check: >
+      For each "# paper-element: <id>" annotation in method.py, the code at that site
+      implements what the referenced paper_map element (label + section) describes.
+    silent_failure: "Docstring claims an equation the code does not actually compute."
+    severity: error
+    status: seed
+  - id: paper_scale_faithful_implementation
+    stage: stage_2c_method
+    check: >
+      Demo-scale and paper-scale runs are the SAME code differing only in parameter
+      values — no behaviour-changing simplification (dropped term, heuristic
+      substitution, hard-coded inner-loop count).
+    silent_failure: "A behaviour-changing simplification is hidden behind a # paper-fidelity comment instead of being removed."
+    severity: error
+    status: seed
+  - id: simplifications_flagged
+    stage: stage_2c_method
+    check: >
+      Every smoke-scale accommodation that is a genuine no-op at paper scale carries a
+      "# paper-fidelity:" note or docstring mention.
+    silent_failure: "Undocumented accommodations leave the reader unable to trust which deviations are intentional."
+    severity: warning
+    status: seed
+  - id: pluggable_function_actually_does_the_method
+    stage: stage_2c_method
+    check: >
+      The pluggable component implements the paper's algorithm, not a degenerate
+      fallback.
+    silent_failure: "The pluggable function falls back to a baseline and the docstring is edited to match the degenerate behaviour."
+    severity: error
+    status: seed
+  - id: random_seeds_threaded
+    stage: stage_2c_method
+    check: >
+      Stochastic methods thread the seed through every randomized call (not just at
+      function entry); each np.random / torch.rand call derives state from the master
+      seed.
+    silent_failure: "A single missed seed call causes irreproducibility silently."
+    severity: error
+    status: seed
+  # --- stage 2x: params ---
+  - id: paper_source_values_match_paper
+    stage: stage_2x_params
+    check: >
+      Every param with source: paper is actually stated in the paper; values pulled from
+      related-work conventions are source: system_inferred.
+    silent_failure: "An inferred value mislabelled source: paper overstates fidelity."
+    severity: warning
+    status: seed
+  - id: system_default_reasoning_explains_deviation
+    stage: stage_2x_params
+    check: >
+      Every source: system_inferred param's reasoning explains the deviation from
+      paper_value (smoke runtime, hardware, demo-vs-benchmark).
+    silent_failure: "Missing or contradicting reasoning hides an unjustified default."
+    severity: warning
+    status: seed
+  # --- stage 3a: notebook ---
+  - id: notebook_narrative_matches_code
+    stage: stage_3a_notebook
+    check: >
+      Each section's markdown matches the code below it (cites the equation the code
+      computes; describes the path the code takes).
+    silent_failure: "Markdown describes full behaviour but the code calls one path; cites Eq. X but computes Eq. Y."
+    severity: warning
+    status: seed
+  - id: paper_citations_accurate
+    stage: stage_3a_notebook
+    check: "Bold paper-section/equation citations point to the right location in the paper."
+    silent_failure: "Misattributed citations send readers to the wrong section."
+    severity: warning
+    status: seed
+
+# =============================================================================
+# METHOD AXIS
+# =============================================================================
+method_roots:
+
+  # ---------------------------------------------------------------------------
+  TE:
+    name: Train and Evaluate
+    archetype: >
+      A method that changes how a model is trained, what objective it optimizes,
+      what data regime it sees, or what architectural component it uses.
+    families:
+
+      TE-TS:
+        name: Training Strategy
+        description: >
+          Methods that change the training loop or data regime rather than the
+          loss term or architecture.
+        variants:
+
+          # -------------------------------------------------------------------
+          # First migrated node. Decomposed from the retired active-learning
+          # guide family per migration plan §1.1 (coverage-preserving). Long-form
+          # priors prose lives in scaffold_hints.content_file, not inline.
+          # -------------------------------------------------------------------
+          active_learning:
+            name: Active Learning
+            status: populated
+            legacy_paradigm: active_learning
+            taxonomy_id: TE-TS/active_learning
+            aliases: [pool_based_active_learning]
+            fingerprint:
+              what_it_is: >
+                Iteratively selects the most informative unlabeled points to
+                label next, retraining between query rounds under a label budget.
+              positive_signals:
+                - "an acquisition function scoring unlabeled points"
+                - "a label budget with successive query rounds"
+                - "a learning curve: test accuracy vs. number of labels"
+              route_elsewhere:
+                - signal: "selection is fixed/random, no model-in-the-loop"
+                  to: TE-TS/semi_supervised_learning
+                - signal: "the contribution is the loss/objective, not the selection rule"
+                  to: TE-LF/task_specific_loss
+              worked_examples:
+                - "BADGE (Ash et al. 2020)"
+                - "CORESET (Sener & Savarese 2018)"
+                - "BALD / Bayesian AL (Gal et al. 2017)"
+            priors:
+              architecture:
+                for_image_data: [resnet18, vgg11, mlp]   # MLP-on-image is a flagged substitution
+                for_tabular_data: [mlp]
+                flag_substitutions: true
+              seeds:
+                minimum_for_ranking_claim: 3             # researcher reference; single-seed is mechanical verification only
+                recommended_for_publication: 5
+              calibration:
+                preserve: []                             # sub-variants tighten (batch: batch_size; bayesian: mc_samples)
+                sacrifice_order: [pool_size, num_rounds, total_budget]
+                demo_target_seconds: 300                 # ~5-minute smoke; full demo-preset walk is in the content file
+              benchmark_selection: >
+                Prefer the smallest standard benchmark for data_setup (MNIST <
+                OpenML < SVHN < CIFAR-10 < ...); all four numeric fields come
+                from the same benchmark configuration. See content file.
+            semantic_checks:
+              # --- stage 1: analyzer ---
+              - id: core_method_summary_matches_paper
+                stage: stage_1_analyzer
+                check: >
+                  core_method.summary names the actual acquisition mechanism
+                  (e.g. "diverse, uncertain gradient embeddings + k-MEANS++"),
+                  not a generic "improves active learning".
+                silent_failure: "A vague summary passes schema validation but misrepresents the contribution."
+                severity: warning
+                status: seed
+              - id: critical_requirements_essential_features
+                stage: stage_1_analyzer
+                check: >
+                  Only architecture-load-bearing features (MC dropout active at
+                  inference, penultimate-layer hook) are tagged severity: essential
+                  — not everything the method merely uses.
+                silent_failure: "Over-tagging essential features forces unnecessary architecture constraints downstream."
+                severity: warning
+                status: seed
+              - id: AL-analyzer-scale-hyperparams
+                stage: stage_1_analyzer
+                check: >
+                  Every distance threshold / similarity radius / kernel bandwidth
+                  the paper uses appears in critical_requirements.scale_dependent_hyperparameters
+                  with paper_value/formula, exactly one schema-1.13 typed
+                  calibration_context, and a description. Feature magnitude and
+                  target-box-grid conventions use their distinct arms; unsupported
+                  physical or mixed contexts use other. Temporal counts, scale-free
+                  values, and graph statistics do not enter this lane.
+                silent_failure: "A missing scale-dependent hyperparameter causes silent algorithm drift when preprocessing differs from the paper's scale."
+                severity: error
+                status: seed
+              # --- stage 2b: architecture ---
+              - id: essential_features_implemented_not_just_annotated
+                stage: stage_2b_architecture
+                check: >
+                  Each "# essential: <name>" annotation in model.py is actually
+                  implemented, not just labelled (dropout layers present AND kept
+                  active; forward_with_embedding returns the real penultimate
+                  activation, not a copy of the logits).
+                silent_failure: "An annotated-but-unimplemented feature passes structural validators while the method loses its mechanism."
+                severity: error
+                status: seed
+              - id: architecture_substitution_documented
+                stage: stage_2b_architecture
+                check: >
+                  Any architecture substitution (MLP for the paper's ResNet,
+                  reduced depth) is named in the module docstring with the
+                  silent-failure mode if a replacement loses the substituted feature.
+                silent_failure: "Undocumented substitutions mislead users about paper fidelity."
+                severity: warning
+                status: seed
+              - id: training_protocol_matches_paper
+                stage: stage_2b_architecture
+                check: >
+                  training.py's optimizer, learning rate, retrain-from-scratch
+                  protocol, and stopping criterion match
+                  spec.critical_requirements.training.
+                silent_failure: "Paper uses Adam + retrain-from-scratch but training.py uses SGD or warm-starts — a regime change disguised as a faithful port."
+                severity: warning
+                status: seed
+              # --- stage 2c: method ---
+              - id: paper_element_implementations_match_paper
+                stage: stage_2c_method
+                check: >
+                  For each "# paper-element: <id>" annotation in method.py, the
+                  code at that site implements what the referenced paper_map
+                  element (label + section) describes.
+                silent_failure: "Docstring claims Eq. 13 on penultimate features but the code uses raw input features."
+                severity: error
+                status: seed
+              - id: paper_scale_faithful_implementation
+                stage: stage_2c_method
+                check: >
+                  Demo-scale and paper-scale runs are the SAME code differing only
+                  in parameter values. No behaviour-changing simplification (dropped
+                  regularization term, heuristic substitution, hard-coded inner-loop
+                  count) — those must be implemented, not documented.
+                silent_failure: "A behaviour-changing simplification is hidden behind a # paper-fidelity comment instead of being removed."
+                severity: error
+                status: seed
+              - id: simplifications_flagged
+                stage: stage_2c_method
+                check: >
+                  Every smoke-scale accommodation that is a genuine no-op at paper
+                  scale (clamps, full-batch fallbacks) carries a "# paper-fidelity:"
+                  note or docstring mention.
+                silent_failure: "Undocumented accommodations leave the reader unable to trust which deviations are intentional."
+                severity: warning
+                status: seed
+              - id: pluggable_function_actually_does_the_method
+                stage: stage_2c_method
+                check: >
+                  The pluggable component (spec.comparison.pluggable_component.name)
+                  implements the paper's algorithm, not a degenerate fallback (e.g.
+                  pure top-k uncertainty when the paper specifies uncertainty +
+                  diversity).
+                silent_failure: "The selector falls back to a baseline and the docstring is edited to match the degenerate behaviour."
+                severity: error
+                status: observed
+                probe: claims.contribution_floor
+              - id: AL-method-pluggable-no-hidden-state
+                stage: stage_2c_method
+                check: >
+                  select_batch returns positions into the exact x_unlabeled tensor
+                  it was passed; it does not mutate x_labeled/x_unlabeled or hold
+                  hidden acquisition state unless every affected position is in the
+                  returned list. One-time init (e.g. GBALD core-set) is a separate
+                  §3.4 helper.
+                silent_failure: "Hidden extra acquisitions inside select_batch make the learning-curve budget and the method's scoring state disagree."
+                severity: error
+                status: observed
+                probe: al_loop.acquisition_contract
+              - id: AL-stage1-coreset-behaves
+                stage: stage_2c_method
+                check: >
+                  The one-time Stage-1 core-set constructor (the §3.4 init
+                  helper, found by the core_set/coreset naming convention)
+                  behaves like a selection: unique in-range indices, picks
+                  that carry data signal on a cluster-sorted synthetic pool
+                  (a constant-score argmax concentrates in the leading
+                  block), and an eta channel that actually moves the
+                  selection when the paper's mechanism is an ellipsoid
+                  rescale. No convention match means unprobeable, stated —
+                  never a fabricated stand-in.
+                silent_failure: "The demo executes a core-set whose selection criterion is dead (constant scores, position-order picks), so the paper's Stage-1 contribution never runs and nothing notices."
+                severity: error
+                status: observed
+                probe: al_stage1.coreset_construction
+              - id: AL-method-ranking-monotonicity
+                stage: stage_2c_method
+                check: >
+                  Any comment/docstring explaining a ranking score matches the
+                  score's monotonic direction (an inverse-distance score sorted
+                  descending gives closer points higher scores).
+                silent_failure: "Prose says 'farther samples score higher' while the formula does the opposite."
+                severity: warning
+                status: seed
+              # --- stage 2x: params ---
+              - id: paper_source_values_match_paper
+                stage: stage_2x_params
+                check: >
+                  Every param with source: paper is actually stated in the paper;
+                  values pulled from related-work conventions are source: system_inferred.
+                silent_failure: "An inferred value mislabelled source: paper overstates fidelity."
+                severity: warning
+                status: seed
+              - id: system_default_reasoning_explains_deviation
+                stage: stage_2x_params
+                check: >
+                  Every source: system_default param's reasoning explains the
+                  deviation from paper_value (smoke runtime, hardware,
+                  demo-vs-benchmark).
+                silent_failure: "Missing or taxonomy-contradicting reasoning hides an unjustified default."
+                severity: warning
+                status: seed
+              - id: AL-params-demo-reachability
+                stage: stage_2x_params
+                check: >
+                  The delivered demo config exercises the acquisition loop:
+                  initial_labeled < pool_size and the per-round budget does not
+                  exhaust the pool before num_rounds complete.
+                silent_failure: "initial_labeled >= pool_size leaves the pool empty at round 0; every select_batch returns [] and the smoke gate passes a demo whose contribution never runs."
+                severity: error
+                status: observed
+                probe: al_loop.demo_config_reachability
+              # --- stage 3a: notebook ---
+              - id: AL-nb-above-chance
+                stage: stage_3a_notebook
+                check: "Final accuracy exceeds chance (1 / num_classes) on the executed notebook."
+                silent_failure: "A miswired loop reports high accuracy by evaluating against training labels or a constant predictor."
+                severity: warning
+                status: seed
+              - id: notebook_narrative_matches_code
+                stage: stage_3a_notebook
+                check: >
+                  Each §4 subsection's markdown matches the code below it (cites the
+                  equation the code computes; describes the path the code takes).
+                silent_failure: "Markdown describes full behaviour but the code calls one path; cites Eq. X but computes Eq. Y."
+                severity: warning
+                status: seed
+              - id: paper_citations_accurate
+                stage: stage_3a_notebook
+                check: "§4 bold paper-section/equation citations point to the right location in the paper."
+                silent_failure: "Misattributed citations send readers to the wrong section."
+                severity: warning
+                status: seed
+              - id: AL-nb-loop-evaluates-each-round
+                stage: stage_3a_notebook
+                check: >
+                  §5.1's loop trains AND evaluates each round; the learning curve
+                  reflects the retrained model, not a placeholder echo of the warmup
+                  accuracy.
+                silent_failure: "test_accuracies.append(test_accuracies[-1]) placeholder leaves a meaningless curve that still 'rises'."
+                severity: error
+                status: seed
+                probe: al_loop.eval_label_alignment
+              - id: AL-nb-loop-retrains-from-scratch
+                stage: stage_3a_notebook
+                check: >
+                  §5.1 builds a FRESH model (build_model inside the round loop)
+                  before training, unless the paper deliberately warm-starts.
+                silent_failure: "Reusing one model object across rounds is warm-starting; silent (no crash, curve still rises) and changes the algorithmic regime."
+                severity: error
+                status: observed
+                probe: al_loop.fresh_retrain
+              - id: AL-nb-loop-index-space
+                stage: stage_3a_notebook
+                check: >
+                  §5.1 maps select_batch's returned positions back to global indices
+                  through a maintained unlabeled-index array
+                  (chosen = unlabeled_idx[positions]); no positional-offset
+                  arithmetic; labeled/unlabeled stay disjoint.
+                silent_failure: "Offset arithmetic assumes the labeled set is a contiguous pool prefix; silent — the curve still rises because more labels help."
+                severity: error
+                status: observed
+                probe: al_loop.microharness
+              - id: AL-nb-loop-acquisition-round-semantics
+                stage: stage_3a_notebook
+                check: >
+                  num_rounds means acquisition rounds, not plotted points: evaluate
+                  the initial set once, then acquire-and-evaluate once per round
+                  (curve has num_rounds+1 points). No "r < num_rounds-1" guard; no
+                  unevaluated final batch.
+                silent_failure: "Off-by-one round shapes leave an acquired-but-unevaluated batch or a missing point."
+                severity: error
+                status: seed
+              - id: AL-nb-ranking-monotonicity
+                stage: stage_3a_notebook
+                check: >
+                  Notebook markdown explaining ranking scores matches the code's
+                  monotonic direction (inverse-distance ranked descending → closer
+                  points score higher).
+                silent_failure: "Prose contradicts the sort direction."
+                severity: warning
+                status: seed
+            domain_checks:
+              CV:
+                - id: AL-CV-arch-class
+                  stage: stage_2b_architecture
+                  check: >
+                    For image data the model is a CNN (ResNet-18/VGG-11) or the
+                    MLP-on-image substitution is flagged in "Known departures".
+                  silent_failure: "An unflagged MLP-on-image substitution misrepresents a CNN paper's claims."
+                  severity: warning
+                  status: seed
+            smoke_bugs:
+              - id: AL-SB-labels-out-of-range
+                symptom: "Training raises ValueError/IndexError; y_train has values outside [0, n_classes-1]."
+                likely_cause: "n_classes derived as len(y_pool.unique()) instead of int(y_pool.max())+1; under-sizes the model for sparse class indices."
+                status: seed
+              - id: AL-SB-model-input-shape-mismatch
+                symptom: "forward() raises RuntimeError on wrong input rank/dim."
+                likely_cause: "Notebook reshapes/synthesizes data with a shape that disagrees with arch_contract.json's architecture.model.forward.input."
+                status: seed
+              - id: AL-SB-stochastic-call-without-seed
+                symptom: "Reproducibility fails / smoke output non-deterministic across runs."
+                likely_cause: "np.random.choice / torch.rand in method.py with no rng derived from seed at function entry."
+                status: seed
+              - id: AL-SB-forward-with-embedding-missing
+                symptom: "method.py calls model.forward_with_embedding(...) but the architecture never implemented it."
+                likely_cause: "architecture-coder omitted the penultimate-feature hook that BADGE-shaped batch acquisition requires."
+                status: seed
+              - id: AL-SB-torch-tensor-from-tensor-list
+                symptom: "ValueError 'only one element tensors can be converted to Python scalars' at a torch.tensor([...]) call."
+                likely_cause: "torch.tensor([x_pool[i] for i in idx]) over a list of tensors; correct constructor is torch.stack/advanced indexing. Common in core-set construction."
+                status: seed
+            smoke_economics:
+              max_budget_to_pool_ratio: 0.2              # general AL; sub-variants override
+            # system_inferred model-param fallbacks (Phase 5.7b). Replaces the
+            # hardcoded else-branch in derive_params._add_model_params. AL-wide
+            # (hidden_dim runs for every neural AL sub-variant); served via
+            # taxonomy.load_model_default (node wins; Python literals remain only
+            # as defensive fallback for provisional/future ids). The
+            # source=paper / CNN-substitution arms stay evidence-driven in Python.
+            # {value} is a .format() slot filled by _add_model_params.
+            model_defaults:
+              hidden_dim:
+                value: 256
+                reasoning_template: >-
+                  Paper states no data-type-keyed MLP width. We use hidden_dim={value}
+                  as the taxonomy-typical AL convention.
+            scaffold_hints:
+              interface_hint: "select_batch(model, x_unlabeled, batch_size, seed, *paradigm_extras_by_name) -> List[int]"
+              content_file: docs/ssot/content/active_learning.md
+              templates_dir: paradigms/supervised_ml/active_learning/templates
+              demo_data_source: template_downloads
+            # Build/codegen contract — migrated from the retired guide (Phase 1.5).
+            # Served via scripts/taxonomy.py:load_pluggable_component_contract for AL.
+            pluggable_component:
+              name: select_batch
+              return_type: "List[int]"
+              signature_template: "select_batch(model, x_unlabeled, batch_size, seed, *paradigm_extras_by_name) -> List[int]"
+              contract:
+                fixed_positional_args: [model, x_unlabeled, batch_size]
+                seed_param: seed
+                paradigm_extras_forwarding: by_name_from_config
+                forbidden_param_names: [config, batch_output, batch_outputs]
+              rationale: |
+                The pluggable function is called uniformly via
+                `select_batch(model, x_unlabeled, batch_size, **kwargs)` — by the v1
+                harness in archived runs, and by the v2 notebook's §5 acquisition loop
+                in v2 runs. Both forms inspect the function's signature and look each
+                named param up in the surrounding config. A `config: dict` parameter
+                cannot be filled this way; methods that need extra params declare
+                them as named keyword parameters with defaults (e.g.,
+                `mc_samples: int = 100`, `core_set_size: int = 100`). `batch_returns`
+                may be used as a larger candidate prefilter, but the selector's
+                returned batch count is always the fixed `batch_size` argument;
+                `batch_output`/`batch_outputs` are forbidden because they split
+                provenance from the actual acquisition count. The validator rejects
+                any pluggable function whose signature contains a forbidden param name.
+
+                `select_batch` is a pure acquisition function from the notebook/harness
+                point of view: it returns positions into the exact `x_unlabeled` tensor it
+                was passed. It must not silently add unlabeled examples to `x_labeled`,
+                remove examples from `x_unlabeled`, or maintain hidden acquisition state
+                unless every affected unlabeled position is included in the returned list.
+                Method-specific initialization steps (for example, a core-set bootstrap)
+                belong in a separate top-level helper that the notebook calls once during
+                §3.4 and records in `labeled_idx`/`unlabeled_idx`.
+            # Notebook section contract — migrated from the retired guide (Phase 1.6).
+            # Served via scripts/taxonomy.py:load_notebook_layout for AL; sub-variants inherit.
+            notebook_layout:
+              description: |
+                Section structure for active-learning notebooks. Each section is a
+                declarative description of what the notebook-generator emits at that
+                position; the actual cells are written by the agent based on
+                method_spec.json + paper_map.json + the generated method/ package.
+
+              sections:
+                - id: title
+                  title: "Paper title (from spec.paper.title)"
+                  kind: agnostic
+                  content: |
+                    Markdown-only. Top-level # heading with the paper's full citation
+                    (authors, year, venue), a short 'what this notebook gives you' bullet
+                    list, a 'two ways to use this' bullet list (run-as-is vs. import from
+                    own code), and a 'what this notebook does NOT do' note (this is a
+                    reference implementation, not a benchmark reproduction; defer to the
+                    paper for empirical claims).
+
+                - id: install
+                  title: "## 0. Install dependencies (first run only)"
+                  kind: agnostic
+                  content: |
+                    One markdown cell explaining when to run, one code cell running
+                    `%pip install -r requirements.txt` (NOT `!pip` — the magic is needed
+                    on systems where `pip` is not in the shell PATH). Cell can sit live;
+                    running on an already-installed system is a no-op.
+
+                - id: setup
+                  title: "## 1. Setup"
+                  kind: agnostic
+                  content: |
+                    One code cell: `%matplotlib inline`, imports (matplotlib.pyplot, numpy,
+                    torch, then `from method import (...)` listing the public API the
+                    notebook calls), master `SEED = 42`, seed numpy + torch globals.
+                    The import list is determined from method/__init__.py's __all__;
+                    any helper used in §4 must be exported there.
+
+                - id: parameters
+                  title: "## 2. Parameters"
+                  kind: agnostic
+                  content: |
+                    Markdown header explaining the provenance schema (paper / system_default
+                    / system_inferred), then the **rendered provenance table FIRST**, then
+                    the params dict code cell, then an "Optional: scale up to paper-faithful
+                    values" subsection with a commented-out cfg.update() block.
+                    Table-first ordering: readers scan provenance at a glance; code is
+                    below for editing. Table is generated once at notebook-build time from
+                    the params dict and embedded as static markdown — does not auto-update
+                    if the user edits params downstream.
+
+                - id: setup_pieces
+                  title: "## 3. The setup pieces"
+                  kind: paradigm
+                  content: |
+                    Brief overview markdown that names the substrate (model + training +
+                    data + bootstrap) and explicitly tells the reader: "these are paper
+                    protocol but NOT the paper's contribution; skim and move on to §4".
+                    Mention any paradigm-specific architecture requirements (for AL/bayesian:
+                    dropout active at inference; for AL/batch_acquisition: forward_with_embedding
+                    contract). Pull these from the matched paradigm's `pluggable_component`
+                    and `architecture` blocks.
+                  subsections:
+                    - id: data
+                      title: "### 3.1 Data"
+                      content: |
+                        One paragraph explaining `load_data()` defaults to
+                        method/example_data/, downloads MNIST on first run, points to §6
+                        for custom data. One code cell calling load_data with cfg-derived
+                        args, printing pool/test/classes shapes.
+
+                    - id: model
+                      title: "### 3.2 Model"
+                      content: |
+                        One paragraph naming the paper's architecture choice and what
+                        we ship vs. swap-in options. Highlight the paradigm-specific
+                        constraint (e.g., 'forward_with_embedding hook' for batch_acquisition,
+                        'dropout active at inference' for bayesian). One code cell:
+                        `model = build_model(...); print(model)` to show the architecture.
+
+                    - id: training
+                      title: "### 3.3 Training"
+                      content: |
+                        One paragraph naming the protocol (Adam, retrain-from-scratch,
+                        train-until-99%, paper section reference). NO code cell — training
+                        happens per-round in §3.4 (bootstrap) and §5.1 (the loop). State
+                        this explicitly so the reader doesn't expect a cell.
+
+                    - id: bootstrap
+                      title: "### 3.4 Bootstrap labeled set"
+                      content: |
+                        For AL: pick `initial_labeled` random examples (or run a method-
+                        specific bootstrap routine if the spec declares one — e.g.,
+                        GBALD's `construct_core_set`), train a warmup model on them.
+                        The warmup model is what §4's per-component demos use. If the
+                        method has a Stage-1-style initialization (like GBALD), call it
+                        here and reference §4.x for the algorithmic explanation.
+
+                - id: method
+                  title: "## 4. The {method_name} method ⭐"
+                  kind: method_specific
+                  content: |
+                    The paper's contribution, broken into the method's own components.
+                    First subsection is always 'Intuition' — a markdown cell motivating
+                    WHY the method's design choice solves the problem. Subsequent
+                    subsections come from the spec's method components (paper-element IDs
+                    in paper_map.json grouped by algorithmic function). Each component-
+                    subsection has: (a) markdown explaining the math with paper section/
+                    equation references in **bold**, (b) a code cell exercising that piece
+                    on the warmup model from §3.4 (small visualization or printed output
+                    showing the piece does what it says). Final subsection is 'Putting it
+                    together' — markdown + small code block showing how the wrapper
+                    composes the components. Mark novel pieces with ⭐ (the paper's actual
+                    contribution; method components that are off-the-shelf — e.g., k-MEANS++
+                    in BADGE — get cited but no ⭐).
+                  generator_instructions: |
+                    Walk paper_map.json's element list. Group elements by their algorithmic
+                    function: motivation/intuition (concept-* IDs), distinct novel pieces
+                    (each with its own subsection — typically eq-* or alg-* IDs), and the
+                    wrapper. For each piece, the markdown cell cites the paper element's
+                    `section` field. The exercise code cell uses helpers from
+                    `method.method` (compute_gradient_embeddings, kmeans_plus_plus_seeding,
+                    etc.) — these must be in method/__init__.py or accessible via
+                    method.method to be imported in §1.
+
+                - id: running
+                  title: "## 5. Running active learning end-to-end"
+                  kind: paradigm
+                  content: |
+                    One paragraph naming the experimental protocol from the paper's
+                    Section 4 (Experiments). State that `labeled` and `unlabeled` continue
+                    from §3.4's bootstrap state.
+                  subsections:
+                    - id: loop
+                      title: "### 5.1 The acquisition loop"
+                      content: |
+                        Define `evaluate(model, x, y)` (eval mode, no_grad, argmax accuracy),
+                        then run the AL loop. Two things here are correctness-critical and
+                        have silently broken past runs (they don't crash and the learning
+                        curve still rises, so they pass smoke) — follow them exactly:
+
+                        (1) RETRAIN FROM SCRATCH each round. Build a FRESH model with
+                            `build_model(...)` at the TOP of every round, then
+                            `train_from_scratch` it on the current labeled set. Do NOT carry
+                            one model object across rounds (and do NOT reuse §3.4's warmup
+                            model) — that is warm-starting, which BADGE and most modern AL
+                            explicitly avoid because it changes the algorithmic regime. (Only
+                            if the paper deliberately warm-starts should you reuse the model —
+                            follow `spec.critical_requirements.training` and say so.)
+
+                        (2) INDEX BOOKKEEPING. `select_batch` returns positions INTO the
+                            tensor you passed it (the current unlabeled pool) — NOT global
+                            pool indices. Keep an explicit array of the unlabeled examples'
+                            global indices and map back through it. NEVER recover globals with
+                            positional-offset arithmetic (e.g. `i - len(initial_indices)`),
+                            which falsely assumes the labeled set is a contiguous prefix of
+                            the pool. Keep `labeled`/`unlabeled` as DISJOINT index sets (set
+                            difference on update) so an already-labeled example can never be
+                            re-selected.
+
+                        (3) ACQUISITION-ROUND SEMANTICS. `cfg["num_rounds"]` means the
+                            number of acquisition rounds, not the number of plotted
+                            evaluation points. Evaluate the initial labeled set once before
+                            any acquisition, then acquire exactly once per round and append
+                            the post-acquisition evaluation. The resulting learning curve
+                            has `cfg["num_rounds"] + 1` points. Do NOT guard the final
+                            `select_batch` call with `r < cfg["num_rounds"] - 1`, and do
+                            NOT acquire a final batch that is never evaluated.
+                            Do NOT evaluate before the label merge and then append that
+                            accuracy with the post-merge `len(labeled_idx)`; the label
+                            count and accuracy must describe the same trained model state.
+
+                        (4) VISIBLE ACQUISITION STATE. The notebook owns the active-learning
+                            state. If a method needs an initialization/core-set/bootstrap
+                            acquisition step, call the helper once in §3.4 and record those
+                            returned indices in `labeled_idx`. The per-round
+                            `select_batch(...)` call must return every new unlabeled
+                            position that should become labeled that round. Do NOT rely on
+                            `select_batch` to internally add extra unlabeled examples to a
+                            temporary labeled set and then return only a later subset; that
+                            makes the learning curve's labeled counts and the method's
+                            actual scoring state disagree.
+
+                        Reference skeleton — keep this structure; adapt names to the spec:
+
+                            import numpy as np
+                            labeled_idx = np.asarray(initial_indices)
+                            unlabeled_idx = np.setdiff1d(np.arange(len(x_pool)), labeled_idx)
+                            learning_curve = []
+
+                            def train_eval_current(round_seed):
+                                model = build_model(...)                    # FRESH → retrain from scratch
+                                model = train_from_scratch(
+                                    model, x_pool[labeled_idx], y_pool[labeled_idx],
+                                    ..., seed=round_seed)
+                                acc = evaluate(model, x_test, y_test)
+                                learning_curve.append((len(labeled_idx), acc))
+                                return model
+
+                            model = train_eval_current(SEED)                 # initial labeled set
+                            for r in range(cfg["num_rounds"]):
+                                pos = select_batch(
+                                    model, x_pool[unlabeled_idx], cfg["batch_size"], SEED + r)
+                                chosen = unlabeled_idx[np.asarray(pos)]      # positions → GLOBAL indices
+                                labeled_idx = np.union1d(labeled_idx, chosen)
+                                unlabeled_idx = np.setdiff1d(unlabeled_idx, chosen)
+                                model = train_eval_current(SEED + r + 1)     # post-acquisition eval
+
+                        §5.1 trains and evaluates the initial labeled set, then trains and
+                        evaluates after each acquisition round. The curve must reflect the
+                        retrained model, not the warmup. Print per-round status.
+
+                    - id: learning_curve
+                      title: "### 5.2 Learning curve"
+                      content: |
+                        Plot learning_curve as a single line chart (labels acquired vs.
+                        test accuracy). Title names the method + dataset + smoke-sized.
+
+                - id: own_data
+                  title: "## 6. Use your own data"
+                  kind: agnostic
+                  content: |
+                    Two options (Option A: pass an explicit path; Option B: drop file in
+                    method/example_data/ to override default), three formats (.pt / .json
+                    / .csv) with examples of each, architecture-swap note pointing at
+                    method/model.py for image-shaped tensors.
+            # Demo-success markers (demo-success-semantics design, approved
+            # 2026-07-16): the post-smoke verdict pass reads the headline demo
+            # section (`running`) for these. The supervised gate is the
+            # accuracy-vs-chance shape the beats-chance probe already encodes
+            # (probes.universal, one rule shared across enforcement points),
+            # so the declaration names the shared check instead of restating
+            # regexes. Sub-variants inherit.
+            demo_success:
+              checks:
+                - kind: beats_chance
+                  gloss: "the headline accuracy series must beat chance (1/num_classes) by the shared margin"
+            sub_variants:
+              batch_acquisition:
+                name: Batch Acquisition
+                status: populated
+                legacy_paradigm: active_learning/batch_acquisition
+                taxonomy_id: TE-TS/active_learning/batch_acquisition
+                fingerprint:
+                  what_it_is: >
+                    Selects a batch of B>1 examples per round, balancing uncertainty
+                    against diversity so the batch is not B near-duplicate uncertain
+                    points (the failure naïve top-K-uncertainty falls into).
+                  worked_examples:
+                    - "BADGE (Ash et al. 2020)"
+                    - "CORESET (Sener & Savarese 2018)"
+                priors:
+                  calibration:
+                    preserve: [batch_size]               # batch_size is the algorithmic regime, not a scale knob
+                  batch_size:
+                    conventional_values: [100, 1000, 10000]
+                    minimum_for_meaningful_test: 50
+                semantic_checks:
+                  - id: AL-batch-forward-embedding
+                    stage: stage_2b_architecture
+                    check: >
+                      The architecture exposes forward_with_embedding(x) returning
+                      the real penultimate activation — BADGE-shaped gradient-embedding
+                      methods require it.
+                    silent_failure: "A stub returning logits-as-embedding makes the diversity selection degenerate to pure uncertainty."
+                    severity: error
+                    status: seed
+                  - id: AL-batch-size-preserved
+                    stage: stage_2x_params
+                    check: >
+                      batch_size matches the paper's claimed batch regime; it is not
+                      reduced to fit a time budget (that changes the algorithm, not
+                      just the scale).
+                    silent_failure: "A demo at B=15 for a B=1000 paper tests a different, smaller-batch algorithm than the paper's claim."
+                    severity: warning
+                    status: seed
+                  - id: AL-kmeanspp-incremental-distances
+                    stage: stage_2c_method
+                    check: >
+                      k-MEANS++/k-means++ helpers maintain a running nearest-distance
+                      vector instead of materializing an (N, k, D) all-centers broadcast.
+                    silent_failure: "Toy cells pass, but smoke-scale batch acquisition can allocate tens of GB and time out before the notebook proves the method."
+                    severity: error
+                    status: seed
+                smoke_economics:
+                  max_budget_to_pool_ratio: 0.05         # BADGE diversity needs pool >> budget; parent's 0.2 too loose
+                  floors:
+                    batch_size:
+                      absolute_min: 50
+                      reason: "Batch-acquisition diversity is not meaningfully tested below B≈50."
+                # Per-paradigm smoke defaults for the pluggable-signature extras (Phase 5.7).
+                # Replaces derive_params' KNOWN_EXTRAS_BY_PARADIGM["active_learning/batch_acquisition"].
+                # {value}/{paper_value} are .format() slots filled by _add_paradigm_extras.
+                paradigm_extras:
+                  core_set_size:
+                    value: 100
+                    reasoning_template: >-
+                      Paper uses a {paper_value}-point core-set. We use {value} — smaller
+                      core-set runs Stage 1 fast and still seeds the per-round acquisition
+                      with a diverse initial labeled set.
+                  batch_returns:
+                    value: 200
+                    reasoning_template: >-
+                      Paper sets b at ~3 × b' (the batch_size). We use 2 × 100 = {value} —
+                      enough to give the geometric ranking room without spending compute
+                      on candidates the ranker will reject.
+                # No pluggable_component override: BADGE-shaped batch acquisition needs no
+                # x_labeled, so it inherits the parent active_learning select_batch contract.
+              bayesian:
+                name: Bayesian Active Learning
+                status: populated
+                legacy_paradigm: active_learning/bayesian
+                taxonomy_id: TE-TS/active_learning/bayesian
+                fingerprint:
+                  what_it_is: >
+                    Estimates epistemic uncertainty via posterior approximation
+                    (MC dropout / ensembles / SVI) and selects for expected
+                    information gain (BALD-family); scoring is multi-pass with
+                    dropout active at inference.
+                  positive_signals:
+                    - "mutual information / BALD acquisition over posterior samples"
+                    - "T stochastic forward passes per example (MC dropout)"
+                  worked_examples:
+                    - "BALD (Houlsby et al. 2011; Gal et al. 2017)"
+                    - "BatchBALD (Kirsch et al. 2019)"
+                    - "GBALD (Cao & Tsang 2022)"
+                priors:
+                  posterior_approximation:
+                    default: mc_dropout
+                    alternatives: [ensembles, svi, laplace_approximation]
+                    mc_samples_typical_range: [100, 2000]
+                    mc_samples_minimum_for_meaningful_test: 50
+                  calibration:
+                    preserve: [mc_samples]               # part of the algorithmic regime; demo preset may violate, with a banner
+                    demo_minimum_mc_samples: 20          # below this BALD's variance estimate is not BALD-shaped (Gal et al.)
+                  architecture:
+                    requires: dropout_layers_active_at_inference
+                    typical_dropout_rate: [0.25, 0.5]
+                semantic_checks:
+                  - id: AL-bayes-dropout-active
+                    stage: stage_2b_architecture
+                    check: >
+                      The architecture has nn.Dropout layers AND nothing in the
+                      inference path disables them; BALD-scoring code calls
+                      model.train() (not eval()) before MC sampling.
+                    silent_failure: "Without dropout active at inference every MC sample is identical, BALD scores collapse to 0, and the method degenerates to random sampling."
+                    severity: error
+                    status: seed
+                  - id: AL-bayes-mc-train-mode
+                    stage: stage_2c_method
+                    check: >
+                      The BALD/MC-dropout scoring function flips the model to train()
+                      before the MC forward passes (typically try/finally restoring
+                      eval()).
+                    silent_failure: "model.eval() then T samples yields T identical predictions and a 0 BALD score for every example."
+                    severity: error
+                    status: seed
+                  - id: AL-bayes-scale-hyperparam-handling
+                    stage: stage_2c_method
+                    check: >
+                      Each scale_dependent_hyperparameter (e.g. GBALD's R_0) uses the
+                      observer selected by its typed calibration_context. It uses the
+                      literal paper value when the observation matches, applies only
+                      the exact raw-pixel to zero-one paper_value / 255 conversion,
+                      or halts on an unresolvable mismatch. It never guesses a generic
+                      conversion or measures target-box conventions from feature rows.
+                    silent_failure: "Silent rescaling breaks the algorithm in ways invisible at smoke scale but real at paper scale."
+                    severity: warning
+                    status: seed
+                  - id: AL-bayes-mc-samples
+                    stage: stage_2x_params
+                    check: "mc_samples > 0 (floor ~20) so the Bayesian acquisition is not collapsed to a point estimate."
+                    silent_failure: "mc_samples=0 silently collapses BALD to a point estimate."
+                    severity: error
+                    status: seed
+                smoke_economics:
+                  max_budget_to_pool_ratio: 0.4          # per-example posterior scoring lacks the diversity-vs-pool tension
+                  floors:
+                    mc_samples:
+                      absolute_min: 20
+                      reason: "BALD's posterior estimate collapses toward a point estimate below about 20 MC samples."
+                # Per-paradigm smoke defaults for the pluggable-signature extras (Phase 5.7).
+                # Replaces derive_params' KNOWN_EXTRAS_BY_PARADIGM["active_learning/bayesian"].
+                paradigm_extras:
+                  mc_samples:
+                    value: 20
+                    reasoning_template: >-
+                      Paper uses {paper_value} MC dropout samples. We use {value} — the
+                      bayesian-AL taxonomy minimum for BALD's posterior estimate to be
+                      meaningful (Gal et al. recommend T ≥ 20). Larger T at paper scale
+                      gives a tighter estimate but dominates runtime at smoke scale.
+                # system_inferred model-param fallback (Phase 5.7b), bayesian-only.
+                # Replaces the dropout_rate else-branch in _add_model_params; the
+                # paper-stated arm stays evidence-driven there. {value} is a .format() slot.
+                model_defaults:
+                  dropout_rate:
+                    value: 0.5
+                    reasoning_template: >-
+                      Bayesian-AL taxonomy recommends dropout in [0.25, 0.5]
+                      (Gal & Ghahramani 2016); {value} is the taxonomy-typical
+                      default. Paper does not specify a dropout rate.
+                scaffold_hints:
+                  interface_hint: "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, *paradigm_extras_by_name) -> List[int]"
+                # Override of the parent's pluggable_component: bayesian threads x_labeled
+                # (GBALD Eq.13 needs read-only labeled-set features). Migrated Phase 1.5.
+                pluggable_component:
+                  name: select_batch
+                  return_type: "List[int]"
+                  signature_template: "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, *paradigm_extras_by_name) -> List[int]"
+                  contract:
+                    fixed_positional_args: [model, x_unlabeled, x_labeled, batch_size]
+                    seed_param: seed
+                    paradigm_extras_forwarding: by_name_from_config
+                    forbidden_param_names: [config, batch_output, batch_outputs]
+                  rationale: |
+                    Bayesian-AL methods are multi-step per acquisition round: they score
+                    uncertainty (via MC dropout / posterior samples) but also reason about
+                    diversity or representativeness with respect to the already-labeled set
+                    (e.g., GBALD's Eq. 13 computes distances to labeled-set penultimate
+                    features). The pluggable function therefore needs read access to
+                    `x_labeled` so it can implement what the paper describes. Methods that
+                    only need uncertainty (e.g., vanilla BALD) accept the parameter and
+                    ignore it; the cost of a one-extra-positional-arg is small compared to
+                    the cost of silently degrading multi-step methods to pure top-k.
+
+                    Stateless beyond the signature: the function must NOT mutate `x_labeled`
+                    or store it — it's read-only state passed in by the notebook each round.
+
+          knowledge_distillation:
+            name: Knowledge Distillation
+            status: populated
+            legacy_paradigm: knowledge_distillation
+            taxonomy_id: TE-TS/knowledge_distillation
+            fingerprint:
+              what_it_is: >
+                Trains a (smaller) student to match a frozen teacher's outputs,
+                features, or relations alongside the task objective.
+              positive_signals:
+                - "a frozen teacher and a trained student"
+                - "a temperature-scaled soft-target / feature-matching loss"
+                - "feature, attention-map, or relation matching between teacher and student"
+              route_elsewhere:
+                - signal: "the paper contributes only the backbone architecture, not a teacher/student transfer objective"
+                  to: TE-AR/vision_transformer
+                - signal: "the method adapts across domains with pseudo-labels rather than distilling from a fixed teacher"
+                  to: DA-UDA/domain_adaptation
+              worked_examples:
+                - "Hinton et al. 2015 (response KD)"
+                - "FitNets (Romero et al. 2014)"
+                - "Attention Transfer (Zagoruyko & Komodakis 2016)"
+            priors:
+              architecture:
+                for_image_classification: [resnet, vgg, small_cnn, mlp]
+                for_object_detection: [detr, yolo, faster_rcnn, fcos]
+                for_3d_detection: [bev_former, pointnet, voxelnet]
+                flag_substitutions: true
+              calibration:
+                preserve: [temperature]
+                sacrifice_order: [num_epochs, train_size, eval_size]
+                demo_target_seconds: 300
+            # Notebook section contract (evidence: the delivered detr-distill
+            # notebook, 2026-07-17 matrix). Family level so the detection and
+            # cross_modal variants inherit. Served via
+            # scripts/taxonomy.py:load_notebook_layout.
+            notebook_layout:
+              description: "Section structure for knowledge-distillation notebooks."
+              sections:
+                - id: title
+                  title: "Paper title (from spec.paper.title)"
+                  kind: agnostic
+                - id: install
+                  title: "## 0. Install dependencies (first run only)"
+                  kind: agnostic
+                - id: setup
+                  title: "## 1. Setup"
+                  kind: agnostic
+                - id: parameters
+                  title: "## 2. Parameters"
+                  kind: agnostic
+                - id: setup_pieces
+                  title: "## 3. The setup pieces"
+                  kind: paradigm
+                  subsections:
+                    - {id: data, title: "### 3.1 Data"}
+                    - {id: teacher, title: "### 3.2 Teacher model"}
+                    - {id: student, title: "### 3.3 Student model"}
+                    - {id: verify_shapes, title: "### 3.4 Architecture shape verification"}
+                - id: method
+                  title: "## 4. The {method_name} method ⭐"
+                  kind: method_specific
+                - id: running
+                  title: "## 5. Running distillation end-to-end"
+                  kind: paradigm
+                  subsections:
+                    - {id: distill_loop, title: "### 5.1 Distillation training loop"}
+                    - {id: before_after, title: "### 5.2 Before/after comparison"}
+                    - {id: loss_decomposition, title: "### 5.3 Distillation loss decomposition (single batch)"}
+                - id: own_data
+                  title: "## 6. Use your own data"
+                  kind: agnostic
+            semantic_checks:
+              - id: KD-analyzer-teacher-provenance
+                stage: stage_1_analyzer
+                check: >
+                  The spec records the teacher's provenance: paper checkpoint,
+                  off-the-shelf model, or trained-from-scratch smoke substitute.
+                silent_failure: "Downstream stages invent a teacher source and silently change the distillation target."
+                severity: warning
+                status: seed
+              - id: KD-seed-teacher-frozen
+                stage: stage_2c_method
+                check: "The teacher is frozen (no grad updates to teacher params)."
+                silent_failure: "Teacher params receive gradients; 'distillation' is just joint training."
+                severity: error
+                status: seed
+              - id: KD-arch-teacher-eval-frozen
+                stage: stage_2b_architecture
+                check: >
+                  build_teacher returns a teacher in eval mode with every
+                  parameter frozen before the distillation loop can use it.
+                silent_failure: "Batch-norm/dropout updates or gradients move the teacher while the method claims fixed-teacher KD."
+                severity: error
+                status: seed
+              - id: KD-method-loss-not-vanilla-fallback
+                stage: stage_2c_method
+                check: >
+                  compute_distillation_loss implements the paper's named KD
+                  components, not only vanilla softened-logit KL unless that is
+                  the paper's actual contribution.
+                silent_failure: "A complex feature/relation KD paper degenerates to Hinton-style KL and still runs."
+                severity: error
+                status: seed
+            paradigm_extras:
+              temperature:
+                value: 4.0
+                reasoning_template: >-
+                  Paper uses T={paper_value} for logit softening. We use T={value} —
+                  Hinton et al.'s typical KD temperature; reasonable default when the
+                  smoke run doesn't otherwise depend on the exact value.
+              alpha:
+                value: 0.5
+                reasoning_template: >-
+                  Paper uses α={paper_value} for the supervised-vs-distillation loss
+                  weight. We use α={value} — balanced (50% supervised +
+                  50% KD), a common default that lets the distillation signal show on
+                  a small dataset without overwhelming the supervised term.
+            scaffold_hints:
+              interface_hint: "compute_distillation_loss(student, teacher, batch, seed, *paradigm_extras_by_name) -> torch.Tensor"
+              templates_dir: paradigms/supervised_ml/knowledge_distillation/templates
+              demo_data_source: template_downloads
+            pluggable_component:
+              name: compute_distillation_loss
+              return_type: "torch.Tensor"
+              signature_template: "compute_distillation_loss(student, teacher, batch, seed, *paradigm_extras_by_name) -> torch.Tensor"
+              contract:
+                fixed_positional_args: [student, teacher, batch]
+                seed_param: seed
+                paradigm_extras_forwarding: by_name_from_config
+                forbidden_param_names: [config]
+              rationale: >
+                The notebook's distillation loop calls the pluggable loss with
+                fixed student, teacher, batch, and seed arguments; method-specific
+                KD hyperparameters are forwarded by name from params.
+            sub_variants:
+              detection:
+                name: Detection Distillation
+                status: populated
+                legacy_paradigm: knowledge_distillation/detection
+                taxonomy_id: TE-TS/knowledge_distillation/detection
+                fingerprint:
+                  what_it_is: >
+                    Applies teacher/student distillation to object detectors,
+                    usually aligning set predictions, query features, detection
+                    features, or logits in addition to the task loss.
+                  positive_signals:
+                    - "teacher and student detector families"
+                    - "prediction-set matching, query-feature alignment, or detector feature distillation"
+                    - "box/class target dictionaries rather than class-label tensors"
+                  worked_examples:
+                    - "DETRDistill (Chang et al. 2022)"
+                priors:
+                  architecture:
+                    detector_family_must_match: true
+                    for_detr_family: [detr, deformable_detr, dab_detr, dn_detr]
+                    for_cnn_based: [faster_rcnn, retinanet, fcos, yolo_v5]
+                semantic_checks:
+                  - id: KD-det-analyzer-family-classified
+                    stage: stage_1_analyzer
+                    check: >
+                      The spec identifies the detector family (DETR-style
+                      set prediction or CNN/grid-based detector) because it
+                      determines matching and feature-access requirements.
+                    silent_failure: "The coder picks an incompatible detector interface and loss alignment silently drifts."
+                    severity: warning
+                    status: seed
+                  - id: KD-det-arch-query-access
+                    stage: stage_2b_architecture
+                    check: >
+                      DETR-family detection KD exposes per-stage decoder outputs
+                      and teacher query embeddings when the paper's loss consumes them.
+                    silent_failure: "Progressive or target-aware feature KD is reduced to final-layer logits only."
+                    severity: error
+                    status: seed
+                  - id: KD-det-method-matching
+                    stage: stage_2c_method
+                    check: >
+                      Set-prediction detector KD uses Hungarian or equivalent
+                      optimal assignment before comparing student and teacher predictions.
+                    silent_failure: "Top-k or index-aligned matching appears to work on smoke data while changing the loss."
+                    severity: error
+                    status: seed
+                domain_checks:
+                  CV:
+                    - id: KD-det-CV-target-shape
+                      stage: stage_2b_architecture
+                      check: >
+                        Detection batches carry image inputs and per-image target
+                        dicts with boxes and labels, not classification labels.
+                      silent_failure: "A classification-shaped loader passes syntax checks but the detection loss receives no boxes."
+                      severity: error
+                      status: seed
+                  detection_2d:
+                    - id: KD-det-2d-xyxy-contract
+                      stage: stage_2c_method
+                      check: "2D detection targets use a documented xyxy box convention through data, loss, and notebook cells."
+                      silent_failure: "Mismatched box conventions corrupt KD matching without necessarily crashing."
+                      severity: error
+                      status: seed
+                scaffold_hints:
+                  interface_hint: "compute_distillation_loss(student, teacher, batch, seed, *paradigm_extras_by_name) -> torch.Tensor"
+                  templates_dir: paradigms/supervised_ml/knowledge_distillation/detection/templates
+                pluggable_component:
+                  name: compute_distillation_loss
+                  return_type: "torch.Tensor"
+                  signature_template: "compute_distillation_loss(student, teacher, batch, seed, *paradigm_extras_by_name) -> torch.Tensor"
+                  contract:
+                    fixed_positional_args: [student, teacher, batch]
+                    seed_param: seed
+                    paradigm_extras_forwarding: by_name_from_config
+                    forbidden_param_names: [config]
+                  typical_paradigm_extras:
+                    - {name: temperature, type: float, default: 1.0}
+                    - {name: alpha, type: float, default: 0.5}
+                    - {name: num_queries, type: int, default: 100}
+                    - {name: set_matching, type: str, default: hungarian}
+                  rationale: >
+                    Detection KD keeps the KD scalar-loss shape, but named
+                    extras carry detector-specific matching, query, and feature
+                    alignment controls.
+                sub_variants:
+                  cross_modal:
+                    name: Cross-Modal Detection Distillation
+                    status: populated
+                    legacy_paradigm: knowledge_distillation/detection/cross_modal
+                    taxonomy_id: TE-TS/knowledge_distillation/detection/cross_modal
+                    fingerprint:
+                      what_it_is: >
+                        Distills a detector across different teacher/student
+                        input modalities, commonly LiDAR or fusion teachers
+                        supervising camera-only students through a shared BEV space.
+                      positive_signals:
+                        - "student and teacher input modalities differ"
+                        - "shared BEV or other aligned representation for feature distillation"
+                        - "paired camera/LiDAR or image/point-cloud batches"
+                      worked_examples:
+                        - "BEVDistill (Chen et al. 2023)"
+                    priors:
+                      architecture:
+                        cross_modal: true
+                        typical_student_modalities: [rgb_image, multi_view_rgb, depth_map]
+                        typical_teacher_modalities: [point_cloud, multi_modal_fusion, depth_map]
+                        shared_representation_typical: BEV
+                    semantic_checks:
+                      - id: KD-xmodal-analyzer-modalities
+                        stage: stage_1_analyzer
+                        check: >
+                          The spec names both student and teacher modalities and
+                          the shared representation where distillation aligns them.
+                        silent_failure: "The run is generated as same-modality detection KD and loses the cross-modal constraint."
+                        severity: error
+                        status: seed
+                      - id: KD-xmodal-arch-shared-representation
+                        stage: stage_2b_architecture
+                        check: >
+                          Student and teacher expose a matched shared-space feature
+                          accessor such as forward_with_bev_features.
+                        silent_failure: "The cross-modal loss cannot align features and collapses to output-response KD."
+                        severity: error
+                        status: seed
+                      - id: KD-xmodal-method-paired-batches
+                        stage: stage_2c_method
+                        check: >
+                          Batches preserve one-to-one pairing between student input,
+                          teacher input, and target annotations for the same scene.
+                        silent_failure: "Student and teacher observe different scenes, destroying the distillation signal silently."
+                        severity: error
+                        status: seed
+                    domain_checks:
+                      AD:
+                        - id: KD-xmodal-AD-scene-pairing
+                          stage: stage_3a_notebook
+                          check: >
+                            Autonomous-driving demos keep camera, LiDAR/fusion,
+                            pose, and target annotations aligned by scene/frame id.
+                          silent_failure: "A camera frame is paired with a different LiDAR sweep; the BEV alignment plot still renders."
+                          severity: error
+                          status: seed
+                      PC:
+                        - id: KD-xmodal-PC-teacher-input
+                          stage: stage_2b_architecture
+                          check: >
+                            Point-cloud teacher inputs preserve per-sample point
+                            dimensions and do not coerce the teacher path into RGB image tensors.
+                          silent_failure: "The point-cloud teacher becomes an image-shaped detector, erasing the cross-modal axis."
+                          severity: error
+                          status: seed
+                    scaffold_hints:
+                      interface_hint: "compute_distillation_loss(student, teacher, batch, seed, *paradigm_extras_by_name) -> torch.Tensor"
+                      templates_dir: paradigms/supervised_ml/knowledge_distillation/detection/cross_modal/templates
+                    pluggable_component:
+                      name: compute_distillation_loss
+                      return_type: "torch.Tensor"
+                      signature_template: "compute_distillation_loss(student, teacher, batch, seed, *paradigm_extras_by_name) -> torch.Tensor"
+                      contract:
+                        fixed_positional_args: [student, teacher, batch]
+                        seed_param: seed
+                        paradigm_extras_forwarding: by_name_from_config
+                        forbidden_param_names: [config]
+                      typical_paradigm_extras:
+                        - {name: temperature, type: float, default: 1.0}
+                        - {name: alpha, type: float, default: 0.5}
+                        - {name: bev_feature_weight, type: float, default: 1.0}
+                        - {name: foreground_mask_weight, type: float, default: 1.0}
+                        - {name: gaussian_sigma, type: float, default: 1.0}
+                      rationale: >
+                        Cross-modal KD keeps the scalar KD loss shape while the
+                        batch dict and named extras carry paired modalities and
+                        shared-representation feature alignment.
+
+          semi_supervised_learning:
+            name: Semi-Supervised Learning
+            status: reserved
+            taxonomy_id: TE-TS/semi_supervised_learning
+          self_supervised_pretraining:
+            name: Self-Supervised Pretraining
+            status: reserved
+            taxonomy_id: TE-TS/self_supervised_pretraining
+          curriculum_learning:
+            name: Curriculum Learning
+            status: reserved
+            taxonomy_id: TE-TS/curriculum_learning
+
+      TE-AR:
+        name: Architecture Component
+        description: >
+          Methods whose contribution is a network building block — an attention
+          mechanism, normalization, backbone, or token-grouping scheme.
+        variants:
+          vision_transformer:
+            name: Vision Transformer
+            status: populated
+            legacy_paradigm: vision_transformer
+            taxonomy_id: TE-AR/vision_transformer
+            fingerprint:
+              what_it_is: >
+                A transformer backbone over image patches/tokens; contributions
+                are usually attention, tokenization, or token-grouping changes.
+              positive_signals:
+                - "patch/token embedding of an image"
+                - "self-attention blocks as the backbone"
+                - "token grouping, routing, pruning, windowing, or positional-encoding changes"
+              route_elsewhere:
+                - signal: "a ViT teacher trains a smaller model via a distillation loss"
+                  to: TE-TS/knowledge_distillation
+                - signal: "the contribution is only a loss on top of an unchanged backbone"
+                  to: TE-LF/task_specific_loss
+              worked_examples:
+                - "Vision Transformer (Dosovitskiy et al. 2020)"
+                - "Swin Transformer (Liu et al. 2021)"
+                - "Random-Swin / random token grouping"
+            priors:
+              architecture:
+                contribution_surface: token_grouping_or_attention
+                common_position_encodings: [CPE, APE, LePE, RPE]
+                smoke_backbone: "tiny ViT over 32x32 image classification data"
+              calibration:
+                preserve: [grouping_strategy, positional_encoding_type, num_heads]
+                sacrifice_order: [num_epochs, batch_size, img_size, model_depth, model_width, num_groups]
+            # Notebook section contract (evidence: the delivered
+            # Rethinking-Grouping notebook, 2026-07-14 matrix). Served via
+            # scripts/taxonomy.py:load_notebook_layout; sub-variants inherit.
+            notebook_layout:
+              description: "Section structure for vision-transformer notebooks."
+              sections:
+                - id: title
+                  title: "Paper title (from spec.paper.title)"
+                  kind: agnostic
+                - id: install
+                  title: "## 0. Install dependencies (first run only)"
+                  kind: agnostic
+                - id: setup
+                  title: "## 1. Setup"
+                  kind: agnostic
+                - id: parameters
+                  title: "## 2. Parameters"
+                  kind: agnostic
+                - id: setup_pieces
+                  title: "## 3. The setup pieces"
+                  kind: paradigm
+                  subsections:
+                    - {id: data, title: "### 3.1 Data"}
+                    - {id: model, title: "### 3.2 Model"}
+                    - {id: training, title: "### 3.3 Training"}
+                    - {id: bootstrap, title: "### 3.4 Bootstrap: verify the model on a sample batch"}
+                - id: method
+                  title: "## 4. The {method_name} method ⭐"
+                  kind: method_specific
+                - id: running
+                  title: "## 5. Running the model end-to-end"
+                  kind: paradigm
+                  subsections:
+                    - {id: train_loop, title: "### 5.1 Train for a few epochs"}
+                    - {id: learning_curve, title: "### 5.2 Learning curve"}
+                - id: own_data
+                  title: "## 6. Use your own data"
+                  kind: agnostic
+            # Demo-success markers (demo-success-semantics design, approved
+            # 2026-07-16): ViT demos train a classifier, so the headline gate
+            # is the same accuracy-vs-chance shape as active_learning
+            # (evidence: Rethinking-Grouping 2026-07-14 — headline training
+            # cell flat at chance for 20 epochs, caught only by a probe after
+            # the fix loop burned against label-free data).
+            demo_success:
+              checks:
+                - kind: beats_chance
+                  gloss: "the headline accuracy series must beat chance (1/num_classes) by the shared margin"
+            semantic_checks:
+              - id: ViT-analyzer-grouping-classified
+                stage: stage_1_analyzer
+                check: >
+                  The spec identifies the token grouping or attention-routing
+                  strategy and does not flatten it into a generic ViT summary.
+                silent_failure: "The architecture coder emits a standard ViT while the notebook claims the paper's grouping strategy."
+                severity: warning
+                status: seed
+              - id: ViT-arch-grouping-implemented
+                stage: stage_2b_architecture
+                check: >
+                  The ViT backbone composes the method-owned grouping helper
+                  into attention; model.py is not a plain transformer with an unused helper.
+                silent_failure: "group_tokens exists but forward never calls it, so the paper contribution is absent."
+                severity: error
+                status: seed
+              - id: ViT-method-grouping-faithful
+                stage: stage_2c_method
+                check: >
+                  The grouping helper implements the paper's strategy; smoke
+                  scale may shrink dimensions but not replace the grouping rule.
+                silent_failure: "Random/window/routing grouping is replaced by a simpler fixed partition that still trains."
+                severity: error
+                status: seed
+              - id: ViT-node-facts-not-thresholds
+                stage: stage_2x_params
+                check: >
+                  Paper-specific ablation facts stay in fingerprint/worked
+                  examples or paper evidence, not as node-wide runtime thresholds.
+                silent_failure: "A single paper's ablation value becomes a global ViT parameter floor."
+                severity: warning
+                status: seed
+            domain_checks:
+              CV:
+                - id: ViT-CV-image-batch-shape
+                  stage: stage_2b_architecture
+                  check: "The backbone forward input remains image-shaped (B, 3, H, W), not flattened tabular features."
+                  silent_failure: "A tabular MLP-shaped package passes but no longer exercises a vision transformer."
+                  severity: error
+                  status: seed
+              action_recognition:
+                - id: ViT-CV-temporal-token-axis
+                  stage: stage_1_analyzer
+                  check: "Video/action papers identify whether tokens include a temporal axis before routing to plain image classification."
+                  silent_failure: "A video-transformer paper is treated as single-image classification and loses temporal attention."
+                  severity: warning
+                  status: seed
+            scaffold_hints:
+              interface_hint: "group_tokens(tokens: torch.Tensor, P: torch.Tensor | None = None, num_groups: int = 4, *, seed: int = 0, num_heads: int = 1, height: int | None = None, width: int | None = None, **paradigm_extras_by_name) -> List[torch.Tensor]"
+              templates_dir: paradigms/vision_transformer/templates
+              demo_data_source: template_downloads
+            pluggable_component:
+              name: group_tokens
+              return_type: "List[torch.Tensor]"
+              signature_template: "group_tokens(tokens: torch.Tensor, P: torch.Tensor | None = None, num_groups: int = 4, *, seed: int = 0, num_heads: int = 1, height: int | None = None, width: int | None = None, **paradigm_extras_by_name) -> List[torch.Tensor]"
+              contract:
+                fixed_positional_args: [tokens]
+                seed_param: seed
+                paradigm_extras_forwarding: by_name_from_config
+                forbidden_param_names: [config]
+              return_type_definition: >
+                Returns grouped token tensors consumed by the ViT backbone's
+                attention blocks; the backbone owns patch embedding and logits.
+              rationale: >
+                The architecture contribution is expressed as a method-owned
+                grouping helper so validators can pin the paper-specific logic
+                while model.py composes it into a full ViT.
+          attention_mechanism:
+            name: Attention Mechanism
+            status: reserved
+            taxonomy_id: TE-AR/attention_mechanism
+          normalization_layer:
+            name: Normalization Layer
+            status: reserved
+            taxonomy_id: TE-AR/normalization_layer
+
+      TE-LF:
+        name: Loss Function
+        description: "Methods whose contribution is a training objective / loss term."
+        variants:
+          task_specific_loss:
+            name: Task-Specific Loss
+            status: reserved
+            taxonomy_id: TE-LF/task_specific_loss
+            semantic_checks:
+              - id: LF-seed-finite
+                stage: stage_2c_method
+                check: "Loss is finite and non-negative; gradients flow to all params."
+                silent_failure: "NaN/inf loss masked by clamping; gradients detached."
+                severity: error
+                status: seed
+          contrastive_metric_loss:
+            name: Contrastive / Metric Loss
+            status: reserved
+            taxonomy_id: TE-LF/contrastive_metric_loss
+
+      TE-DS:
+        name: Data Strategy
+        description: "Methods that change sampling, augmentation, or curation of data."
+        variants:
+          data_sampling:
+            name: Data Sampling
+            status: reserved
+            taxonomy_id: TE-DS/data_sampling
+
+      # Committed 2026-08-06 (R2C-070). Family assets authored directly from
+      # five rolls of pdfgnn audit evidence (audit/reports/2026-08-0{4,5,6}-*)
+      # plus the two run-authored provisional packs (night3's
+      # graph_time_series_forecasting, loop2's time_series_forecasting), per
+      # the maintainer's 2026-08-06 decision that the frontier-model session crafts this
+      # node rather than promoting either pack as-is. Placement decision log:
+      # the time-series-forecasting taxonomy decision (internal, not shipped)
+      TE-TSF:
+        name: Time-Series Forecasting
+        description: >
+          Trained models that forecast future values of time series — often many
+          related series at once — from historical context, typically with a
+          probabilistic output (distribution parameters, quantiles, or samples).
+          The family's identity is the train-on-history / evaluate-on-held-out-
+          window protocol: context length P, forecast horizon K, chronology-
+          preserving aggregation, and leak-free temporal splits are structural,
+          not tuning knobs.
+        priors:
+          architecture:
+            encoder_decoder_pattern: true
+            encoder_type: [GNN, GCN, attention, none]
+            decoder_type: [LSTM, DeepAR, Transformer]
+            output_distribution: [Student_t, Gaussian, quantile]
+          data_shape: >
+            A (num_series, num_steps) target matrix plus optional static
+            per-series features and known time-varying covariates spanning the
+            previous P and following K steps. Real public tables arrive as
+            per-table CSVs with date columns, string ids, and blank cells.
+          scale_handling: >
+            DeepAR-lineage models normalize targets per series (the reference
+            implementations do it by default). Unnormalized targets in the
+            hundreds push the predicted mean toward zero while the scale
+            parameter inflates: the loss falls, training "succeeds", and the
+            delivered forecasts are statistically indistinguishable from
+            predicting zero (measured on the 2026-08-06 pdfgnn roll: RMSE 53.74
+            vs 53.75 for an all-zeros predictor). Absence of scale handling is
+            a mechanism deviation, not a hygiene nit.
+          public_dataset_shape: >
+            Public competition datasets (the Kaggle forecasting layout)
+            deliberately WITHHOLD the target over their final period — that
+            period is the competition's own prediction window. The nominal time
+            span therefore overstates the usable extent; the last K steps of
+            such an axis can carry no ground truth at all. Measure where the
+            target column's live extent ends before choosing an evaluation
+            window (pdfgnn 2026-08-06: a 59-day dead tail in the source).
+          calibration:
+            preserve: [context_length, forecast_horizon, distribution_family]
+            sacrifice_order: [num_epochs, num_series, embedding_dim, hidden_dim, num_layers]
+            demo_target_seconds: 300
+        scaffold_hints:
+          interface_hint: "forecast(model, history, static_features, time_varying_features, graph, entity_ids, target_scaling_state, seed, *paradigm_extras_by_name) -> ForecastResult"
+          content_file: docs/ssot/content/time_series_forecasting.md
+          templates_dir: paradigms/time_series_forecasting/templates
+          demo_data_source: needs_acquisition
+        # Family-owned offline fallback grammar (R2C-052). The resolved build
+        # plan supplies forecast_horizon_demo_value from the separately
+        # declared params_derivation entry below, so K has one SSOT.
+        build_plan:
+          offline_demo_data:
+            schema_id: time_series_panel_v1
+            synthetic_feasible: true
+            generator_id: time_series_offline_fallback
+            generator_version: 1.0.0
+            entity_count: 8
+            # Family-owned smoke capacity, not a paper protocol quantity: two
+            # complete cycles of the generator's fixed 12-step seasonal signal.
+            family_fitting_prefix_steps: 24
+            supported_cadences: [week, day, hour, minute, second]
+            tables:
+              series.csv:
+                columns:
+                  - {name: series_id, dtype: string, semantic_role: entity_id}
+                  - {name: static_level, dtype: float64, semantic_role: static_numeric_level}
+                  - {name: static_amplitude, dtype: float64, semantic_role: static_numeric_amplitude}
+                primary_key: [series_id]
+              observations.csv:
+                columns:
+                  - {name: series_id, dtype: string, semantic_role: entity_id}
+                  - {name: timestamp, dtype: datetime_iso8601_utc, semantic_role: time_index}
+                  - {name: target, dtype: float64, semantic_role: target}
+                  - {name: season_sin, dtype: float64, semantic_role: known_time_varying_covariate}
+                  - {name: season_cos, dtype: float64, semantic_role: known_time_varying_covariate}
+                  - {name: time_fraction, dtype: float64, semantic_role: known_time_varying_covariate}
+                primary_key: [series_id, timestamp]
+        pluggable_component:
+          name: forecast
+          return_type: ForecastResult
+          signature_template: "forecast(model, history, static_features, time_varying_features, graph, entity_ids, target_scaling_state, seed, *paradigm_extras_by_name) -> ForecastResult"
+          contract:
+            fixed_positional_args: [model, history, static_features, time_varying_features, graph, entity_ids, target_scaling_state]
+            seed_param: seed
+            paradigm_extras_forwarding: by_name_from_config
+            forbidden_param_names: [config]
+          return_type_definition: |
+            ForecastResult is a dataclass defined in method/method.py with fields:
+            - mean: torch.Tensor  # (N, K) expected value in original target units for N series over K future steps
+            - variance: torch.Tensor  # (N, K) uncertainty in squared original target units (document the exact semantics: scale**2 vs true variance)
+            - samples: torch.Tensor  # (num_samples, N, K) Monte Carlo draws in original target units
+            - distribution_params: Dict[str, torch.Tensor]  # parameters with target-valued location/scale restored to original units; dimensionless params (e.g. Student-t df) stay unchanged
+          rationale: |
+            The pluggable takes a trained model, historical values, static
+            per-series features, known time-varying covariates, the inter-series
+            structure (graph adjacency / edge index; None for methods without
+            one), the exact typed stable entity ids for the series axis, and the
+            training-only target-scaling state keyed by those ids. It joins
+            scales by typed identity rather than row position and uses the fixed
+            method.target_scaling.inverse_forecast_output helper to return every
+            target-valued field in the original target units: mean/location and
+            samples multiply by scale, distribution scale multiplies by the
+            absolute scale, and variance multiplies by squared scale. It must
+            return distribution parameters or samples — not just a point
+            estimate — because the family's value is
+            decision-making under uncertainty. samples must be genuine draws
+            (measurable spread consistent with the scale parameter), never
+            aliased conditional means. The seed parameter makes sampling
+            reproducible; num_samples is forwarded by name, never hardcoded.
+        paradigm_extras:
+          num_samples:
+            value: 100
+            reasoning_template: >
+              Monte Carlo sample count for the forecast distribution at demo
+              scale ({value} draws). A researcher scales this up for tighter
+              quantiles; the pluggable must accept it by name rather than
+              hardcoding it.
+        params_derivation:
+          context_length:
+            kind: config_path
+            protocol_role: context_length
+            reasoning: >
+              Number of historical steps (P) the model conditions on — node
+              features, decoder context, and window arithmetic all consume it.
+              Structural, not a tuning knob. A paper-stated value may come
+              only from the role-compatible evaluation-protocol fact; an
+              unspecified P keeps the demo choice system-owned.
+            demo_value: 10
+            used_in_notebook: true
+          forecast_horizon:
+            kind: config_path
+            protocol_role: forecast_call_horizon
+            reasoning: >
+              Number of future steps (K) the model predicts in one call.
+              Determines decoder output shape and per-call feasibility; it
+              does not define validation or test span. A paper-stated value
+              may come only from the role-compatible evaluation-protocol
+              fact. Must be positive.
+            demo_value: 4
+            used_in_notebook: true
+          hidden_dim:
+            kind: suppress
+            reason: >
+              In this family hidden_dim would name the temporal decoder's
+              hidden size, a paper-specific architectural choice derived from
+              the paper's sequential-model configuration — not the
+              cross-paradigm generic-MLP-width convention.
+        smoke_economics:
+          protected_params: [context_length, forecast_horizon]
+        # Family-owned task-skill policy (R2C-086). This contract is consumed
+        # only with a structured executed-evaluation record; notebook prose is
+        # presentation and cannot supply or override comparison evidence.
+        demo_skill:
+          schema_version: "1.0.0"
+          primary_metric:
+            id: rmse
+            direction: lower_is_better
+            aggregation: root_mean_squared_error
+            units: target_units
+          eligibility:
+            minimum_finite_rows: 1
+            require_nonzero_actuals: true
+          decision_policy: all_required
+          comparators:
+            - id: predict_zero
+              role: degeneracy_floor
+              implementation: predict_zero
+              required: true
+              absolute_margin: 0.0
+              tolerance: 1.0e-12
+            - id: repeat_last
+              role: minimum_competence
+              implementation: repeat_last_pre_window
+              required: true
+              absolute_margin: 0.0
+              tolerance: 1.0e-12
+        notebook_layout:
+          description: >
+            Section structure for time-series forecasting notebooks. The
+            protocol sections are load-bearing: chronology-preserving
+            aggregation with an explicit missing-value policy, a held-out
+            evaluation window that carries signal, visible training evidence,
+            naive baselines, one machine-readable executed-evaluation record,
+            and a deterministic presentation verdict derived from that record.
+          sections:
+            - id: title
+              title: "Paper title (from spec.paper.title)"
+              kind: agnostic
+            - id: install
+              title: "## 0. Install dependencies (first run only)"
+              kind: agnostic
+            - id: setup
+              title: "## 1. Setup"
+              kind: agnostic
+            - id: parameters
+              title: "## 2. Parameters"
+              kind: agnostic
+            - id: setup_pieces
+              title: "## 3. The setup pieces"
+              kind: paradigm
+              subsections:
+                - id: data
+                  title: "### 3.1 Data"
+                  content: >
+                    Load via the package's load_data(). Print the realized
+                    shapes (N series, T steps, feature counts). Aggregation to
+                    the protocol's time unit must key by year AND period
+                    (e.g. isocalendar year*100+week) so chronology survives,
+                    must state and apply an explicit missing-value policy
+                    (blank cells arrive as NaN from the loader), and must print
+                    where the target's usable data ends when the tail is
+                    missing (public competition datasets withhold the target
+                    over their final period).
+                - id: structure
+                  title: "### 3.2 Inter-series structure"
+                  content: >
+                    Build the inter-series structure the method uses (e.g. a
+                    similarity graph). Print its statistics (nodes, edges,
+                    average degree, isolated count). Omit this subsection for
+                    methods without relational structure.
+                - id: model
+                  title: "### 3.3 Model"
+                  content: >
+                    Build the model. Print an architecture summary naming the
+                    encoder layers, decoder layers, and the output
+                    distribution head.
+                - id: training_protocol
+                  title: "### 3.4 Training protocol"
+                  content: >
+                    Explain optimizer, loss (distribution NLL), batching
+                    strategy, context length, horizon, and the temporal split:
+                    training and the forecast's conditioning context both end
+                    before the evaluation window. No code cell — training runs
+                    in section 5.
+            - id: method
+              title: "## 4. The {method_name} method"
+              kind: method_specific
+            - id: running
+              title: "## 5. Training and forecasting end-to-end"
+              kind: paradigm
+              subsections:
+                - id: train_loop
+                  title: "### 5.1 Training loop"
+                  content: >
+                    Run training through the declared train_model entry and
+                    retain the fixed method.training_history record returned
+                    under the exact training_history key. A bare "Training
+                    complete." line or prose-parsed loss series is not
+                    training evidence. The time-window stride is its own
+                    quantity, never the series batch size. Emit exactly one
+                    compact, sorted-key, allow_nan=False JSON line prefixed
+                    `R2C_TARGET_SCALING_STATE_JSON: ` from the state returned
+                    by the declared fitting call, and exactly one line
+                    prefixed `R2C_TRAINING_HISTORY_JSON: ` from the returned
+                    history. Generated code writes neither pipeline-owned
+                    artifact.
+                - id: forecast
+                  title: "### 5.2 Forecasting"
+                  content: >
+                    Call the pluggable forecast function conditioned on history
+                    that ends where training ended. Plot mean forecast with an
+                    uncertainty band from the samples against actual values for
+                    a few representative series; draw the actuals line only
+                    where actuals are finite, and say so when they are not.
+                - id: evaluation
+                  title: "### 5.3 Evaluation"
+                  content: >
+                    Compute the paper's metrics (e.g. RMSE, MAE, WMAPE) on the
+                    held-out window with explicit NaN discipline (assert
+                    finiteness; never let NaN propagate silently). From the
+                    executed actuals, model predictions, and pre-window history,
+                    emit exactly one JSON line prefixed
+                    `R2C_DEMO_EVALUATION_JSON: `. Its object carries
+                    literal schema_version `2.0.0` and one exact
+                    evaluation_protocol_role copied from
+                    comparison.evaluation_protocol.quantities, plus
+                    target_root, model_id, checkpoint_id, config_id,
+                    metric_id, units, aggregation, row_ids,
+                    evaluation_positions, actuals, finite_mask,
+                    model_predictions, model_metric,
+                    actual_values_id,
+                    finite_mask_id, and a comparators mapping keyed by
+                    predict_zero and repeat_last.
+                    It also carries a target_scaling_proof mapping with literal
+                    schema_version `1.0.0`, typed entity_ids and their exact
+                    entity_id_root, scaled_actuals and original_actuals with an
+                    explicit actual_output_role and actual_entity_axis, plus
+                    scaled_predictions and original_predictions with an
+                    explicit prediction_output_role and
+                    prediction_entity_axis. Preserve the executed array shape
+                    and identity order; never flatten, reshape, or infer an
+                    entity axis for this proof.
+                    Use `test_span` only when the executed evaluation is the
+                    typed protocol's test-span role. Otherwise carry the exact
+                    role the typed protocol declares for that evaluation; do
+                    not infer a role from the window length, row count, a
+                    nearby numeric value, or prose.
+                    finite_mask is exactly the per-row finiteness mask of
+                    actuals: every finite actual is true and every JSON-null
+                    missing actual is false; it cannot select rows by model
+                    or comparator performance.
+                    Each comparator carries implementation, predictions,
+                    metric,
+                    row_ids, evaluation_positions, units, actual_values_id, and
+                    finite_mask_id. repeat_last also carries one value in
+                    input_values and one input position in input_positions per
+                    row, with every input position equal to the final position
+                    immediately before the complete evaluation window; a
+                    later horizon cannot reuse an earlier held-out actual and
+                    the producer cannot select an arbitrarily older weak
+                    persistence value.
+                    predict_zero may carry empty input_positions. Identity
+                    fields use the shared
+                    canonical recipe: prefix `sha256:` to SHA-256 over UTF-8
+                    compact JSON with sorted keys (`separators=(",", ":")`,
+                    `ensure_ascii=False`, `allow_nan=False`).
+                    actual_values_id hashes `{actuals, row_ids, units}`;
+                    finite_mask_id hashes `{finite_mask, row_ids}`. Represent
+                    masked missing values as JSON null. They are never prose
+                    labels. The pipeline recomputes model_metric and every
+                    comparator metric and requires numerical agreement within
+                    the shared deterministic floating-point tolerance.
+                    Print model, predict-zero, and repeat-last metrics beside
+                    one another. Then print one `Demo verdict:`
+                    presentation line derived from those executed objects: PASS
+                    only when the eligible model beats both required
+                    comparators under demo_skill; otherwise FAIL with the
+                    comparison reason. The notebook never declares evaluation
+                    validity: the pipeline joins the trusted split receipt, and
+                    printed PASS/FAIL is not evidence authority.
+            - id: own_data
+              title: "## 6. Use your own data"
+              kind: agnostic
+        # Coarse execution markers retained from R2C-070. Under R2C-086 the
+        # structured R2C_DEMO_EVALUATION_JSON record plus demo_skill contract
+        # owns scientific comparison; a printed verdict is derived presentation
+        # only and cannot establish valid evaluation or demonstrated skill.
+        demo_success:
+          failure_markers:
+            - pattern: '(?im)^.*\b(?:rmse|mae|wmape|mape|smape|crps|nll)\s*[:=]\s*(?:nan|-?inf)\b.*$'
+              gloss: "a headline evaluation metric printed NaN or inf"
+            - pattern: '(?im)^.*\bdemo\s+verdict\s*:\s*fail\b.*$'
+              gloss: "the notebook's own evaluation verdict line reports failure"
+            - pattern: '(?im)^.*\btraining\s+diverged\b.*$'
+              gloss: "the demo reports training divergence"
+          success_markers:
+            - pattern: '(?im)^.*\bdemo\s+verdict\s*:\s*pass\b.*$'
+              gloss: >-
+                the notebook's derived presentation line reports that its
+                structured comparison beat all required family comparators;
+                the line itself is not evidence authority
+        semantic_checks:
+          - id: TSF-analyzer-horizon-context
+            stage: stage_1_analyzer
+            check: >
+              The spec records the forecast horizon K and context length P as
+              structural parameters with provenance. These determine tensor
+              shapes and window arithmetic, not optional scale knobs.
+            silent_failure: "A missing horizon leaves the coder guessing the output shape; a wrong context length truncates the input window silently."
+            severity: error
+            status: seed
+          - id: TSF-analyzer-protocol-axis-arithmetic
+            stage: stage_1_analyzer
+            check: >
+              The role-typed protocol keeps one-call forecast horizon separate
+              from evaluation coverage. For a stated single holdout, the
+              static bundle floor is context length + validation span + test
+              span after positive integral conversion to one shared
+              unit/granularity. Other evaluation schemes need their own typed
+              origin/fold/window controls rather than this arithmetic.
+            silent_failure: "A raw bundle-axis count is compared with context, validation, or test quantities on a different cadence; or the test span is copied into one-call K, so a structurally infeasible bundle passes under false arithmetic."
+            severity: error
+            status: seed
+          - id: TSF-arch-encoder-decoder-connected
+            stage: stage_2b_architecture
+            check: >
+              Any relational/graph encoder output actually reaches the temporal
+              decoder on the executed data path — constructed but never-called
+              projection or encoder modules are a failure, not dead weight.
+            silent_failure: "The encoder exists in model.py but the decoder receives only raw history; the paper's relational contribution is silently absent (pdfgnn 2026-08-04: dead decoder_projection)."
+            severity: error
+            status: seed
+          - id: TSF-graph-alignment-prerequisite
+            stage: stage_2c_method
+            probe: graph_mechanism.alignment_prerequisite
+            check: >
+              For an explicitly declared homogeneous graph mechanism, stable
+              entity ids, node-bearing values, local graph endpoints, degree
+              metadata, and restored outputs satisfy the reused relational
+              identity contract before any graph intervention is interpreted.
+            silent_failure: "A topology or ablation result is reported on shuffled node rows whose graph endpoints still use another ordering; apparent graph behavior is an identity mismatch, not mechanism evidence."
+            severity: error
+            status: seed
+          - id: TSF-graph-parameter-agreement
+            stage: stage_2c_method
+            probe: graph_mechanism.parameter_agreement
+            check: >
+              Every threshold or neighborhood cap declared by the homogeneous
+              graph contract has one exact parameter identity whose value and
+              provenance agree across method spec, params, the runtime
+              constructor capture, and the probe record.
+            silent_failure: "A hardcoded graph cutoff happens to equal paper truth while params omits it, so the constructor and probe agree only by coincidence."
+            severity: error
+            status: seed
+          - id: TSF-graph-construction-semantics
+            stage: stage_2c_method
+            probe: graph_mechanism.construction_semantics
+            check: >
+              On fixed static node features, graph construction obeys the
+              declared threshold, neighborhood cap, self-loop policy, and
+              direction convention for sparse edge-index or dense adjacency.
+              A per-source cap ranks by descending cosine similarity with
+              canonical target-index ties; undirected construction retains
+              only mutual selections before adding any required self loops.
+            silent_failure: "The graph has a valid shape but reverses information flow, keeps forbidden self loops, applies the wrong threshold inequality, or ignores the declared cap."
+            severity: error
+            status: seed
+          - id: TSF-graph-topology-sensitivity
+            stage: stage_2c_method
+            probe: graph_mechanism.topology_sensitivity
+            check: >
+              With weights, histories, features, seed, and entity identities
+              fixed on an asymmetric fixture, a meaningful topology change
+              changes the declared graph-path output beyond the frozen
+              harness tolerance.
+            silent_failure: "The callable accepts graph input and executes, but meaningful edge changes leave every relevant output unchanged."
+            severity: error
+            status: seed
+          - id: TSF-graph-neighbor-sensitivity
+            stage: stage_2c_method
+            probe: graph_mechanism.neighbor_sensitivity
+            check: >
+              Holding the target entity's own history fixed, changing one
+              connected neighbor's declared signal influences the destination
+              only through the contract's message-passing direction.
+            silent_failure: "Topology appears live through a graph-size or self-feature effect while no connected neighbor signal reaches the destination."
+            severity: error
+            status: seed
+          - id: TSF-graph-permutation-equivalence
+            stage: stage_2c_method
+            probe: graph_mechanism.permutation_equivalence
+            check: >
+              When the paper contract declares homogeneous relabeling
+              equivariance, jointly permuting node-bearing inputs and graph
+              structure and then restoring canonical output order preserves
+              behavior within the frozen tolerance; otherwise the check is
+              explicitly not applicable.
+            silent_failure: "Only part of the relational inputs is relabeled, producing order-dependent output that is mistaken for topology sensitivity."
+            severity: error
+            status: seed
+          - id: TSF-graph-contribution-ablation
+            stage: stage_2c_method
+            probe: graph_mechanism.contribution_ablation
+            check: >
+              Under identical seeded inputs, the real graph mechanism passes
+              the same discriminating criterion that its paper-justified,
+              explicitly declared null fails; a crashing or ungrounded null
+              never counts as contribution evidence.
+            silent_failure: "Graph liveness, clean execution, or a test that both real and null arms pass is promoted into evidence that the paper's graph contribution matters."
+            severity: error
+            status: seed
+          - id: TSF-arch-per-series-scaling
+            stage: stage_2b_architecture
+            probe: time_series_forecasting.magnitude_collapse
+            check: >
+              When the paper's lineage normalizes targets per series (DeepAR
+              and the PyTorch Forecasting stack do by default), per-series
+              scale handling exists in the pipeline, or its absence is a
+              disclosed deviation.
+            silent_failure: "Unnormalized targets in the hundreds collapse the predicted mean toward zero while sigma inflates; the loss curve falls and the delivered model is indistinguishable from predicting zero (pdfgnn 2026-08-06)."
+            severity: error
+            status: seed
+          - id: TSF-method-distribution-not-point
+            stage: stage_2c_method
+            probe: time_series_forecasting.sample_genuineness
+            check: >
+              The pluggable returns genuine probabilistic output: samples are
+              real draws with spread consistent with the scale parameter, and
+              no returned field aliases another (mean vs mu may be equal in
+              value, never the same tensor doing double duty as "samples").
+            silent_failure: "Trajectories that are conditional means dressed as Monte Carlo samples: measured spread 5.6e-5 against sigma 0.74, intervals ~10,000x too narrow (pdfgnn night3)."
+            severity: error
+            status: seed
+          - id: TSF-method-autoregressive-feedback
+            stage: stage_2c_method
+            probe: time_series_forecasting.path_dependence
+            check: >
+              When the paper's decoder is autoregressive (DeepAR-style
+              ancestral sampling), the sampled value at step k conditions step
+              k+1. A single forward pass emitting K independent marginals is a
+              mechanism substitution, not an approximation.
+            silent_failure: "Cumulative-horizon distributions misstate the variance of the sum; three consecutive pdfgnn rolls shipped three different substitutions (mean-feeding, broken return signature, rollout deleted outright)."
+            severity: error
+            status: seed
+          - id: TSF-method-own-history-sensitive
+            stage: stage_2c_method
+            probe: time_series_forecasting.own_history_sensitivity
+            check: >
+              Each series' forecast responds to a material change in that
+              same series' eligible history while all other declared inputs,
+              relational metadata, and stable entity ordering remain fixed.
+            silent_failure: "A severed self-signal path leaves an entity's forecast unchanged even when its own nonzero history is multiplied by 100, while cross-series or bias terms make the output look nonconstant."
+            severity: error
+            status: seed
+          - id: TSF-method-no-target-in-decoder-input
+            stage: stage_2c_method
+            check: >
+              Training-time decoder inputs at forecast positions carry only
+              lagged or known-in-advance values, never the training target, and
+              the training-time input construction matches the inference-time
+              construction on every channel.
+            silent_failure: "The demand channel at forecast positions equals the target during training and is zeroed at inference: optimistically biased fits, structurally handicapped serving (pdfgnn loop2: torch.equal(dec_input[:, P:, 0], target) was True)."
+            severity: error
+            status: seed
+          - id: TSF-method-synchronized-batching
+            stage: stage_2c_method
+            check: >
+              When the paper uses synchronized batching (all series in a batch
+              share one time window), the training loop enforces the alignment
+              on real batch construction, not vacuously on a single window.
+            silent_failure: "Random per-series offsets make relational aggregation mix timestamps; or one-window training satisfies the property trivially while covering 3% of the axis."
+            severity: error
+            status: seed
+          - id: TSF-method-time-stride-independent
+            stage: stage_2c_method
+            check: >
+              The training loop's time-window stride is its own quantity —
+              never the series batch size — and the loop visits the training
+              windows the protocol implies.
+            silent_failure: "t += batch_size uses the series-batch size as the time stride: 4 of ~127 windows visited, 88% of history never a target, and raising batch_size for throughput silently cuts training data (pdfgnn loop2)."
+            severity: error
+            status: seed
+          - id: TSF-notebook-chronology-preserved
+            stage: stage_3a_notebook
+            check: >
+              Temporal aggregation keys carry the year (e.g. isocalendar
+              year*100+week), the resulting axis is strictly chronological, and
+              multi-year data is never folded onto one seasonal calendar.
+            silent_failure: "groupby(week-of-year) sums January 2017+2018+2019 into one bucket; the '52-week series' is a seasonal aggregate and every downstream number runs on a fabricated axis (pdfgnn night3)."
+            severity: error
+            status: seed
+          - id: TSF-notebook-missing-value-policy
+            stage: stage_3a_notebook
+            check: >
+              Aggregation over real tables states and applies an explicit
+              missing-value policy. Blank cells arrive from the loader as NaN;
+              they must be handled at the aggregation seam, never sanitized
+              deep inside the model (np.nan_to_num at the crash site converts a
+              loud, routable failure into a silent NaN metric).
+            silent_failure: "One blank row poisons a whole aggregation bucket; 126 NaN cells reach training and the evaluation, and the delivered metrics print nan (pdfgnn loop2)."
+            severity: error
+            status: seed
+          - id: TSF-notebook-eval-window-held-out-with-signal
+            stage: stage_3a_notebook
+            check: >
+              The metric window is disjoint from training AND the forecast's
+              conditioning context, and it carries signal: held-out actuals are
+              finite and not identically zero. Disjointness alone is not enough
+              when the dataset's tail withholds the target.
+            silent_failure: "A correctly held-out window sits entirely inside the source's withheld-target dead tail; RMSE prints nan over 56 missing and 64 fabricated-zero cells (pdfgnn loop2 headline finding)."
+            severity: error
+            status: seed
+          - id: TSF-notebook-loss-series-visible
+            stage: stage_3a_notebook
+            check: >
+              The training cell emits exactly one canonical
+              R2C_TRAINING_HISTORY_JSON record returned by the fixed helper.
+              It binds finite ordered losses, fitting and selection ranges,
+              seed/configuration, target-scaling state, model, and checkpoint;
+              reports and probes consume the pipeline-owned artifact rather
+              than parsing printed prose.
+            silent_failure: "A plausible loss list is detached from the split, scaling state, selected checkpoint, and evaluated model, so training evidence from one model can support another."
+            severity: error
+            status: seed
+          - id: TSF-notebook-naive-baselines
+            stage: stage_3a_notebook
+            probe: time_series_forecasting.holdout_skill
+            check: >
+              The evaluation prints predict-zero and repeat-last-value
+              baselines beside the model's metrics; emits one structured
+              R2C_DEMO_EVALUATION_JSON record from executed actuals, model
+              predictions, and pre-window history; and derives its presentation
+              verdict from those values and wins against both predict-zero and
+              repeat-last under the family demo_skill policy. The pipeline's
+              skill status separately requires its trusted valid-evaluation
+              receipt.
+            silent_failure: "A model clears the predict-zero degeneracy floor and prints PASS while losing to repeat-last minimum competence, or prose is treated as evidence despite an invalid split (pdfgnn loop2 and current roll)."
+            severity: error
+            status: seed
+          - id: TSF-params-horizon-positive
+            stage: stage_2x_params
+            check: "forecast_horizon > 0 and context_length > 0; both stated in the paper or derived from its protocol."
+            silent_failure: "A zero horizon produces an empty forecast that still passes smoke gates."
+            severity: error
+            status: seed
+        smoke_bugs:
+          - id: tsf_nan_from_missing_values
+            symptom: "NaN loss or metrics, or a distribution-constraint error (Chi2/StudentT df constraint) mid-training or at evaluation."
+            likely_cause: >
+              Blank cells in real tables become NaN at the loader (documented
+              behavior), the notebook aggregates with += and no missing-value
+              policy, and NaN flows into training targets or ground truth. Fix
+              at the aggregation seam. Sanitizing the model's inputs
+              (np.nan_to_num inside forecast) is the band-aid shape: it turns
+              a loud crash into a silent NaN metric.
+            fix: r2c-notebook-generator
+            status: seed
+          - id: tsf_withheld_target_tail
+            symptom: "Metrics are NaN or identically zero on the last-K evaluation window while the model and weights are entirely finite."
+            likely_cause: >
+              The public source withholds the target over its final period
+              (competition layout), so the nominal axis outlives the usable
+              extent and the held-out tail carries no ground truth. Evaluate on
+              the last window that has data; state where usable data ends.
+            fix: r2c-notebook-generator
+            status: seed
+          - id: tsf_declared_vs_realized_dims
+            symptom: "RuntimeError 'expected N, got M' at the decoder or LSTM input, typically two layers away from the cause."
+            likely_cause: >
+              Declared context/feature dimensions disagree with the bundle's
+              realized axis (e.g. 10 declared lags over a 4-step axis, silently
+              clamped into a width-4 slice). The root is bundle axis coverage
+              or a silent clamp — validate declared dimensions against realized
+              data and raise with the arithmetic in the message.
+            fix: r2c-architecture-coder
+            status: seed
+          - id: tsf_unconstrained_distribution_params
+            symptom: "NaN loss or sampling errors: scale is non-positive or degrees-of-freedom drifts below its support."
+            likely_cause: "The output head emits raw logits for scale/df without softplus plus a floor, or the loss does not constrain them."
+            fix: r2c-architecture-coder
+            status: seed
+          - id: tsf_graph_no_edges
+            symptom: "Relational encoder produces constant or zero embeddings; all nodes isolated (graph-based methods only)."
+            likely_cause: "Similarity threshold too high for the demo's sparse features yields a graph with no edges; aggregation over empty neighborhoods returns zeros."
+            fix: r2c-method-coder
+            status: seed
+          - id: tsf_string_cast_real_columns
+            symptom: "ValueError: could not convert string to float during data preparation."
+            likely_cause: "Real tables carry string ids, dates, and categorical columns; a blanket float cast dies on them. Use the loader's typed columns and parse dates explicitly."
+            fix: r2c-notebook-generator
+            status: seed
+        variants:
+          time_series_forecasting:
+            name: Time-Series Forecasting
+            status: populated
+            legacy_paradigm: time_series_forecasting
+            taxonomy_id: TE-TSF/time_series_forecasting
+            aliases: [graph_time_series_forecasting]
+            fingerprint:
+              what_it_is: >
+                Deep learning methods that forecast future values of time
+                series — often simultaneously across many related series (a
+                global model) — by combining temporal sequence models (LSTM,
+                Transformer) with optional relational reasoning over
+                inter-series structure (a graph of articles/sensors/locations,
+                cross-series attention). The output is typically probabilistic
+                (distribution parameters or Monte Carlo samples) rather than a
+                single point estimate, supporting decision-making under
+                uncertainty.
+              positive_signals:
+                - "a forecast horizon K: predict future steps given P historical steps of context"
+                - "probabilistic output (distribution parameters, quantiles, or samples)"
+                - "multiple related time series forecast simultaneously (global model)"
+                - "graph-structured or other relational structure between series"
+                - "a temporal holdout protocol: test window at the end of the axis, validation preceding it"
+                - "synchronized or time-aligned batching across series"
+              route_elsewhere:
+                - signal: "the method selects which time series or points to label or monitor next"
+                  to: active_learning
+                - signal: "the contribution is a teacher/student distillation protocol, not the forecaster"
+                  to: knowledge_distillation
+                - signal: "the method adapts a model across source and target temporal distributions"
+                  to: domain_adaptation
+                - signal: "the method produces actions/policies in a closed loop with rewards, not forecasts"
+                  to: single_agent_rl
+              worked_examples:
+                - "GraphDeepAR (Kozodoi et al. 2023) — GNN encoder + DeepAR decoder for retail demand"
+                - "DeepAR (Salinas et al. 2020) — autoregressive LSTM with probabilistic output"
+                - "Temporal Fusion Transformer (Lim et al. 2021) — attention-based multi-horizon forecasting"
+                - "ST-GCN (Yu et al. 2018) — spatio-temporal GCN for traffic forecasting"
+
+  # ---------------------------------------------------------------------------
+  CLC:
+    name: Closed-Loop Control
+    archetype: >
+      A method that produces actions/trajectories in a loop with an environment,
+      respecting dynamics and constraints.
+    families:
+      CLC-MP:
+        name: Motion Planning
+        description: >
+          Methods that compute feasible, goal-directed trajectories subject to
+          kinematic and obstacle constraints.
+        status: populated
+        legacy_paradigm: motion_planning
+        fingerprint:
+          what_it_is: >
+            Computes feasible trajectories or controls from a start state to a
+            goal while respecting environment geometry, dynamics, and safety
+            constraints.
+          positive_signals:
+            - "planner returns a trajectory, waypoint sequence, or per-step control"
+            - "environment, dynamics, collision model, start, and goal are explicit inputs"
+            - "claims about feasibility, collision avoidance, goal progress, or closed-loop safety"
+          route_elsewhere:
+            - signal: "the paper contributes only a generic optimizer/update rule used inside a planner"
+              to: OM-OPT/stochastic_optimization
+            - signal: "the method learns a closed-loop policy from rewards or demonstrations"
+              to: CLC-RL/single_agent_rl
+          worked_examples:
+            - "RRT / RRT-Connect / RRT*"
+            - "iDb-RRT and discontinuity-bounded motion-primitives planners"
+            - "MPC-CBF and trajectory optimization planners"
+        priors:
+          calibration:
+            preserve: [system_dynamics, discontinuity_bound, collision_resolution]
+            sacrifice_order: [planning_time_budget, max_motion_primitives, max_nodes, optimization_iterations]
+            demo_target_seconds: 60
+          smoke_environment:
+            recommended: "2D mobile robot in a non-trivial bugtrap or two-room environment"
+            requires_visualization: true
+        # Scenario-fidelity capture vocabulary (slice A, 2026-07-23) plus
+        # runtime detector bindings (slice B, 2026-07-27). Each id may key one
+        # method_spec.scenario_assumptions entry when the parsed paper states
+        # the constraint in text. `detector` binds the family-owned runtime
+        # inspector that compares the executed demo setup against the captured
+        # value, exactly like semantic_checks entries bind probe executors;
+        # `check` and `silent_failure` are the authored explanations the
+        # battery stamps onto the emitted verdicts. A declared dimension with
+        # no detector is authoring-invalid.
+        scenario_assumption_dimensions:
+          - id: obstacle_geometry
+            display_name: "Obstacle geometry"
+            description: >
+              Geometry families the paper permits or assumes for obstacles in
+              its demonstration or evaluation scenarios.
+            normalized_value_guidance: >
+              Use one lowercase shape family or a flat list when the paper
+              names several, for example "circle" or ["circle", "polygon"].
+            detector: motion_planning.scenario_geometry
+            check: >
+              The executed demo's obstacle shapes stay within the geometry
+              families the paper states.
+            silent_failure: "A circles-only paper is demonstrated on polygon obstacles, so its collision model is never tested on the geometry it assumes."
+          - id: agent_population
+            display_name: "Agent population"
+            description: >
+              The presence, kind, or explicit count of other agents such as
+              pedestrians that the scenario must contain.
+            normalized_value_guidance: >
+              Use an integer for an explicit count, a lowercase category such
+              as "crowded", or a flat mapping such as
+              {"agent_type": "pedestrian", "minimum_present": true}.
+            detector: motion_planning.scenario_population
+            check: >
+              The executed demo contains the agent population the paper's
+              scenario states.
+            silent_failure: "A crowded-pedestrian paper is demonstrated with zero pedestrians, so its interaction behavior is never exercised."
+          - id: obstacle_dynamics
+            display_name: "Obstacle dynamics"
+            description: >
+              Whether obstacle state is static, dynamic, or mixed in the
+              scenario described by the paper.
+            normalized_value_guidance: >
+              Use one of "static", "dynamic", or "mixed" when the paper states
+              the distinction.
+            detector: motion_planning.scenario_dynamics_setup
+            check: >
+              Setup-time obstacle state matches the paper's static-or-dynamic
+              scenario assumption.
+            silent_failure: "A dynamic-obstacle paper builds a setup that cannot express motion and demonstrates on a frozen scene."
+        scaffold_hints:
+          interface_hint: "plan(start, goal, environment, dynamics, seed, *paradigm_extras_by_name) -> PlanResult"
+          templates_dir: paradigms/motion_planning/templates
+        pluggable_component:
+          name: plan
+          return_type: "PlanResult"
+          signature_template: "plan(start, goal, environment, dynamics, seed, *paradigm_extras_by_name) -> PlanResult"
+          contract:
+            fixed_positional_args: [start, goal, environment, dynamics]
+            seed_param: seed
+            paradigm_extras_forwarding: by_name_from_config
+            forbidden_param_names: [config]
+          return_type_definition: |
+            PlanResult is a dataclass / namedtuple with fields:
+            - trajectory: Trajectory | None
+            - status: Literal["success", "timeout", "infeasible", "error"]
+            - stats: Dict[str, Any]
+          rationale: |
+            The notebook calls the planner on a concrete start/goal/environment
+            problem and visualizes the returned trajectory when status is success.
+            Method-specific hyperparameters are forwarded by name from params.
+        notebook_layout:
+          description: "Section structure for motion-planning notebooks."
+          sections:
+            - id: title
+              title: "Paper title (from spec.paper.title)"
+            - id: install
+              title: "## 0. Install dependencies (first run only)"
+            - id: setup
+              title: "## 1. Setup"
+            - id: parameters
+              title: "## 2. Parameters"
+            - id: setup_pieces
+              title: "## 3. The setup pieces"
+              subsections:
+                - {id: environment, title: "### 3.1 Environment"}
+                - {id: dynamics, title: "### 3.2 System dynamics"}
+                - {id: problem, title: "### 3.3 Planning problem"}
+                - {id: collision, title: "### 3.4 Collision checking"}
+            - id: method
+              title: "## 4. The {method_name} method ⭐"
+            - id: running
+              title: "## 5. Running the planner end-to-end"
+              subsections:
+                - {id: plan_call, title: "### 5.1 Solve the planning problem"}
+                - {id: trajectory_viz, title: "### 5.2 Visualize the trajectory"}
+                - {id: stats, title: "### 5.3 Planner statistics"}
+            - id: own_data
+              title: "## 6. Use your own problem"
+        # Demo-success markers (demo-success-semantics design, approved
+        # 2026-07-16): the deterministic post-smoke verdict pass reads the
+        # headline demo section (`running`) for these. Marker vocabulary comes
+        # from the PlanResult status contract above plus the two recorded
+        # 2026-07-14 evidence shapes — iDb-RRT ("Planning status: timeout /
+        # Planning failed after 7 iterations", "No trajectory to visualize")
+        # and ICRA ("Status: timeout ... Distance to goal: 4.000 m") — plus
+        # the third recorded shape from the 2026-07-20 ICRA acceptance run,
+        # whose rollout printed "Collision at step 29, state=(2.49, 0.42)"
+        # with no status line anywhere, leaving the verdict undetermined.
+        # Family level so every planning variant inherits it.
+        demo_success:
+          failure_markers:
+            - pattern: '(?im)^.*\bcollision at step\b.*$'
+              gloss: "the demo rollout reports a collision"
+            - pattern: '(?im)^.*\bplanning\s+status\s*:\s*(?:timeout|infeasible|error|fail\w*).*$'
+              gloss: "the planner reports it did not find a plan"
+            - pattern: '(?im)^.*\bstatus\s*:\s*(?:timeout|infeasible|error|fail\w*).*$'
+              gloss: "the planner status line reports timeout/infeasible/error"
+            - pattern: '(?im)^.*\bplanning\s+failed\b.*$'
+              gloss: "the demo prints that planning failed"
+            - pattern: '(?im)^.*\bno\s+trajectory\b.*$'
+              gloss: "no trajectory was produced to visualize"
+          success_markers:
+            - pattern: '(?im)^.*\b(?:planning\s+)?status\s*:\s*success\b.*$'
+              gloss: "the planner reports success"
+            - pattern: '(?im)^.*\bgoal\s+reached\s*:\s*(?:true|yes)\b.*$'
+              gloss: "the demo reports the goal was reached"
+        semantic_checks:
+          - id: MP-analyzer-family-classified
+            stage: stage_1_analyzer
+            check: >
+              The spec identifies the algorithmic family: sampling-based,
+              search-based, optimization-based, or an explicit hybrid.
+            silent_failure: "A hybrid planner is flattened into a generic plan(...) call and the wrong phases are generated."
+            severity: warning
+            status: seed
+          - id: MP-analyzer-system-dynamics
+            stage: stage_1_analyzer
+            check: "System dynamics, state dimension, control dimension, and collision model are captured as method-critical context."
+            silent_failure: "The generated planner uses point-mass or straight-line dynamics while the paper requires kinodynamic planning."
+            severity: error
+            status: seed
+          - id: MP-arch-dynamics-match-paper
+            stage: stage_2b_architecture
+            check: "The dynamics step and, when needed, step Jacobian match the paper's system model."
+            silent_failure: "The planner runs on a substitute dynamics model and silently changes the feasible set."
+            severity: error
+            status: seed
+          - id: MP-arch-collision-check
+            stage: stage_2b_architecture
+            check: "Collision checking matches the environment geometry and state coordinate frame."
+            silent_failure: "Every sample is accepted or rejected due to coordinate-frame drift."
+            severity: error
+            status: seed
+          - id: MP-method-pluggable-does-planning
+            stage: stage_2c_method
+            check: "The pluggable planner actually performs the paper's planning/control algorithm, not a straight-line or random fallback."
+            silent_failure: "The notebook visualizes a trajectory while the paper's planner logic is absent."
+            severity: error
+            status: seed
+          - id: MP-method-termination-and-seeds
+            stage: stage_2c_method
+            check: "Termination conditions, time/iteration budgets, and random seeds match the paper or are explicitly smoke-scaled."
+            silent_failure: "Planner success/failure depends on unseeded randomness or hidden budget changes."
+            severity: error
+            status: seed
+          - id: MP-params-scale-honesty
+            stage: stage_2x_params
+            check: "Planning-time, node-count, primitive-count, and optimization-iteration reductions are disclosed as smoke-scale choices."
+            silent_failure: "A smoke budget is presented as paper-scale planning performance."
+            severity: warning
+            status: seed
+          - id: MP-notebook-dynamic-scenario
+            stage: stage_3a_notebook
+            check: "Dynamic-obstacle claims are exercised with obstacle state that actually changes during the demo."
+            silent_failure: "A dynamic-obstacle paper is demonstrated on a static scene."
+            severity: error
+            status: seed
+            probe: motion_planning.scenario_dynamics
+          - id: MP-notebook-steering-responsive
+            stage: stage_3a_notebook
+            check: "The executed planner's first decision responds to goal direction on both left and right cases."
+            silent_failure: "Steering is an arbitrary tie-break even though the plot appears plausible."
+            severity: warning
+            status: seed
+            probe: motion_planning.steering_responsiveness
+          - id: MP-notebook-goal-progress
+            stage: stage_3a_notebook
+            check: "On an obstacle-free fixture, the planner ends closer to the goal than it started."
+            silent_failure: "The planner reports success without making goal-directed progress."
+            severity: error
+            status: seed
+            probe: motion_planning.goal_progress
+          - id: MP-seed-cost-terms
+            stage: stage_2c_method
+            check: "All cost terms contribute (no single term dominates trivially)."
+            silent_failure: "One weight dwarfs the rest; the planner ignores most objectives."
+            severity: warning
+            status: seed
+          - id: MP-seed-kinematics
+            stage: stage_3a_notebook
+            check: "Output trajectory respects kinematic limits and is forward-in-time."
+            silent_failure: "Trajectory teleports or violates velocity/accel bounds."
+            severity: error
+            status: seed
+        smoke_bugs:
+          - id: dynamics_step_shape_mismatch
+            status: seed
+            description: "dynamics.step returns a state with the wrong rank or dimension count."
+          - id: collision_check_too_strict
+            status: seed
+            description: "The collision model rejects every candidate state or edge."
+          - id: planner_no_path_found
+            status: seed
+            description: "The planner exhausts its time/iteration budget and returns no path."
+          - id: state_bounds_violation
+            status: seed
+            description: "Sampled or propagated states escape the environment state bounds."
+          - id: control_dim_mismatch
+            status: seed
+            description: "The planner samples controls whose dimension does not match the dynamics."
+        variants:
+          sampling_based_planner:
+            name: Sampling-Based Planner
+            status: populated
+            legacy_paradigm: motion_planning/sampling_based
+            taxonomy_id: CLC-MP/sampling_based_planner
+            fingerprint:
+              what_it_is: >
+                Builds a search tree or roadmap by sampling states and extending
+                toward samples, often with nearest-neighbor, goal-bias, and
+                collision-check phases.
+              positive_signals:
+                - "RRT, RRT-Connect, RRT*, PRM, Db-RRT, or iDb-RRT"
+                - "goal bias, nearest-neighbor metric, extension/steering function"
+                - "motion primitives or bounded-discontinuity tree expansion"
+              route_elsewhere:
+                - signal: "the main contribution is a receding-horizon optimization controller"
+                  to: CLC-MP/trajectory_optimization
+              worked_examples:
+                - "RRT and RRT-Connect"
+                - "RRT* / Informed RRT*"
+                - "iDb-RRT with motion primitives"
+            priors:
+              sampling_family:
+                variants: [pure_rrt, rrt_star, primitive_based, hybrid]
+              calibration:
+                preserve: [system_dynamics, discontinuity_bound, collision_resolution, goal_bias, per_iteration_samples]
+            semantic_checks:
+              - id: MP-sampling-goal-bias
+                stage: stage_2c_method
+                check: "The goal-bias hyperparameter matches the paper and is actually used during sampling."
+                silent_failure: "A high or ignored goal bias collapses exploration while easy demos still solve."
+                severity: error
+                status: seed
+              - id: MP-sampling-full-dynamics-extend
+                stage: stage_2c_method
+                check: "Tree extension uses the paper's full system dynamics, not linear interpolation unless the paper is geometric."
+                silent_failure: "A kinodynamic paper becomes a geometric path planner."
+                severity: error
+                status: seed
+              - id: MP-sampling-nearest-metric
+                stage: stage_2c_method
+                check: "Nearest-neighbor metric and weights match the paper's state-space convention."
+                silent_failure: "High-dimensional state components are compared with the wrong scale."
+                severity: warning
+                status: seed
+              - id: MP-sampling-primitives-diverse
+                stage: stage_2c_method
+                check: "Motion-primitive libraries cover the state space when the paper relies on primitives."
+                silent_failure: "All primitives are generated around one state and cannot support the claimed dynamics."
+                severity: error
+                status: seed
+              - id: MP-sampling-trajectory-optimization-phase
+                stage: stage_2c_method
+                check: "Hybrid iDb-family methods implement the trajectory optimization phase that repairs discontinuities."
+                silent_failure: "The implementation reports the search output as final dynamically feasible output."
+                severity: error
+                status: seed
+              - id: MP-sampling-tree-visualized
+                stage: stage_3a_notebook
+                check: "The notebook visualizes tree growth when the method is sampling-based."
+                silent_failure: "Sampling behavior is opaque; a static final path can hide exploration bugs."
+                severity: warning
+                status: seed
+            smoke_bugs:
+              - id: empty_tree_after_iteration_cap
+                status: seed
+                description: "The RRT tree keeps only the start node after every extension is rejected."
+              - id: motion_primitive_translation_invariance_violated
+                status: seed
+                description: "Motion primitives are translated in dimensions where the dynamics are not translation-invariant."
+              - id: trajectory_optimization_diverges
+                status: seed
+                description: "A hybrid post-optimization phase diverges from the search warm start."
+          trajectory_optimization:
+            name: Trajectory Optimization
+            status: populated
+            legacy_paradigm: motion_planning/optimization_based
+            taxonomy_id: CLC-MP/trajectory_optimization
+            aliases: [optimization_based_motion_planning, mpc_motion_planning]
+            fingerprint:
+              what_it_is: >
+                Formulates planning or control as an optimization problem:
+                whole-trajectory optimization, direct collocation, or
+                receding-horizon MPC.
+              positive_signals:
+                - "cost function and constraints over states/controls"
+                - "MPC, MPC-CBF, NMPC, TrajOpt, CHOMP, STOMP, direct collocation"
+                - "solver status, warm start, horizon, terminal cost, or CBF constraints"
+              route_elsewhere:
+                - signal: "the method primarily grows an RRT/PRM-style tree"
+                  to: CLC-MP/sampling_based_planner
+                - signal: "the contribution is a general optimizer rather than a planner/controller"
+                  to: OM-OPT/stochastic_optimization
+              worked_examples:
+                - "MPC-CBF (Zeng et al. 2021)"
+                - "TrajOpt (Schulman et al. 2014)"
+                - "Direct collocation planners"
+            priors:
+              optimization_variant:
+                variants: [trajectory_optimization, model_predictive_control, direct_collocation]
+              calibration:
+                preserve: [system_dynamics, collision_resolution, constraint_formulation, horizon_length, cbf_class_k_parameter]
+            semantic_checks:
+              - id: MP-opt-cost-function
+                stage: stage_2c_method
+                check: "The optimizer cost function matches the paper term-by-term."
+                silent_failure: "A tracking-only objective replaces the paper's full tracking/control/terminal objective."
+                severity: error
+                status: seed
+              - id: MP-opt-constraints
+                stage: stage_2c_method
+                check: "Dynamics, input, state, terminal, and safety constraints match the paper formulation."
+                silent_failure: "The generated solver is feasible for a different optimization problem."
+                severity: error
+                status: seed
+              - id: MP-opt-horizon
+                stage: stage_2c_method
+                check: "For MPC papers, the receding-horizon length matches the paper or is disclosed as a smoke-scale reduction."
+                silent_failure: "A one-step controller is mislabeled as MPC."
+                severity: warning
+                status: seed
+              - id: MP-opt-receding-horizon
+                stage: stage_2c_method
+                check: "MPC applies only the first control, advances the system, then re-solves."
+                silent_failure: "The code solves once and applies a full horizon open-loop."
+                severity: error
+                status: seed
+              - id: MP-opt-cbf-every-step
+                stage: stage_2c_method
+                check: "MPC-CBF constraints are enforced at every prediction step in the horizon."
+                silent_failure: "The first control looks safe while the predicted trajectory violates safety mid-horizon."
+                severity: error
+                status: seed
+              - id: MP-opt-warm-start
+                stage: stage_2c_method
+                check: "Solver warm-starting matches the paper, including shifted previous solutions for MPC."
+                silent_failure: "The smoke run wastes time or fails convergence due to cold starts or stale warm starts."
+                severity: warning
+                status: seed
+              - id: MP-opt-infeasibility
+                stage: stage_2c_method
+                check: "Solver infeasibility is reported as status, not silently converted into random/NaN controls."
+                silent_failure: "The controller applies the last solver iterate after an infeasible solve."
+                severity: warning
+                status: seed
+              - id: MP-opt-closed-loop-viz
+                stage: stage_3a_notebook
+                check: "MPC notebooks visualize a closed-loop simulation, not a one-shot open-loop prediction."
+                silent_failure: "The notebook never exercises receding-horizon behavior."
+                severity: warning
+                status: seed
+            smoke_bugs:
+              - id: mpc_open_loop_application
+                status: seed
+                description: "MPC solves once and applies the full horizon open-loop."
+              - id: cbf_constraint_only_at_first_step
+                status: seed
+                description: "MPC-CBF enforces the barrier constraint only at the first horizon step."
+              - id: solver_infeasibility_silently_ignored
+                status: seed
+                description: "Solver failure is ignored and the last iterate is applied as control."
+              - id: warm_start_not_shifted
+                status: seed
+                description: "The previous MPC solution is reused without shifting by one timestep."
+              - id: qp_solver_not_warm_started
+                status: seed
+                description: "Every MPC step cold-starts the solver and inflates smoke runtime."
+          # -------------------------------------------------------------------
+          # Promoted from the SRL run's provisional pack (proposal
+          # 20260728-motion_planning-rl_collision_avoidance, R2C-029). First
+          # committed node to declare `family_components` (schema §3.16) and
+          # the first to carry a `params_derivation` block (schema §3.17).
+          # The stage_2b.halt on the authoring run is the motivating evidence:
+          # the inherited planner manifest (SystemDynamics/CollisionModel/
+          # precompute_motion_primitives) cannot be satisfied by an RL method,
+          # and the contract's reward_function block was rejected as
+          # undeclared. This node owns both fixes.
+          # -------------------------------------------------------------------
+          rl_collision_avoidance:
+            name: RL Collision Avoidance
+            status: populated
+            legacy_paradigm: motion_planning/rl_collision_avoidance
+            taxonomy_id: CLC-MP/rl_collision_avoidance
+            # A prior SRL draw classified the same paper under this slug
+            # (scoping item 11); the alias keeps that identity resolvable.
+            aliases: [multi_agent_rl_navigation]
+            fingerprint:
+              # Verbatim from the proposal pack's fingerprint.what_it_is.
+              what_it_is: >
+                A deep reinforcement learning method for multi-agent collision
+                avoidance that induces socially compliant navigation behaviors
+                through reward shaping. The method trains a symmetrical
+                multiagent neural network with a norm-inducing reward penalty
+                to learn cooperation-free collision avoidance policies that
+                respect social norms (e.g., passing on the right).
+              positive_signals:
+                - "a value network or policy trained from rewards for collision avoidance (deep V-learning / deep RL), not a tree search, roadmap, or optimization solver"
+                - "reward shaping or penalty terms that induce a navigation norm (passing / overtaking / crossing side preferences)"
+                - "multi-agent joint-state input with weight-sharing, max-pooling, or another permutation-invariant neighbor aggregation"
+              route_elsewhere:
+                - signal: "the paper contributes a general single-agent RL training method; navigation/collision avoidance is just its benchmark"
+                  to: CLC-RL/single_agent_rl
+                - signal: "the method computes trajectories by sampling/search rather than learning a closed-loop policy from rewards"
+                  to: CLC-MP/sampling_based_planner
+              worked_examples:
+                - "SA-CADRL (Chen et al. 2017) — the source paper"
+                - "CADRL (Chen et al. 2016) — the norm-free deep-RL collision-avoidance predecessor the source paper extends (its reference [14])"
+            priors:
+              calibration:
+                # Grounded in the spec's methodology contract: penalty sets
+                # Spass/Sovtk/Scross with exact geometric thresholds, the
+                # weight-shared max-pool architecture, and the x-reflection
+                # mechanism are must_replicate; episode count and agent count
+                # are the approved demo-scale reductions (3000 -> 700
+                # episodes, 4 -> 2 agents).
+                preserve: [norm_penalty_sets, weight_shared_max_pool_architecture, trajectory_reflection_probability, collision_reward]
+                sacrifice_order: [n_episodes, n_agents]
+                # spec.dependencies.estimated_time: "30-60 minutes for a small
+                # demo (2-agent, ~700 episodes)". The family's 60s planner
+                # target is wrong for a family that trains a network.
+                demo_target_seconds: 1800
+              # Quote-anchored evidence carried from the proposal pack
+              # (promotion-path design step 3: the pack's priors land as the
+              # node's evidence block, source run recorded as provenance).
+              source_paper: SRL   # r2c_runs/SRL, proposal 20260728-motion_planning-rl_collision_avoidance
+              evidence:
+                - paper_section: Section III (Approach)
+                  quote_or_observation: >
+                    This work presents the socially aware multiagent collision
+                    avoidance with deep reinforcement learning algorithm
+                    (SA-CADRL)... first describe a strategy for shaping
+                    normative behaviors for a two-agent system in the RL
+                    framework, and then generalize the method to multiagent
+                    scenarios.
+                  relevance: "The paper explicitly identifies itself as a deep RL approach to collision avoidance, not a classical planner."
+                - paper_section: Section II-A (Background)
+                  quote_or_observation: >
+                    The objective is to develop a policy, pi : (st, s_tilde_o)
+                    -> ut, that minimizes the expected time to goal E[tg]
+                    while avoiding collision with nearby agents.
+                  relevance: "The method formulates a closed-loop RL policy, exactly the signal motion_planning's route_elsewhere routes away from."
+                - paper_section: Algorithm 1
+                  quote_or_observation: >
+                    Deep V-learning for SA-CADRL: initialize value net,
+                    experience sets, epsilon-greedy trajectory generation,
+                    RMSprop updates over episodes.
+                  relevance: "Core algorithm is a deep value-learning RL training loop — not a tree search, roadmap, or optimization solver."
+                - paper_section: Section III-A
+                  quote_or_observation: >
+                    To induce a particular norm, a small bias can be introduced
+                    in the RL training process in favor of one set of behaviors
+                    over others. For instance, to encourage passing on the
+                    right, states with another agent approaching from the
+                    undesirable side can be penalized.
+                  relevance: "The novelty is reward shaping for social norms within an RL framework — an RL-specific technique, not a classical planning technique."
+                - paper_section: Section III-B
+                  quote_or_observation: >
+                    To capture the multiagent system's symmetrical structure, a
+                    neural network with weight-sharing and max-pooling layers
+                    is employed.
+                  relevance: "Multiagent architecture contribution is specific to RL value networks, not applicable to classical planner taxonomies."
+            scaffold_hints:
+              # No templates_dir override: the scaffolder-owned manifest rows
+              # (data.py, example_data/README.md, method/README.md) are kept
+              # byte-identical to MP_FILES, so the node inherits
+              # paradigms/motion_planning/templates and the
+              # test_paradigm_templates scaffolder-matches-manifest sweep
+              # passes without a new template tree (governance: family
+              # template content is earned by evidence, later).
+              interface_hint: "train_and_plan(n_agents: int, n_episodes: int, *, seed: int, **paradigm_extras_by_name) -> PlanResult"
+            # EVIDENCE THIN (one paper): overrides the family's planner
+            # contract, whose fixed positional args (start, goal, environment,
+            # dynamics) the SRL spec's actual pluggable
+            # `train_and_plan(n_agents, n_episodes, norm_type, seed) ->
+            # PlanResult` does not carry — the same inherited-planner-shape
+            # class the stage_2b halt diagnosed for the manifest. Governance
+            # asks two papers (or one paper + a harness need) for a pluggable
+            # contract change; the halt is the harness need on record, but
+            # this stays a flagged judgment in the decision log.
+            pluggable_component:
+              name: train_and_plan
+              return_type: "PlanResult"
+              signature_template: "train_and_plan(n_agents: int, n_episodes: int, *, seed: int, **paradigm_extras_by_name) -> PlanResult"
+              contract:
+                fixed_positional_args: []
+                seed_param: seed
+                paradigm_extras_forwarding: by_name_from_config
+                forbidden_param_names: [config]
+              return_type_definition: |
+                PlanResult is a dataclass / namedtuple with fields:
+                - trajectory: Trajectory | None
+                - status: Literal["success", "timeout", "infeasible", "error"]
+                - stats: Dict[str, Any]
+              rationale: |
+                This family trains a policy before it can plan, so the
+                pluggable is the end-to-end train-then-evaluate entry point
+                (the SRL spec: "encapsulates SA-CADRL as an end-to-end
+                training and planning pipeline"). Method-specific knobs
+                (e.g. the source paper's norm_type) are forwarded by name
+                from params; they are not part of the family contract.
+                Return type stays the family's PlanResult so the inherited
+                demo_success markers keep reading the headline demo.
+            # First committed declarer (schema §3.16). Mirrors what the SRL
+            # run's arch_contract.json actually carried: reward_function was
+            # the one family_components block (single-slot: type/shape/
+            # description, no `entries` map, hence required_entries []).
+            # value_network and policy are declared legal-but-optional only:
+            # the SRL contract carried them under `architecture.value_net` /
+            # `architecture.policy`, and that placement is what
+            # arch_contract_requirements.required_blocks enforces below in
+            # scripts/build_plan.py — requiring them HERE would have failed
+            # the authoring run's own contract.
+            family_components:
+              reward_function:
+                required: true
+                description: >
+                  Total reward R = Rcol + Rnorm the trained policy optimizes:
+                  the base collision reward plus the norm-inducing penalty
+                  over the Spass/Sovtk/Scross sets (Section III-A, Equations
+                  (9)-(12)), as method.py computes it.
+                required_entries: []
+              value_network:
+                required: false
+                description: >
+                  Optional alternate placement for the multiagent value
+                  network summary; the canonical placement is
+                  architecture.value_net (the SRL contract's shape).
+                required_entries: []
+              policy:
+                required: false
+                description: >
+                  Optional alternate placement for the trained-policy summary;
+                  the canonical placement is architecture.policy (the SRL
+                  contract's shape).
+                required_entries: []
+            # Anti-regression for the provisional-only spec-evidence top-up
+            # (test_gap_family_training_params_derive_from_spec_evidence):
+            # once this node is committed, node.provisional is False and that
+            # top-up turns off, so the deriver must get the training knobs
+            # from here (schema §3.17, merged last in derive_params.derive()).
+            # The identity formulas copy the spec's structured training
+            # evidence; when a paper states no numeric value (the SRL spec's
+            # learning_rate is prose, num_epochs is null) the deriver emits an
+            # honest documented null instead of guessing. The epsilon-greedy
+            # exploration schedule has NO structured spec carrier (the paper
+            # states "an epsilon-greedy policy" with no schedule), so it is
+            # deliberately absent here and covered by the stage_2x_params
+            # check below as reviewer prose.
+            params_derivation:
+              learning_rate:
+                kind: derived_statistic
+                formula: "learning_rate"
+                inputs:
+                  learning_rate: spec.critical_requirements.training.learning_rate
+                paper_section: "Section III-B, Algorithm 1 line 13 (RMSprop update)"
+              max_epochs:
+                kind: derived_statistic
+                formula: "n_episodes"
+                inputs:
+                  n_episodes: spec.critical_requirements.training.num_epochs
+                paper_section: "Algorithm 1 line 3 (for episode = 1..Neps); Section IV-A (3,000 episodes, ~9 hours; two-agent ~1,000 episodes)"
+            semantic_checks:
+              - id: MP-RLCA-arch-symmetric-value-net
+                stage: stage_2b_architecture
+                check: >
+                  The multiagent value network enforces weight-sharing across
+                  neighbor input blocks with max-pooling aggregation:
+                  permuting neighbor inputs produces the identical output
+                  value (Section III-B, Figure 5).
+                silent_failure: "A plain concatenated network trains and plots fine on fixed agent orderings while the paper's permutation-invariance mechanism is absent."
+                severity: error
+                status: seed
+              - id: MP-RLCA-method-norm-reward-applied
+                stage: stage_2c_method
+                check: >
+                  The norm-inducing penalty is actually applied: the
+                  Spass/Sovtk/Scross indicator sets are implemented with the
+                  paper's geometric conditions and Rnorm = qn * I(sjn in
+                  Snorm) is added to the collision reward in the training
+                  targets (Section III-A, Equations (9)-(12)).
+                silent_failure: "The penalty sets exist but always return 0 (or Rnorm is computed and never summed into R), so the method degenerates to norm-free CADRL while the demo still avoids collisions."
+                severity: error
+                status: seed
+              - id: MP-RLCA-method-training-loop-real
+                stage: stage_2c_method
+                check: >
+                  The deep V-learning loop performs Algorithm 1, not a stub:
+                  value-net initialization by trajectory regression,
+                  epsilon-greedy trajectory generation on random test cases,
+                  experience-set assimilation, and RMSprop updates over
+                  episodes that actually change the network parameters.
+                silent_failure: "train_and_plan returns a plausible PlanResult from an untrained or never-updated network; trajectories exist, so smoke passes while the paper's training contribution never runs."
+                severity: error
+                status: seed
+              - id: MP-RLCA-params-training-knobs
+                stage: stage_2x_params
+                check: >
+                  params.json carries the training knobs the spec's structured
+                  evidence states (episode count, optimizer / learning rate
+                  when paper-stated, reflection probability eps_f) with honest
+                  provenance, and smoke-scale reductions (e.g. 700 of 3,000
+                  episodes, 2 of 4 agents) are disclosed as such.
+                silent_failure: "The planner-family assumption ships an empty params.json for a family that trains a network (the SRL 2026-07-05 halt), or a smoke-scale episode budget is presented as paper-scale training."
+                severity: warning
+                status: seed
+            smoke_bugs:
+              - id: value_net_never_updates
+                status: seed
+                description: "Network parameters are identical before and after training: the RMSprop update (Algorithm 1 line 13) is skipped, detached, or applied to a copy."
+              - id: norm_reward_penalty_inert
+                status: seed
+                description: "The Spass/Sovtk/Scross penalty indicators never fire (wrong frame, wrong thresholds, or Rnorm never added to Rcol), silently reducing SA-CADRL to norm-free behavior."
+              - id: experience_sets_empty
+                status: seed
+                description: "The experience sets E/Eb are never assimilated (Algorithm 1 lines 10-11), so every update samples from an empty set and training is a no-op or crashes late."
+              - id: epsilon_exploration_inert
+                status: seed
+                # EVIDENCE THIN: the paper states epsilon-greedy trajectory
+                # generation but no epsilon value or decay schedule; the bug
+                # class is dead exploration, however the implementation
+                # schedules it.
+                description: "The epsilon-greedy exploration is dead: epsilon (or the x-reflection probability eps_f) is effectively 0 or never applied, so trajectory generation is purely greedy and alternative passing topologies are never explored."
+              - id: policy_ignores_neighbor_state
+                status: seed
+                description: "The value net or policy consumes only the self-state slice of the joint state (6 + 8*n_obs per Equations (7)-(8)); neighbor observations are dropped and the agent plans as if alone."
+      CLC-RL:
+        name: Reinforcement / Imitation Control
+        description: "Learned closed-loop control policies."
+        variants:
+          single_agent_rl:
+            name: Single-Agent RL
+            status: reserved
+            taxonomy_id: CLC-RL/single_agent_rl
+
+  # ---------------------------------------------------------------------------
+  SC:
+    name: Semantic / Chat
+    archetype: "A method centered on language understanding, generation, or dialogue."
+    families:
+      SC-LM:
+        name: Language Modeling
+        description: "Language model training/adaptation methods."
+        variants:
+          instruction_tuning:
+            name: Instruction Tuning
+            status: reserved
+            taxonomy_id: SC-LM/instruction_tuning
+
+  # ---------------------------------------------------------------------------
+  AD:
+    name: Adaptation (architecture-level)
+    archetype: >
+      A method that adapts a pretrained model with few added parameters
+      (adapters, prompts, low-rank updates). NOT autonomous driving.
+    families:
+      AD-PE:
+        name: Parameter-Efficient Adaptation
+        description: "LoRA, adapters, prompt tuning."
+        variants:
+          low_rank_adaptation:
+            name: Low-Rank Adaptation
+            status: reserved
+            taxonomy_id: AD-PE/low_rank_adaptation
+
+  # ---------------------------------------------------------------------------
+  PP:
+    name: Pipeline / Processing
+    archetype: "A multi-stage data or inference pipeline whose contribution is the orchestration."
+    families:
+      PP-GEN:
+        name: General Pipeline
+        description: "Composite processing pipelines."
+        variants:
+          multi_stage_pipeline:
+            name: Multi-Stage Pipeline
+            status: reserved
+            taxonomy_id: PP-GEN/multi_stage_pipeline
+
+  # ---------------------------------------------------------------------------
+  OM:
+    name: Optimization Method
+    archetype: >
+      A method whose contribution is the optimization procedure itself — the
+      optimizer, the search, or training efficiency.
+    families:
+      OM-OPT:
+        name: Optimizer / Search
+        description: "Optimizers and stochastic search procedures."
+        semantic_checks:
+          - id: OM-seed-loss-decreases
+            stage: stage_3a_notebook
+            check: "Training reduces the objective (final_loss < initial_loss)."
+            silent_failure: "Loss flat or rising; the optimizer is mis-stepped or detached."
+            severity: error
+            status: seed
+        variants:
+          stochastic_optimization:
+            name: Stochastic Optimization
+            status: populated
+            legacy_paradigm: stochastic_optimization
+            taxonomy_id: OM-OPT/stochastic_optimization
+            fingerprint:
+              what_it_is: >
+                Contributes an optimizer, update rule, or stochastic gradient
+                procedure rather than the task model being optimized.
+              positive_signals:
+                - "moving-average gradient state, bias correction, adaptive step sizes, or optimizer state"
+                - "paper's central equations update parameters from gradients/noisy gradients"
+                - "experiments compare optimizers across tasks rather than proposing a task model"
+              route_elsewhere:
+                - signal: "the optimizer is only an implementation detail for active learning"
+                  to: TE-TS/active_learning
+                - signal: "the optimizer solves a motion-planning trajectory/controller problem"
+                  to: CLC-MP/trajectory_optimization
+                - signal: "the paper contributes distillation/adaptation and merely trains it with Adam/SGD"
+                  to: TE-TS/knowledge_distillation
+              worked_examples:
+                - "Adam (Kingma and Ba 2015)"
+                - "AdaGrad (Duchi et al. 2011)"
+                - "RMSProp-family adaptive moving-average optimizers"
+            priors:
+              calibration:
+                preserve: [update_rule, optimizer_state, bias_correction, epsilon_placement]
+                sacrifice_order: [num_steps, dataset_size, model_width, batch_size, num_seeds]
+                demo_target_seconds: 120
+              seeds:
+                minimum_for_ranking_claim: 3
+                recommended_for_publication: 5
+            scaffold_hints:
+              interface_hint: "optimize(objective, initial_params, data, seed, *, num_steps: int = 100, step_size: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-8) -> OptimizationResult"
+              templates_dir: paradigms/stochastic_optimization/templates
+            pluggable_component:
+              name: optimize
+              return_type: "OptimizationResult"
+              signature_template: "optimize(objective, initial_params, data, seed, *, num_steps: int = 100, step_size: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-8) -> OptimizationResult"
+              contract:
+                fixed_positional_args: [objective, initial_params, data]
+                seed_param: seed
+                paradigm_extras_forwarding: by_name_from_config
+                forbidden_param_names: [config]
+              return_type_definition: |
+                OptimizationResult is a dataclass or namedtuple with:
+                - params: final parameter vector or PyTorch state dict
+                - loss_history: list[float]
+                - state: optimizer state, including step count and moment estimates
+                - stats: dict[str, Any] with runtime and convergence diagnostics
+              rationale: >
+                The paper contribution is the optimizer/update rule. The
+                pluggable consumes an objective, initial parameters, data, and
+                seed, then returns the optimized parameters plus an inspectable trace.
+            notebook_layout:
+              description: "Section structure for stochastic-optimization notebooks."
+              sections:
+                - id: title
+                  title: "Paper title (from spec.paper.title)"
+                - id: install
+                  title: "## 0. Install dependencies (first run only)"
+                - id: setup
+                  title: "## 1. Setup"
+                - id: parameters
+                  title: "## 2. Parameters"
+                - id: setup_pieces
+                  title: "## 3. The setup pieces"
+                - id: method
+                  title: "## 4. The {method_name} method"
+                - id: running
+                  title: "## 5. Running optimization end-to-end"
+                  subsections:
+                    - {id: trace, title: "### 5.1 Optimization trace"}
+                    - {id: state, title: "### 5.2 Optimizer state"}
+                - id: own_objective
+                  title: "## 6. Use your own objective"
+            semantic_checks:
+              - id: SO-analyzer-optimizer-not-task
+                stage: stage_1_analyzer
+                check: "The spec classifies the contribution as an optimizer/update rule, not the benchmark model or task."
+                silent_failure: "The generated package implements the benchmark model while omitting the optimizer mechanics."
+                severity: error
+                status: seed
+              - id: SO-analyzer-update-rule-complete
+                stage: stage_1_analyzer
+                check: "The spec and paper map include gradient estimate, optimizer state, bias correction, step-size logic, and numerical stabilizer."
+                silent_failure: "A nearby optimizer family is implemented because a load-bearing update-rule term was missed."
+                severity: error
+                status: seed
+              - id: SO-arch-objective-contract
+                stage: stage_2b_architecture
+                check: "model.py/training.py provide a differentiable smoke objective or objective-gradient adapter compatible with optimize(...)."
+                silent_failure: "The optimizer cannot be exercised independently of a hidden task training loop."
+                severity: error
+                status: seed
+              - id: SO-arch-state-contract
+                stage: stage_2b_architecture
+                check: "arch_contract.json documents optimizer state fields and shapes that method.py will maintain."
+                silent_failure: "State persistence bugs are invisible to the notebook and smoke checks."
+                severity: warning
+                status: seed
+              - id: SO-method-update-rule
+                stage: stage_2c_method
+                check: "method.py implements the paper's update rule rather than an adjacent optimizer family."
+                silent_failure: "Adam-style mechanics collapse to RMSProp/SGD while the loss trace still decreases."
+                severity: error
+                status: seed
+              - id: SO-method-state-persists
+                stage: stage_2c_method
+                check: "First/second moments or analogous optimizer state persist across steps and are returned in OptimizationResult."
+                silent_failure: "The optimizer reinitializes state each step and becomes memoryless."
+                severity: error
+                status: seed
+              - id: SO-method-bias-epsilon
+                stage: stage_2c_method
+                check: "Bias correction and epsilon placement match the paper equations."
+                silent_failure: "Numerically stable code runs but implements a different adaptive update."
+                severity: error
+                status: seed
+              - id: SO-method-seeded-randomness
+                stage: stage_2c_method
+                check: "Minibatch sampling or injected noise uses the seed parameter."
+                silent_failure: "Smoke traces drift between runs and cannot support comparison claims."
+                severity: error
+                status: seed
+              - id: SO-params-hyperparameter-provenance
+                stage: stage_2x_params
+                check: "step_size, beta/momentum terms, epsilon, weight decay, and num_steps are attributed to paper, system_default, or system_inferred."
+                silent_failure: "Signature defaults are mistaken for paper values."
+                severity: warning
+                status: seed
+              - id: SO-notebook-trace-visualized
+                stage: stage_3a_notebook
+                check: "Notebook plots or prints an optimization trace with finite losses and initial/final comparison."
+                silent_failure: "The optimizer package imports but its mechanics are never exercised."
+                severity: warning
+                status: seed
+              - id: SO-notebook-state-inspected
+                stage: stage_3a_notebook
+                check: "Notebook inspects optimizer state after at least one step."
+                silent_failure: "State reset bugs stay invisible until paper-scale runs."
+                severity: warning
+                status: seed
+            smoke_bugs:
+              - id: missing_bias_correction
+                status: seed
+                description: "Adam-family moving averages are updated without bias correction."
+              - id: epsilon_wrong_place
+                status: seed
+                description: "The stabilizing epsilon is applied in a different location than the paper specifies."
+              - id: optimizer_state_resets_each_step
+                status: seed
+                description: "Moment or optimizer state is reinitialized inside every optimization step."
+              - id: unseeded_minibatch_or_noise
+                status: seed
+                description: "Minibatch sampling or injected gradient noise ignores the provided seed."
+          adaptive_moment_optimizer:
+            name: Adaptive-Moment Optimizer
+            status: reserved
+            taxonomy_id: OM-OPT/adaptive_moment_optimizer
+      OM-EFF:
+        name: Training Efficiency
+        description: "Mixed precision, gradient compression, etc."
+        variants:
+          mixed_precision_training:
+            name: Mixed-Precision Training
+            status: reserved
+            taxonomy_id: OM-EFF/mixed_precision_training
+
+  # ---------------------------------------------------------------------------
+  GEN:
+    name: Generative Method
+    archetype: "A method that synthesizes data (images, sequences, 3D)."
+    families:
+      GEN-DM:
+        name: Diffusion Model
+        description: "Score/diffusion-based generators."
+        variants:
+          diffusion_sampler:
+            name: Diffusion Sampler
+            status: reserved
+            taxonomy_id: GEN-DM/diffusion_sampler
+      GEN-AR:
+        name: Autoregressive Generation
+        description: "Token-by-token generative models."
+        variants:
+          autoregressive_generator:
+            name: Autoregressive Generator
+            status: reserved
+            taxonomy_id: GEN-AR/autoregressive_generator
+
+  # ---------------------------------------------------------------------------
+  DA:
+    name: Domain Adaptation / Transfer
+    archetype: >
+      A method that transfers a model across a distribution shift between a
+      labeled source and an unlabeled/different target.
+    families:
+      DA-UDA:
+        name: Unsupervised Domain Adaptation
+        description: "Source-labeled, target-unlabeled alignment."
+        variants:
+          domain_adaptation:
+            name: Domain Adaptation (general)
+            status: populated
+            legacy_paradigm: domain_adaptation
+            taxonomy_id: DA-UDA/domain_adaptation
+            fingerprint:
+              what_it_is: >
+                Aligns a model trained on a labeled source domain to perform on
+                an unlabeled (or differently distributed) target domain.
+              positive_signals:
+                - "a labeled source and an unlabeled target dataset"
+                - "a domain-alignment or self-training objective"
+                - "pseudo-label generation, fusion, tracking, or iterative retraining on target data"
+              route_elsewhere:
+                - signal: "the source model is a fixed teacher and the objective is student/teacher matching, not target-domain adaptation"
+                  to: TE-TS/knowledge_distillation
+                - signal: "adaptation happens only at inference with no retraining or pseudo-label loop"
+                  to: DA-TTA/entropy_minimization_tta
+              worked_examples:
+                - "ST3D (Yang et al. 2021)"
+                - "MS3D / MS3D++ (Tsai et al. 2023/2024)"
+                - "Source-free UDA with target pseudo-labels"
+            priors:
+              architecture:
+                detector_interface: "forward plus predict for target-domain inference"
+                smoke_detector: "simplified 3D detector with stable predict interface"
+              calibration:
+                preserve: [architecture_class, score_threshold_s_pos, n_positive_detections_threshold]
+                sacrifice_order: [num_self_training_rounds, ensemble_size, n_target_frames, tracking_max_frames]
+                demo_target_seconds: 300
+            semantic_checks:
+              - id: DA-analyzer-self-training-shape
+                stage: stage_1_analyzer
+                check: >
+                  The spec identifies source data/model assumptions, target
+                  unlabeled data, and the paper's adaptation loop or pseudo-label generator.
+                silent_failure: "The run becomes ordinary supervised training on source-like data."
+                severity: warning
+                status: seed
+              - id: DA-arch-detector-interface
+                stage: stage_2b_architecture
+                check: >
+                  The detector exposes both forward and predict interfaces so
+                  method.py can generate pseudo-labels and training.py can retrain.
+                silent_failure: "The method pipeline cannot consume model outputs as detections even though model.py trains."
+                severity: error
+                status: seed
+              - id: DA-method-pseudolabel-pipeline
+                stage: stage_2c_method
+                check: >
+                  generate_pseudo_labels implements the paper's pseudo-label
+                  phases such as fusion, tracking, temporal refinement, or filtering.
+                silent_failure: "The method returns raw detector predictions and skips the adaptation contribution."
+                severity: error
+                status: seed
+              - id: DA-notebook-smoke-scope
+                stage: stage_3a_notebook
+                check: >
+                  Smoke notebooks state when they run only one self-training
+                  round and do not claim paper-scale iterative improvement.
+                silent_failure: "A one-round demo is presented as reproducing a multi-round adaptation claim."
+                severity: warning
+                status: seed
+            domain_checks:
+              AD:
+                - id: DA-AD-sequence-alignment
+                  stage: stage_2c_method
+                  check: >
+                    Autonomous-driving target data preserves frame order, poses,
+                    and timestamps needed for tracking or temporal refinement.
+                  silent_failure: "Tracking/refinement code executes on shuffled frames and produces meaningless pseudo-labels."
+                  severity: error
+                  status: seed
+              PC:
+                - id: DA-PC-box-format
+                  stage: stage_2b_architecture
+                  check: >
+                    Point-cloud detectors expose 3D boxes with center,
+                    dimensions, yaw, score, and class fields through predict().
+                  silent_failure: "The pseudo-label pipeline receives 2D or class-only outputs and cannot adapt 3D detection."
+                  severity: error
+                  status: seed
+            scaffold_hints:
+              interface_hint: "generate_pseudo_labels(detectors, target_data, seed, *paradigm_extras_by_name) -> PseudoLabelSet"
+              templates_dir: paradigms/supervised_ml/domain_adaptation/templates
+            pluggable_component:
+              name: generate_pseudo_labels
+              return_type: "PseudoLabelSet"
+              signature_template: "generate_pseudo_labels(detectors, target_data, seed, *paradigm_extras_by_name) -> PseudoLabelSet"
+              contract:
+                fixed_positional_args: [detectors, target_data]
+                seed_param: seed
+                paradigm_extras_forwarding: by_name_from_config
+                forbidden_param_names: [config]
+              return_type_definition: >
+                PseudoLabelSet is a structured object containing boxes,
+                scores, class ids, and statistics per target-domain frame.
+              rationale: >
+                The method-owned pluggable is the pseudo-label generation
+                pipeline; training.py owns retraining on those pseudo-labels.
+          adversarial_domain_alignment:
+            name: Adversarial Domain Alignment
+            status: reserved
+            taxonomy_id: DA-UDA/adversarial_domain_alignment
+      DA-TTA:
+        name: Test-Time Adaptation
+        description: "Adapt at inference with no target labels."
+        variants:
+          entropy_minimization_tta:
+            name: Entropy-Minimization TTA
+            status: reserved
+            taxonomy_id: DA-TTA/entropy_minimization_tta
+
+  # ---------------------------------------------------------------------------
+  INF:
+    name: Inference Method
+    archetype: >
+      A method applied at inference time — ensembling, post-processing,
+      calibration, or acceleration.
+    families:
+      INF-ENS:
+        name: Ensemble
+        description: "Combining multiple models/predictions."
+        variants:
+          model_averaging:
+            name: Model Averaging
+            status: reserved
+            taxonomy_id: INF-ENS/model_averaging
+      INF-PP:
+        name: Post-Processing
+        description: "Calibration, refinement, TTA."
+        variants:
+          confidence_calibration:
+            name: Confidence Calibration
+            status: reserved
+            taxonomy_id: INF-PP/confidence_calibration
+      INF-ACC:
+        name: Inference Acceleration
+        description: "Quantization, pruning, speculative decoding."
+        variants:
+          quantization:
+            name: Quantization
+            status: reserved
+            taxonomy_id: INF-ACC/quantization
+
+# =============================================================================
+# TASK-DOMAIN AXIS
+# =============================================================================
+task_domains:
+
+  CV:
+    name: Computer Vision
+    leaves:
+      image_classification:
+        name: Image Classification
+      detection_2d:
+        name: 2D Object Detection
+      detection_3d_camera:
+        name: 3D Detection (camera)
+      detection_3d_lidar:
+        name: 3D Detection (lidar)
+      detection_3d_camera_lidar_fusion:
+        name: 3D Detection (camera-lidar fusion)
+      semantic_segmentation_2d:
+        name: 2D Semantic Segmentation
+      monocular_depth_estimation:
+        name: Monocular Depth Estimation
+      action_recognition:
+        name: Action Recognition
+
+  NAV:
+    name: Navigation and Planning
+    leaves:
+      sampling_based_motion_planning:
+        name: Sampling-Based Motion Planning
+      trajectory_optimization:
+        name: Trajectory Optimization
+      navigation_dynamic_obstacles_2d:
+        name: Navigation with Dynamic Obstacles (2D)
+      robot_navigation:
+        name: Robot Navigation
+
+  ROB:
+    name: Manipulation and Robotics
+    leaves:
+      pick_and_place_tabletop:
+        name: Pick-and-Place (tabletop)
+      imitation_learning_benchmarks:
+        name: Imitation Learning Benchmarks
+
+  RL:
+    name: Reinforcement Learning
+    leaves:
+      discrete_control_atari:
+        name: Discrete Control (Atari)
+      offline_rl:
+        name: Offline RL
+
+  LLM:
+    name: Large Language Models
+    leaves:
+      instruction_following:
+        name: Instruction Following
+
+  VLM:
+    name: Vision-Language Models
+    leaves:
+      visual_question_answering:
+        name: Visual Question Answering
+
+  AD:
+    name: Autonomous Driving
+    leaves:
+      motion_prediction:
+        name: Motion Prediction
+      end_to_end_driving:
+        name: End-to-End Driving
+      bev_perception:
+        name: BEV Perception
+
+  PC:
+    name: Point Clouds / 3D
+    leaves:
+      point_cloud_detection:
+        name: Point-Cloud Detection
+
+  DS:
+    name: Data Science / Optimization
+    leaves:
+      stochastic_optimization_benchmarks:
+        name: Stochastic Optimization Benchmarks
+
+# =============================================================================
+# ALIASES  (legacy / colloquial slug -> canonical variant slug)
+# =============================================================================
+method_family_aliases:
+  test_time_adaptation: entropy_minimization_tta
+  pool_based_active_learning: active_learning
+  motion_planning: sampling_based_planner
+  mpc: trajectory_optimization
+  vit: vision_transformer
+  kd: knowledge_distillation
+  lora: low_rank_adaptation

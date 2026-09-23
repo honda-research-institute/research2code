@@ -1,0 +1,23 @@
+# Core pipeline dependencies (always needed)
+pyyaml>=6.0
+nbformat>=5.7.0          # Quickstart notebook generation
+nbclient>=0.9            # Smoke-gate notebook execution (smoke_run_notebook.py)
+ipykernel>=6.0           # Jupyter kernel the smoke gate launches (else NoSuchKernel)
+matplotlib>=3.7.0        # Comparison plots (al_harness.py, generate_quickstart.py)
+packaging>=20.0          # PEP 440 checks for locally prepared run environments
+pydantic>=2.6.0          # method_spec schema (schemas/method_spec.py)
+
+# PDF paper inputs need Marker (https://github.com/datalab-to/marker), run
+# locally by scripts/parse_pdf.py: `pip install marker-pdf` (Python 3.10-3.13;
+# on 3.14 use a separate venv and set R2C_MARKER_BIN) plus llama.cpp for its
+# inference backend (`brew install llama.cpp`). Deliberately not listed
+# here — it pulls torch and downloads several GB of models on first use, and
+# markdown (.md) inputs need none of it.
+
+# Note: Paper-specific dependencies (torch, scikit-learn, etc.) are installed
+# automatically from the generated method package's own requirements.txt
+# during the pipeline run.
+
+# Dev/test only (orchestrator test suite under tests/ and the lint guard).
+pytest>=8.0
+pyflakes>=3.2

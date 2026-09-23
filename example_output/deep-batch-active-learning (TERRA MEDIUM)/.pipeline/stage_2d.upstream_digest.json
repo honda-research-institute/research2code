@@ -1,0 +1,20 @@
+{
+  ".pipeline/arch_contract.json": "sha256:541a7c793a0fb52ea1f8a5270d88180b5b001a07bfcc19bcd3f77a24f6f32a97",
+  ".pipeline/method_spec.json": "sha256:d30cc6773361c3f0373ea82eaeeb481586ca3642c5d15ca9a3767b804f4719ad",
+  "method/data.py": "sha256:c3993bdf0c66e24018c1b8ed8a849663f14a03f067b68520890c7bec062b47eb",
+  "method/method.py": "sha256:f5a064fc6961b5900c0d61ca89b85e1ab4026ab2283f61c6360a48118b780a9d",
+  "method/model.py": "sha256:6e34d0cf4ce66ac8d572887f31f1e17696a866c04c8ccbe6807ac5779c017228",
+  "method/tests/test_alg_badge.py": "sha256:a468243563f1c4542ed93c1e9fe08cb9db75405cee21cb77fe1a57d919f1b782",
+  "method/tests/test_alg_gradient_embedding.py": "sha256:05e5258cfb712c6d3d856779cefd8d697bd2608f2fac42e72148231a3dd82c46",
+  "method/tests/test_alg_kmeanspp_seeding.py": "sha256:2f4ddbb6f048cab8af847f15f6634ae824f000d53ba2a0c7f8a9ed209be826a0",
+  "method/tests/test_concept_diverse_uncertain_batches.py": "sha256:bd9e460db2fc1d3a363ea151f28b58683e8d54bfe75f4ded1ff5a60fa3da70c0",
+  "method/tests/test_concept_pool_based_active_learning.py": "sha256:152b11616b08c3ec5adb12cceef52d86ee53d3fe63df3c30516f7c0c428f6200",
+  "method/tests/test_eq_classifier_prediction.py": "sha256:48f3794e5438de991c654979866e53946a352633446221fecfe552fbc04d7236",
+  "method/tests/test_eq_cross_entropy.py": "sha256:dad0bd0fa826d4e858f9cfec7bc4c87bd74da45c33c4d18216ca38c376f0d4f6",
+  "method/tests/test_eq_gradient_embedding.py": "sha256:2f76e0efc0b25e2b551df7c2473bd3de54474bf551244d251371a89bbe3bce80",
+  "method/tests/test_eq_kmeanspp_distance.py": "sha256:1b6e9fe17efb475b2d52424a21c40bcaa5742c7bb0da28e08b9d19a57fc0ba7a",
+  "method/tests/test_eq_kmeanspp_probability.py": "sha256:f847747c515f8ec0690b2c5dda01d7821d59f05f0a534dbddd05dcf5a2631c91",
+  "method/tests/test_eq_softmax_cross_entropy.py": "sha256:3ddcd875c9a7a638d5e39d8dc3cbf3f1f59a1e5f678ff07317144a576cb3e8cc",
+  "method/tests/test_eq_softmax_gradient_block.py": "sha256:429fa6d0fb4f8bff9af63816a69a5b1eee0c2dc1479789116660e2489295b03d",
+  "method/training.py": "sha256:5a510b5f858ad250276d303e1d87fccecdd9690be9081fd33698da433649b5e2"
+}

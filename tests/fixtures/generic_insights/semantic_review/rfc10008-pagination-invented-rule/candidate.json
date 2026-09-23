@@ -1,0 +1,18 @@
+{
+ "case_id": "rfc10008-pagination-invented-rule",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "It is expected that these built-in features will be used instead of HTTP Range Requests.",
+   "span": {
+    "end": 18150,
+    "start": 18062
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "Query formats' built-in paging features SHOULD be used instead of HTTP Range Requests."
+}

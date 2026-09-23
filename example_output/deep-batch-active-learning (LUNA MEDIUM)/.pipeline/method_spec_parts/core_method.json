@@ -1,0 +1,1 @@
+{"core_method":{"name":"BADGE","summary":"BADGE selects a batch of unlabeled examples by clustering uncertainty-aware gradient embeddings with k-means++ seeding.","type":"algorithm","paper_sections":["Section 3","Algorithm 1"],"key_elements":["algorithm-1","gradient-embedding"]}}

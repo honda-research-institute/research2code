@@ -1,0 +1,18 @@
+{
+ "candidate_sha256": "379092115804feea079232922d2087a0c6c63c4973f2cff4292619c16e822ada",
+ "case_id": "rfc10008-idempotence-strengthening",
+ "prohibited_interpretations": [
+  "can never produce a different result"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "Unsupported strengthening of the cited source. The source says QUERY requests are idempotent and can be retried or repeated when needed; it does not promise identical results across repetitions, and the contract's known-good account explicitly withholds that promise.",
+ "required_disclosures": [],
+ "required_facts": [],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "rejected"
+}

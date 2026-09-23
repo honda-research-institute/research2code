@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-gradient-embedding": {
+      "what": "For an unlabeled input x, this computes g_x, the gradient of the cross-entropy loss with respect to the output-layer parameters theta_out. The loss is evaluated using the network's current predicted label y_hat(x) as a stand-in for the unavailable true label, with all parameters evaluated at the current model theta_t. This vector is the point's representation in BADGE's hallucinated gradient space, which is subsequently used to choose a batch.",
+      "why_novel": "Cross-entropy and a last-layer gradient are standard machinery; the distinctive use here is to form that gradient with the hallucinated label y_hat(x) for each unlabeled point. BADGE then selects points that are both high magnitude and disparate in this gradient representation, rather than using predictive uncertainty or input-space diversity alone.",
+      "intuition": "Treat the model's current guess as a provisional label and ask how the output layer would need to move to support that guess. A confident prediction produces a gradient consistent with little need to change, whereas uncertainty can yield a larger or more informative update direction. Points whose g_x vectors point in different directions represent potentially different ways the model could need to change, so selecting separated vectors avoids filling a batch with nearly identical uncertain examples."
+    }
+  }
+}

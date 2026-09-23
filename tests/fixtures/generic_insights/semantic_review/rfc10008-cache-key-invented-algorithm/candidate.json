@@ -1,0 +1,18 @@
+{
+ "case_id": "rfc10008-cache-key-invented-algorithm",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "The cache key for a QUERY request (Section 2 of [HTTP-CACHING]) **MUST** incorporate the request content (Section 6 of [HTTP-CACHING]) and related metadata (Section 8 of [HTTP]).",
+   "span": {
+    "end": 16392,
+    "start": 16214
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "The cache key for a QUERY request is computed as hash(request content + metadata), while GET caching only needs the request URI."
+}

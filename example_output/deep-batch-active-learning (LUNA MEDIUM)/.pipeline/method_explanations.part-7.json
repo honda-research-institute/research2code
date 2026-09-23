@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-gradient-block": {
+      "what": "For class i, this computes one block of the example x's hallucinated gradient embedding. p_i is the network's probability for class i, I(ŷ = i) is one when the provisional label ŷ equals i and zero otherwise, and z(x; V) is the penultimate-layer representation of x. The residual p_i - I(ŷ = i) scales that representation, giving the derivative of the cross-entropy loss with respect to the class-specific weights W_i.",
+      "why_novel": "The derivative itself is standard cross-entropy gradient machinery. The paper's methodological change is to use these class-wise gradient blocks, evaluated with a hallucinated label ŷ, as the representation on which BADGE seeks points that are both high-magnitude and disparate; this is the mechanism that puts predictive uncertainty and diversity into the same selection space without a hand-tuned trade-off parameter.",
+      "intuition": "Think of each class block as the feature vector z(x; V) multiplied by how much the current prediction disagrees with the provisional label for that class. A large residual makes the example's gradient embedding large, while the shared penultimate representation makes examples with similar content point in similar directions; selecting disparate, high-magnitude embeddings therefore favors informative uncertainty without simply filling a batch with near-duplicates."
+    }
+  }
+}

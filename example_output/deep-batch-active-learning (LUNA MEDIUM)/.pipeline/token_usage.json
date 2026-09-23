@@ -1,0 +1,103 @@
+{
+  "dispatches_counted": 53,
+  "per_agent": {
+    "r2c-architecture-coder": {
+      "cache_read": 1168635,
+      "cache_write": 107678,
+      "input": 90,
+      "output": 6716,
+      "prompt": 1168725,
+      "reasoning": 3318
+    },
+    "r2c-decomposer": {
+      "cache_read": 180179,
+      "cache_write": 49452,
+      "input": 21,
+      "output": 5482,
+      "prompt": 180200,
+      "reasoning": 1378
+    },
+    "r2c-halt-judge": {
+      "cache_read": 520685,
+      "cache_write": 162029,
+      "input": 30,
+      "output": 2380,
+      "prompt": 520715,
+      "reasoning": 1859
+    },
+    "r2c-method-analyzer": {
+      "cache_read": 2890896,
+      "cache_write": 776015,
+      "input": 192,
+      "output": 23065,
+      "prompt": 2891088,
+      "reasoning": 11580
+    },
+    "r2c-method-coder": {
+      "cache_read": 319742,
+      "cache_write": 48321,
+      "input": 27,
+      "output": 2651,
+      "prompt": 319769,
+      "reasoning": 1568
+    },
+    "r2c-method-explainer": {
+      "cache_read": 371024,
+      "cache_write": 142478,
+      "input": 135,
+      "output": 9111,
+      "prompt": 371159,
+      "reasoning": 2263
+    },
+    "r2c-notebook-generator": {
+      "cache_read": 363041,
+      "cache_write": 75265,
+      "input": 24,
+      "output": 4959,
+      "prompt": 363065,
+      "reasoning": 2237
+    },
+    "r2c-paper-fidelity-reviewer": {
+      "cache_read": 120241,
+      "cache_write": 54201,
+      "input": 12,
+      "output": 1724,
+      "prompt": 120253,
+      "reasoning": 833
+    },
+    "r2c-smoke-diagnostician": {
+      "cache_read": 275715,
+      "cache_write": 49904,
+      "input": 24,
+      "output": 1753,
+      "prompt": 275739,
+      "reasoning": 675
+    },
+    "r2c-stage-reviewer": {
+      "cache_read": 1219806,
+      "cache_write": 281479,
+      "input": 108,
+      "output": 6741,
+      "prompt": 1219914,
+      "reasoning": 3920
+    },
+    "r2c-test-generator": {
+      "cache_read": 731891,
+      "cache_write": 176569,
+      "input": 144,
+      "output": 9667,
+      "prompt": 732035,
+      "reasoning": 6801
+    }
+  },
+  "schema_version": "1.0",
+  "totals": {
+    "cache_read": 8161855,
+    "cache_write": 1923391,
+    "input": 807,
+    "output": 74249,
+    "prompt": 8162662,
+    "reasoning": 36432
+  },
+  "updated_at": "2026-09-04T16:09:57Z"
+}

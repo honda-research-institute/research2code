@@ -1,0 +1,7 @@
+{
+  "status": "halted",
+  "stage": "stage_1",
+  "reason": "analyzer dispatch failed: r2c-method-analyzer modified or created files outside its allowlist. Out-of-scope writes: ['.opencode/opencode.json (tracked file modified during the dispatch; left in place for investigation, not restored)']. Allowed: ['.pipeline/method_spec.json', '.pipeline/paradigm_gap_report.json', '.pipeline/paradigm_gap_report.md'].",
+  "retry_count": 0,
+  "halt_class": "out_of_scope_write"
+}

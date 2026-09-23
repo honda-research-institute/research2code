@@ -1,0 +1,27 @@
+{
+  "comparison": {
+    "classification": {
+      "id": "active_learning/bayesian",
+      "field_guide_path": "paradigms/supervised_ml/active_learning/bayesian/FIELD_GUIDE.md",
+      "detection_reasoning": "GBALD is a Bayesian active learning method that uses MC dropout for epistemic uncertainty estimation and BALD-style mutual information scoring. It extends BALD with geometric core-set initialization and representativeness ranking, fitting squarely within the Bayesian AL sub-paradigm. The bayesian field guide explicitly lists GBALD as a canonical method."
+    },
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, mc_samples: int = 20, R_0: float = 2000.0, eta: float = 0.9, batch_returns: int = 100) -> List[int]",
+      "seed_param": "seed",
+      "description": "Per-round acquisition function for GBALD Stage 2. Takes a trained model, the unlabeled pool, the current labeled set, and returns batch_size indices into x_unlabeled. Uses MC dropout (mc_samples stochastic passes) to compute BALD scores, ranks candidates by geometric representativeness (R_0/||x - D_j|| relative to labeled set), and selects the top batch_returns candidates. The eta parameter controls ellipsoid geodesic rescaling strength."
+    }
+  },
+  "critical_requirements": {
+    "scale_dependent_hyperparameters": [
+      {
+        "name": "R_0",
+        "paper_value": 2000.0,
+        "formula": null,
+        "assumes_data_scale": "raw_pixel_unnormalized",
+        "description": "Distance threshold for the geometric probability model p(y|x,theta) = R_0 / ||x - D_j|| for points outside the radius. Calibrated for raw [0, 255] pixel distances on MNIST (flattened images, L2 distance in input space). The value is meaningless for normalized data without rescaling. For input dimension d, a reasonable rescaling would be R_0_scaled = 2000.0 * (data_norm / 707) where 707 is the approximate L2 norm of a random raw MNIST image.",
+        "paper_section": "Section 4.2, Equation (5), Section 7.1 - R_0 = 2.0e+3 for all image datasets"
+      }
+    ]
+  }
+}

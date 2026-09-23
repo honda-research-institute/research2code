@@ -1,0 +1,329 @@
+{
+  "schema_version": "1.6.0",
+  "paper": {
+    "title": "Deep Batch Active Learning by Diverse, Uncertain Gradient Lower Bounds",
+    "authors": "Jordan T. Ash (Princeton University), Chicheng Zhang (University of Arizona), Akshay Krishnamurthy (Microsoft Research NYC), John Langford (Microsoft Research NYC), Alekh Agarwal (Microsoft Research Redmond)",
+    "repo_url": null
+  },
+  "core_method": {
+    "name": "BADGE (Batch Active learning by Diverse Gradient Embeddings)",
+    "summary": "BADGE selects batches of unlabeled examples by embedding each candidate as the gradient of cross-entropy loss with respect to the output-layer weights (using the model's own prediction as a hallucinated label), then choosing a diverse batch via k-MEANS++ seeding on those gradient embeddings, simultaneously capturing both predictive uncertainty (gradient magnitude) and sample diversity (directional spread).",
+    "type": "algorithm",
+    "paper_sections": ["Section 3 (Algorithm)", "Algorithm 1", "Section 2 (Notation and Setting)"],
+    "key_elements": ["alg-badge", "alg-kmeans-seeding", "concept-hallucinated-label", "concept-gradient-embedding", "concept-penultimate-representation", "eq-gradient-embedding", "eq-gradient-norm", "eq-softmax-output", "eq-ce-loss", "eq-ce-loss-expanded", "eq-classifier"]
+  },
+  "paper_claims": {
+    "method_description": "BADGE represents each unlabeled example as a gradient embedding — the gradient of cross-entropy loss with respect to the final-layer weights, computed using the model's own prediction as a proxy label. The gradient magnitude captures uncertainty (high-confidence examples have small gradients), while directional diversity is achieved by selecting a batch via k-MEANS++ seeding, which iteratively samples points proportional to their squared distance from already-selected centers. This naturally balances uncertainty and diversity without hand-tuned hyperparameters.",
+    "claimed_results": "BADGE consistently performs as well or better than 6 baselines (CORESET, Confidence, Margin, Entropy, ALBL, Random) across 231 experiments spanning 3 architectures (MLP, ResNet, VGG), 7 datasets (SVHN, CIFAR-10, MNIST, 4 OpenML datasets), and 3 batch sizes (100, 1000, 10000). The pairwise penalty matrix shows BADGE has the lowest overall column average. It is the only method that performs robustly across all architecture, batch size, and dataset combinations.",
+    "benchmark_scale": "231 experiments across 11 dataset-architecture pairs, 3 batch sizes (100/1000/10000), 7 methods, 5 repeated runs each; 100 initial labeled examples."
+  },
+  "try_it_out": {
+    "definition": "Try BADGE means running the batch active learning loop: starting from a small random labeled set, iteratively computing gradient embeddings for all unlabeled candidates, selecting a diverse batch via k-MEANS++, querying labels, retraining from scratch, and plotting a learning curve of test accuracy vs. labels acquired.",
+    "user_provides": [
+      {
+        "name": "Dataset",
+        "description": "Classification dataset with a train pool of unlabeled images or tabular features and a test set with ground-truth labels.",
+        "type": "data"
+      },
+      {
+        "name": "Model architecture",
+        "description": "A neural network with a softmax output layer for multiclass classification. The paper uses MLPs, ResNet, or VGG.",
+        "type": "code"
+      }
+    ],
+    "system_provides": [
+      {
+        "name": "Gradient embedding computation",
+        "description": "Implementation of BADGE's gradient embedding: compute model prediction, compute cross-entropy loss w.r.t. output-layer weights using the predicted label as ground truth, extract W.grad.",
+        "type": "code"
+      },
+      {
+        "name": "k-MEANS++ seeding selection",
+        "description": "The batch selection algorithm that iteratively samples gradient embeddings proportional to squared nearest-center distance.",
+        "type": "code"
+      },
+      {
+        "name": "Active learning loop",
+        "description": "The iterative protocol: bootstrap, acquire, retrain from scratch, evaluate per round.",
+        "type": "code"
+      }
+    ]
+  },
+  "data_requirements": {
+    "format": "Image data: tensors of shape (N, C, H, W) with integer labels in [0, K-1]. Tabular data: feature matrices (N, D) with integer labels. Pool of unlabeled examples plus a test set for evaluation.",
+    "example_datasets": ["MNIST", "SVHN", "CIFAR-10", "OpenML #6", "OpenML #155", "OpenML #156", "OpenML #184"],
+    "auto_download_feasible": true,
+    "auto_download_details": "MNIST via torchvision.datasets.MNIST, SVHN via torchvision.datasets.SVHN, CIFAR-10 via torchvision.datasets.CIFAR10. OpenML datasets require openml-python.",
+    "synthetic_feasible": true,
+    "synthetic_description": "Synthetic classification data with separable classes (e.g., skleran make_classification or Gaussian blobs) can demonstrate the acquisition mechanism with the same MLPLP architecture."
+  },
+  "dependencies": {
+    "frameworks": ["pytorch"],
+    "pretrained_models": [],
+    "compute": "Single GPU required",
+    "estimated_time": "10-30 minutes for a MNIST smoke run with MLP and batch_size=100, 5-10 rounds"
+  },
+  "repo": {
+    "url": null,
+    "cloned": false,
+    "clone_path": null,
+    "key_files": []
+  },
+  "comparison": {
+    "classification": {
+      "id": "active_learning/batch_acquisition",
+      "detection_reasoning": "BADGE is an explicit worked example in the batch_acquisition taxonomy node. It selects B>1 examples per round using gradient embeddings as acquisition scores and k-MEANS++ for diversity, matching the batch_acquisition fingerprint: 'Selects a batch of B>1 examples per round, balancing uncertainty against diversity so the batch is not B near-duplicate uncertain points'. It is not bayesian-AL (no MC dropout, no posterior approximation), and its contribution is the acquisition function, not the loss or architecture."
+    },
+    "description": "Fair comparison of BADGE against other batch active learning methods: same model architecture, same dataset, same initial labeled set size (M=100), same batch size B, same training protocol (Adam, retrain from scratch, train until 99% accuracy). The paper compares BADGE against CORESET (diversity-based), Confidence/Margin/Entropy (uncertainty-based), ALBL (meta-learner), and Random (naive baseline).",
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, batch_size, seed) -> List[int]",
+      "seed_param": "seed",
+      "description": "Pure acquisition function that returns batch_size positions into x_unlabeled. BADGE needs no paradigm extras beyond seed (which controls k-MEANS++' random first-center selection). Each call: (1) compute gradient embeddings for all candidates via autograd, (2) flatten embeddings, (3) run k-MEANS++ for batch_size centers, (4) return indices. No state is carried between rounds."
+    },
+    "controlled_variables": {
+      "model_architecture": "Same architecture for all methods to isolate the acquisition strategy effect",
+      "initial_labeled_set": "M=100 random examples ensure all methods start from the same labeled set",
+      "batch_size": "Fixed B per experiment so methods select the same number of labels per round",
+      "training_protocol": "Adam optimizer, retrain from scratch each round, train until 99% accuracy",
+      "dataset": "Same dataset across methods to control data distribution"
+    },
+    "independent_variable": "Acquisition function (BADGE vs. CORESET vs. Confidence vs. Margin vs. Entropy vs. ALBL vs. Random)",
+    "evaluation_checkpoints": "At each acquisition round: train new model, evaluate on held-out test set, record accuracy vs. cumulative labels acquired",
+    "primary_metric": "Test accuracy (0/1 classification error) as a function of cumulative labels queried",
+    "visualization": "Learning curves (test accuracy vs. #labels queried) with shaded standard-error bands across 5 repeated runs"
+  },
+  "critical_requirements": {
+    "model": {
+      "architecture": "Neural network with softmax output layer for multiclass classification. The paper uses MLP (2-layer with ReLU, hidden dims 256 for images / 1024 for OpenML), ResNet-18, and VGG-11. The gradient embedding computation requires access to the output-layer weight gradient (W.grad after loss.backward()).",
+      "paper_section": "Section 3, Section 4",
+      "specific_features": [
+        {
+          "feature": "Softmax output layer",
+          "why_essential": "The gradient embedding formula Equation (1) is derived for softmax classifiers: (g_x)_i = (p_i - I(y_hat = i)) * z(x; V). The gradient magnitude depends on p_i = softmax_i(W z(x;V)), and the lower-bound property in Proposition 1 relies on this specific activation. Without softmax, the gradient embedding formula and its uncertainty interpretation do not hold.",
+          "severity": "essential",
+          "paper_section": "Section 3, Equation (1), Proposition 1"
+        },
+        {
+          "feature": "Output-layer weight gradient accessibility",
+          "why_essential": "BADGE's entire acquisition mechanism is built on the gradient of cross-entropy loss with respect to the final-layer weights. The model must be structured so that W.grad is accessible after loss.backward() — i.e., the output layer weights must be a standalone PyTorch parameter tensor, not fused into a linear layer whose gradient we cannot isolate.",
+          "severity": "essential",
+          "paper_section": "Section 3, Algorithm 1, Line 4.2"
+        },
+        {
+          "feature": "Cross-entropy loss",
+          "why_essential": "The gradient embedding is defined as the gradient of cross-entropy loss. The paper's derivation of Equation (1) and Proposition 1 (lower bound on gradient norm) both depend on CE loss. Using MSE or another loss would change the gradient embedding and break the theoretical justification.",
+          "severity": "essential",
+          "paper_section": "Section 2, Equation (1)"
+        }
+      ]
+    },
+    "training": {
+      "optimizer": "Adam",
+      "learning_rate": "0.001 for image data, 0.0001 for non-image data",
+      "protocol": "retrain from scratch",
+      "mc_samples": null,
+      "num_epochs": null,
+      "seed": null,
+      "paper_section": "Section 4"
+    },
+    "data_setup": {
+      "initial_labeled": 100,
+      "batch_size": 100,
+      "total_budget": 1000,
+      "num_rounds": 9,
+      "batch_returns": null,
+      "benchmark_name": "MNIST main benchmark, batch_size=100",
+      "special_protocol": null,
+      "paper_section": "Section 4, Algorithm 1"
+    },
+    "blockers": [
+      {
+        "requirement": "Model retraining from scratch each round",
+        "status": "must_implement",
+        "reason": "The paper explicitly avoids warm starting and retrains from scratch after each acquisition round. This is the default AL retraining protocol in the pipeline.",
+        "resolution": "Build a fresh model inside each round loop, do not carry model state across rounds."
+      },
+      {
+        "requirement": "Gradient computation for each individual unlabeled sample",
+        "status": "must_implement",
+        "reason": "BADGE requires per-sample gradient embeddings. This means computing loss and calling backward for each unlabeled candidate. At demo scale this is O(unlabeled_pool_size) backward passes per round.",
+        "resolution": "Implement per-sample autograd loop: for each x_i, compute y_hat = model(x_i).argmax(), compute CE loss w.r.t. y_hat, zero W.grad, call loss.backward(), extract W.grad.flatten(). Use no_grad for all non-output-layer params to reduce compute."
+      },
+      {
+        "requirement": "Training to convergence (99% training accuracy) per round",
+        "status": "can_approximate",
+        "reason": "The paper trains until 99% training accuracy, which may require many epochs. At demo scale, a fixed epoch count or lower accuracy threshold is acceptable as long as the model has sufficient capacity to learn the labeled data.",
+        "resolution": "At demo scale, train for a sufficient number of epochs (e.g., 20-30) or until training accuracy exceeds 95%, whichever is faster. Document the approximation in the notebook."
+      }
+    ],
+    "scale_dependent_hyperparameters": [],
+    "required_model_methods": []
+  },
+  "methodology_replication_contract": {
+    "schema_version": "1.0",
+    "elements": [
+      {
+        "element_id": "gradient-embedding-acquisition",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 3, Algorithm 1, Equation (1)",
+        "paper_evidence": "BADGE's novelty is using the gradient of CE loss w.r.t. output-layer weights (with the model's own prediction as label) as a joint uncertainty-diversity embedding. Proposition 1 proves this is a lower bound on the true gradient norm for any label.",
+        "technical_concept": "Hallucinated gradient embedding",
+        "required_behavior": "For each unlabeled candidate x, compute y_hat = model(x).argmax(), compute g_x = d/dW CE(f(x; theta), y_hat), collect all g_x into an embedding matrix.",
+        "demo_scale_implementation": "Per-sample autograd loop on the demo pool (up to ~500 candidates). For each candidate, forward pass, argmax for y_hat, backward pass on CE loss, extract output-layer W.grad and flatten.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not replace gradient embeddings with entropy, margin, confidence, or raw softmax-probability scoring.",
+          "Do not use penultimate-layer features (CORESET-style) instead of gradient embeddings.",
+          "Do not compute gradients w.r.t. all model parameters — only the output-layer weights."
+        ],
+        "required_controls": [
+          "Use the same trained model snapshot to compute all gradient embeddings in a given round.",
+          "Gradients must be computed in evaluation context (no backprop to non-output layers during embedding computation)."
+        ],
+        "fairness_checks": [
+          "The gradient embedding computation must use the model's own prediction (y_hat), not random or true labels.",
+          "All candidates must use the same CE loss formulation and the same output-layer weight scope."
+        ],
+        "feasibility_rationale": "The mechanism is fully specified in the paper (Algorithm 1, Equation 1). Per-sample autograd is straightforward in PyTorch. At demo scale the pool is small enough for O(N) backward passes per round.",
+        "verification_expectations": [
+          "method.py must compute per-sample gradients via model forward + CE loss + backward, extracting output-layer weight gradient.",
+          "method.py must use the model's argmax prediction as the label for gradient computation (hallucinated label).",
+          "The gradient embedding must be flattened to a 1D vector per sample before passing to k-MEANS++."
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "kmeans-selection",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 3 (sampling step), Appendix A (Algorithm 2), Algorithm 1 Line 5",
+        "paper_evidence": "BADGE selects batches using k-MEANS++ seeding on gradient embeddings, which simultaneously favors high-magnitude (uncertain) and diverse (distant from already-chosen) points. The paper explicitly prefers k-MEANS++ over k-DPP for computational efficiency (Figure 1, right panel).",
+        "technical_concept": "k-MEANS++ diversity selection on gradient embeddings",
+        "required_behavior": "Select batch_size examples from the gradient embeddings using k-MEANS++: first point uniform at random (seeded), then iteratively sample each subsequent point proportional to squared distance from nearest already-selected center.",
+        "demo_scale_implementation": "Implement k-MEANS++ seeding with an incremental nearest-distance vector (maintain a (N,) array of min distances to already-chosen centers, update after each selection). Use the seed parameter for reproducible first-center selection.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not replace k-MEANS++ with k-DPP sampling (which is the alternative BADGE deliberately avoids for compute reasons).",
+          "Do not use furthest-first traversal (FF-k-Center / CORESET) instead of k-MEANS++.",
+          "Do not use greedy top-K by gradient magnitude alone (that is confidence/uncertainty sampling, not BADGE)."
+        ],
+        "required_controls": [
+          "k-MEANS++ must operate in gradient embedding space, not input space or feature space.",
+          "The seeding must use squared L2 distances, matching the k-MEANS++ algorithm from Arthur and Vassilvitskii 2007."
+        ],
+        "fairness_checks": [
+          "The diversity selection must not introduce additional hyperparameters beyond batch_size and seed.",
+          "Only the acquisition function differs from the substrate: data, model, training are identical to what other AL methods would use."
+        ],
+        "feasibility_rationale": "k-MEANS++ is fully specified (Algorithm 2) and well-known. The implementation is a few lines of code using numpy/torch for distance computations. At demo scale it is fast.",
+        "verification_expectations": [
+          "method.py must implement k-MEANS++ seeding (not k-means clustering — seeding only, i.e., O(batch_size) selections).",
+          "The selection probabilities must be proportional to D_t(x)^2 (squared nearest-distance), not D_t(x) or 1/D_t(x).",
+          "Seeding the random generator from the seed parameter is required for reproducibility."
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "retrain-from-scratch",
+        "role": "supporting_mechanism",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 4, Algorithm 1 Lines 1, 7",
+        "paper_evidence": "The paper explicitly states: 'We avoid warm starting and retrain models from scratch every time new samples are queried.' Algorithm 1 Line 7 says 'Train a model theta_{t+1} on S' (a fresh model, not continuing from theta_t).",
+        "technical_concept": "Fresh model retraining after each acquisition round",
+        "required_behavior": "After each acquisition round, discard the current model and build a fresh model with random initialization, then train it on the expanded labeled set.",
+        "demo_scale_implementation": "Build a new model (build_model() called inside the round loop) before each training step. Do not reuse the warmup model or carry state across rounds.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not warm-start the model from the previous round's checkpoint.",
+          "Do not reuse the same model object across rounds (even if retraining).",
+          "Do not freeze any layers across rounds."
+        ],
+        "required_controls": [
+          "Each round must produce a freshly initialized model before training begins."
+        ],
+        "fairness_checks": [
+          "The retraining protocol must be identical across all methods compared in the paper."
+        ],
+        "feasibility_rationale": "Retraining from scratch is the standard AL protocol and is straightforward to implement: call model constructor at the top of each round.",
+        "verification_expectations": [
+          "The notebook's round loop must call build_model() for each round, not reuse a model from §3.4.",
+          "No checkpoint loading or state_dict restoration across rounds."
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "training-stopping-criterion",
+        "role": "paper_scale_detail",
+        "replication_status": "faithful_approximation_allowed",
+        "paper_section": "Section 4",
+        "paper_evidence": "Paper states: 'We fit models using cross-entropy loss and the Adam variant of SGD until training accuracy exceeds 99%.' This convergence criterion adapts to the labeled set size but requires monitoring training accuracy per epoch.",
+        "technical_concept": "Train until 99% training accuracy",
+        "required_behavior": "Train until training accuracy exceeds 99%, which may take many epochs for small labeled sets early in the AL loop.",
+        "demo_scale_implementation": "At demo scale, train for a fixed number of epochs (e.g., 20-30) or until training accuracy exceeds 95%, whichever is reached first. This is a faithful approximation because the model overfits enough to learn the small labeled set.",
+        "acceptable_approximations": [
+          "Fixed epoch count (20-30 epochs) instead of 99% training accuracy threshold.",
+          "Lower accuracy threshold (e.g., 95%) acceptable at demo scale for labeled sets that are too small for 99% to be meaningful."
+        ],
+        "forbidden_substitutions": [
+          "Do not use a vastly undertrained model (e.g., 1-2 epochs) that has not overfit the labeled set."
+        ],
+        "required_controls": [
+          "The training budget must be sufficient for the model to substantially overfit the current labeled set."
+        ],
+        "fairness_checks": [
+          "If training budget is reduced at demo scale, it must be applied uniformly across rounds."
+        ],
+        "feasibility_rationale": "At demo scale, the labeled set is small and the model can quickly overfit it with a fixed number of epochs. The exact 99% threshold is not critical to the acquisition mechanism.",
+        "verification_expectations": [
+          "Training must run long enough that the model achieves high training accuracy (>90%).",
+          "The notebook should note the deviation from the paper's 99% criterion."
+        ],
+        "blockers": []
+      }
+    ]
+  },
+  "methodology_contract_pack": {
+    "schema_version": "1.0",
+    "summary": "BADGE must preserve its two core mechanisms: (1) gradient embedding acquisition using the model's own predicted label, and (2) k-MEANS++ diversity selection in gradient space. Replacing either with standard uncertainty or diversity methods destroys the paper's contribution.",
+    "core_methodology_element_ids": ["gradient-embedding-acquisition", "kmeans-selection"],
+    "implementation_obligations": [
+      "Compute per-sample gradient embeddings: forward pass, argmax for hallucinated label, backward pass on CE loss, extract output-layer W.grad.",
+      "Select diverse batch via k-MEANS++ seeding on gradient embeddings with squared-distance probabilities.",
+      "Retrain a fresh model from scratch after each acquisition round.",
+      "Train each model to high convergence (99% training accuracy at paper scale)."
+    ],
+    "approved_approximations": [
+      "Fixed epoch count (20-30 epochs) instead of 99% training accuracy threshold at demo scale."
+    ],
+    "forbidden_substitutions": [
+      "Do not replace gradient embeddings with entropy, margin, confidence, or penultimate-layer features.",
+      "Do not replace k-MEANS++ with k-DPP, FF-k-Center, or top-K magnitude sorting.",
+      "Do not warm-start the model across acquisition rounds."
+    ],
+    "required_controls": [
+      "Use the same trained model snapshot for all candidate embeddings in a round.",
+      "k-MEANS++ must operate in gradient embedding space, not input or feature space.",
+      "Build a fresh model for each round's training."
+    ],
+    "verification_expectations": [
+      "method.py computes per-sample gradients via autograd (forward + CE loss + backward) with argmax as hallucinated label.",
+      "method.py implements k-MEANS++ seeding with squared-distance selection probabilities.",
+      "Notebook builds a fresh model inside the round loop, not in a pre-loop setup."
+    ]
+  },
+  "replication_feasibility": {
+    "schema_version": "1.0",
+    "verdict": "feasible_with_approved_approximations",
+    "blockers": [],
+    "approved_approximations": [
+      {
+        "element_id": "training-stopping-criterion",
+        "technical_concept": "Train until 99% accuracy",
+        "rationale": "At demo scale, a fixed epoch count or lower accuracy threshold suffices for model convergence on small labeled sets."
+      }
+    ]
+  },
+  "feasibility": "reproducible"
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": "2.0.0",
+  "generated_at": "2026-09-04T16:58:34Z",
+  "paradigm": "active_learning/batch_acquisition",
+  "verdict": "succeeded",
+  "evidence_line": "round 5: labels=600, selected=100, training loss=0.257, test accuracy=0.876 (peak 0.876 vs chance 0.10)",
+  "evidence_cell": 32,
+  "decided_by": "beats_chance",
+  "marker_gloss": "the headline accuracy series is compared against chance (1/num_classes) plus the shared margin",
+  "markers_declared": true,
+  "family_kit_committed": true,
+  "kit_coverage_finding": null,
+  "reason": null,
+  "headline_section_id": "running",
+  "headline_section_number": 5
+}

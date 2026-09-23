@@ -1,0 +1,24 @@
+# Minimal project config — pytest discovery/config plus the supported-Python floor.
+# All dependencies (runtime and dev/test) live in requirements.txt.
+
+[project]
+name = "research2code-mvp"
+version = "0.0.0"
+# Supported interpreter floor. The codebase is kept 3.10-compatible; 3.11-only
+# features (e.g. datetime.UTC) must not be used — one slipped in and crashed a
+# 3.10 deploy box at import on 2026-06-18. Verified 3.10-clean with vermin.
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+pythonpath = ["scripts"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Quiet by default; -v for verbose, -vv for very verbose.
+addopts = "-ra --strict-markers"
+markers = [
+    "manual_only: needs real finished run artifacts on local disk; vacuous or skipped without them",
+    "probe_runtime: heavy probe/validator execution (~4s+ per file); excluded from the fast gate via -m 'not probe_runtime'",
+]

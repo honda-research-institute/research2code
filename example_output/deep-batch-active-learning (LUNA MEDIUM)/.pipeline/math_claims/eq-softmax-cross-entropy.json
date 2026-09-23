@@ -1,0 +1,30 @@
+{
+  "claims": [
+    {
+      "claim_type": "monotonicity",
+      "quote": "The log-sum-exp term normalizes these competing scores, while the subtraction rewards a high score for class y, so the loss is small when the observed class dominates and large when competing classes collectively outrank it.",
+      "formulas": ["Softmax cross-entropy in output weights"],
+      "formal": {
+        "lhs": "log(exp(T) + exp(C)) - T",
+        "relation": "monotone_decreasing",
+        "variables": [
+          {"name": "T", "domain": [-20, 20], "role": "variable"},
+          {"name": "C", "domain": [-20, 20], "role": "parameter"}
+        ]
+      }
+    },
+    {
+      "claim_type": "monotonicity",
+      "quote": "The log-sum-exp term normalizes these competing scores, while the subtraction rewards a high score for class y, so the loss is small when the observed class dominates and large when competing classes collectively outrank it.",
+      "formulas": ["Softmax cross-entropy in output weights"],
+      "formal": {
+        "lhs": "log(exp(T) + exp(C)) - T",
+        "relation": "monotone_increasing",
+        "variables": [
+          {"name": "T", "domain": [-20, 20], "role": "parameter"},
+          {"name": "C", "domain": [-20, 20], "role": "variable"}
+        ]
+      }
+    }
+  ]
+}

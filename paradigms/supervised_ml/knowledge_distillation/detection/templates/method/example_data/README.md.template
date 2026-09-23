@@ -1,0 +1,86 @@
+# example_data/
+
+This directory is where the notebook reads data from. On first run, if no
+real detection data is present, `load_data("example_data/")` generates a
+synthetic detection dataset (random colored rectangles on noise backgrounds)
+and caches it under `example_data/_cache/`. Subsequent runs reload from the
+cache.
+
+The synthetic data is enough to verify the pipeline executes end-to-end; it
+is NOT a meaningful detection benchmark. To run on real detection data, drop
+one of the formats below into this directory.
+
+## Use your own data
+
+`load_data` checks formats in this priority order:
+`.pt` → COCO-format directory → synthetic fallback.
+
+### Option 1 — `.pt` (fastest)
+
+A single `.pt` file (any name) containing a dict:
+
+```python
+torch.save({
+    "images_train":  [PIL_image, PIL_image, ...],   # list of PIL.Image.Image
+    "targets_train": [target_dict, target_dict, ...],
+    "images_test":   [PIL_image, ...],
+    "targets_test":  [target_dict, ...],
+}, "example_data/my_dataset.pt")
+```
+
+Each `target_dict` has the format:
+
+```python
+{
+    "boxes":  torch.tensor([[x1, y1, x2, y2], ...], dtype=torch.float),  # xyxy
+    "labels": torch.tensor([class_idx, ...], dtype=torch.long),
+}
+```
+
+If a target dict has no boxes (image with no objects), pass empty tensors:
+`boxes=torch.zeros((0, 4), dtype=torch.float)` and
+`labels=torch.zeros((0,), dtype=torch.long)`.
+
+If you want to override the bundled synthetic fallback, name your file so it
+sorts first alphabetically, or delete `_cache/synthetic_detection.pt`.
+
+### Option 2 — COCO-format directory
+
+A directory (any name) containing:
+
+```
+my_coco_subset/
+├── images/                    # all image files (.jpg, .png, etc.)
+└── annotations.json           # COCO-format JSON
+```
+
+The `annotations.json` follows the standard COCO format with top-level keys
+`images`, `annotations`, and `categories`. The loader:
+
+- maps each annotation to its image via `image_id`
+- converts COCO `[x, y, w, h]` boxes to `[x1, y1, x2, y2]`
+- samples `train_size + n_test` images deterministically (seeded shuffle)
+  and splits the result
+
+Place the directory directly inside `example_data/`. The loader scans for
+this layout at the top level and one level deep.
+
+### Option 3 — Synthetic fallback (no setup)
+
+If neither a `.pt` file nor a COCO directory is present, the loader generates
+a synthetic detection dataset on first run and caches it under
+`_cache/synthetic_detection.pt`. The cache embeds the generation parameters
+(`train_size`, `n_test`, `seed`); changing any of those triggers
+regeneration.
+
+The synthetic generator produces 64×64 RGB images with 1-3 colored rectangles
+each, labeled with random class indices in `[0, 5)`. Sufficient for verifying
+the pipeline executes; not a real evaluation dataset.
+
+## Note on smoke vs. paper-scale
+
+Detection KD papers typically train on COCO (118K train images, 5K val).
+Demo-scale here is 200/50 by default — fast enough to run on a laptop CPU
+in minutes, large enough to verify the distillation loop converges directionally.
+For paper-faithful results, the researcher must download full COCO and
+adjust `train_size` and `n_test` upward in the notebook's `params` block.

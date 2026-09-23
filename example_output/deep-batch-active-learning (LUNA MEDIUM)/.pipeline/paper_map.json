@@ -1,0 +1,265 @@
+{
+  "schema_version": "1.0.0",
+  "title": "DEEP BATCH ACTIVE LEARNING BY DIVERSE, UNCERTAIN GRADIENT LOWER BOUNDS",
+  "elements": [
+    {
+      "id": "concept-pool-active-learning",
+      "type": "concept",
+      "name": "Pool-based deep batch active learning",
+      "section": "Section 2",
+      "description": "The learner receives an unlabeled pool, requests labels for selected examples in batches, and trains a fixed-architecture neural classifier with few label queries.",
+      "source_text": "We consider the pool-based active learning setup, where the learner receives an unlabeled dataset U sampled according to D_X and can request labels sampled according to D_{Y|X} for any x in U.",
+      "code_role": "implement"
+    },
+    {
+      "id": "eq-classifier-argmax",
+      "type": "equation",
+      "name": "Neural classifier prediction",
+      "section": "Section 2",
+      "description": "The classifier predicts the class with maximum neural-network score.",
+      "source_text": "$h_{\\theta}(x) = \\operatorname{argmax}_{y \\in [K]} f(x; \\theta)_y$",
+      "pseudocode": "prediction = argmax_y f(x, theta)[y]",
+      "code_role": "implement"
+    },
+    {
+      "id": "eq-cross-entropy",
+      "type": "equation",
+      "name": "Cross-entropy training objective",
+      "section": "Section 2",
+      "description": "The neural network is trained by minimizing average cross-entropy on the labeled set.",
+      "source_text": "$\\ell_{\\mathrm{CE}}(p, y) = \\sum_{i=1}^K I(y=i) \\ln 1/p_i = \\ln 1/p_y$",
+      "pseudocode": "loss = mean(-log(predicted_probability_of_true_label))",
+      "code_role": "implement"
+    },
+    {
+      "id": "alg-badge",
+      "type": "algorithm",
+      "name": "BADGE batch active learning",
+      "section": "Algorithm 1",
+      "description": "BADGE initializes a labeled set, repeatedly computes hallucinated last-layer gradient embeddings for the unlabeled pool, selects a batch with k-MEANS++ seeding, queries labels, retrains, and returns the final model.",
+      "source_text": "1: Labeled dataset S <- M examples drawn uniformly at random from U together with queried labels.\n2: Train an initial model theta_1 on S by minimizing E_S[ell_CE(f(x;theta),y)].\n3: for t = 1, 2, ..., T: do\n4: For all examples x in U \\ S:\n   1. Compute its hypothetical label yhat(x) = h_{theta_t}(x).\n   2. Compute gradient embedding g_x = partial/partial theta_out ell_CE(f(x;theta), yhat(x)) evaluated at theta=theta_t.\n5: Compute S_t, a random subset of U \\ S, using the k-MEANS++ seeding algorithm on {g_x : x in U \\ S} and query for their labels.\n6: S <- S union S_t.\n7: Train a model theta_{t+1} on S by minimizing E_S[ell_CE(f(x;theta),y)].\n9: return Final model theta_{T+1}.",
+      "pseudocode": "sample M labeled points; train theta; repeat T times: predict yhat for each unlabeled x; compute last-layer gradient embedding; select B embeddings with k-means++; query labels; add them; retrain from labeled data; return theta",
+      "related_equations": ["eq-classifier-argmax", "eq-cross-entropy", "eq-gradient-embedding"],
+      "code_role": "implement"
+    },
+    {
+      "id": "concept-hallucinated-label",
+      "type": "concept",
+      "name": "Hallucinated-label uncertainty",
+      "section": "Section 3",
+      "description": "The current model prediction is used as a proxy label so a gradient can be computed before the queried label is known.",
+      "source_text": "As a proxy, we compute the gradient as if the model's current prediction on the example is the true label.",
+      "code_role": "implement"
+    },
+    {
+      "id": "eq-gradient-embedding",
+      "type": "equation",
+      "name": "Hallucinated last-layer gradient embedding",
+      "section": "Algorithm 1 and Section 3",
+      "description": "The embedding is the cross-entropy gradient with respect to output-layer parameters evaluated using the predicted label.",
+      "source_text": "$g_x = \\frac{\\partial}{\\partial \\theta_{\\text{out}}} \\ell_{\\text{CE}}(f(x;\\theta), \\hat{y}(x))|_{\\theta=\\theta_t}$",
+      "pseudocode": "g_x = gradient_theta_out(cross_entropy(f(x, theta_t), yhat(x)))",
+      "code_role": "implement"
+    },
+    {
+      "id": "concept-gradient-uncertainty",
+      "type": "concept",
+      "name": "Gradient magnitude as uncertainty",
+      "section": "Section 3",
+      "description": "A large last-layer loss gradient indicates that receiving the example label would induce a large model update; confident examples have small embeddings.",
+      "source_text": "we consider the model uncertain about an example if knowing the label induces a large gradient of the loss with respect to the model parameters and hence a large update to the model.",
+      "code_role": "demonstrate"
+    },
+    {
+      "id": "concept-gradient-diversity",
+      "type": "concept",
+      "name": "Diversity in gradient space",
+      "section": "Section 3",
+      "description": "Selecting embeddings in separated directions makes queried examples induce diverse model changes instead of repeatedly selecting similar uncertain points.",
+      "source_text": "To this end, we want the selection procedure to favor both sample magnitude and batch diversity.",
+      "code_role": "demonstrate"
+    },
+    {
+      "id": "concept-quality-diversity-tradeoff",
+      "type": "concept",
+      "name": "Hyperparameter-free quality and diversity tradeoff",
+      "section": "Abstract and Section 3",
+      "description": "The combined gradient embedding encodes uncertainty through magnitude and representation information through direction, allowing one sampler to trade off both without hand-tuned weights.",
+      "source_text": "BADGE trades off between uncertainty and diversity without requiring any hand-tuned hyperparameters.",
+      "code_role": "demonstrate"
+    },
+    {
+      "id": "eq-softmax-model",
+      "type": "equation",
+      "name": "Softmax output model",
+      "section": "Section 3",
+      "description": "For the multiclass example, the network applies a softmax to the output-layer weights and penultimate representation.",
+      "source_text": "$f(x;\\theta) = \\sigma(W \\cdot z(x;V))$",
+      "pseudocode": "probabilities = softmax(W dot z(x, V))",
+      "code_role": "implement"
+    },
+    {
+      "id": "eq-softmax-definition",
+      "type": "equation",
+      "name": "Softmax activation",
+      "section": "Section 3",
+      "description": "The softmax converts output logits into class probabilities.",
+      "source_text": "$\\sigma(z)_i = {e^{z_i}}/{\\sum_{j=1}^K e^{z_j}}$",
+      "pseudocode": "p_i = exp(z_i) / sum_j exp(z_j)",
+      "code_role": "implement"
+    },
+    {
+      "id": "eq-softmax-cross-entropy",
+      "type": "equation",
+      "name": "Softmax cross-entropy in output weights",
+      "section": "Section 3",
+      "description": "The cross-entropy loss is expressed in terms of output-layer logits and the penultimate representation.",
+      "source_text": "$$\\ell_{\\text{CE}}(f(x;\\theta), y) = \\ln \\left( \\sum_{j=1}^{K} e^{W_j \\cdot z(x;V)} \\right) - W_y \\cdot z(x;V).$$",
+      "pseudocode": "loss = log(sum_j exp(W_j dot z)) - W_y dot z",
+      "code_role": "implement"
+    },
+    {
+      "id": "eq-gradient-block",
+      "type": "equation",
+      "name": "Gradient embedding block formula",
+      "section": "Section 3, Equation 1",
+      "description": "Each class block of the hallucinated gradient is a probability residual multiplied by the penultimate representation.",
+      "source_text": "$$(g_x)_i = \\frac{\\partial}{\\partial W_i} \\ell_{CE}(f(x;\\theta), \\hat{y}) = (p_i - I(\\hat{y} = i))z(x; V). \\tag{1}$$",
+      "pseudocode": "gradient_block_i = (p_i - indicator(yhat == i)) * z",
+      "code_role": "implement"
+    },
+    {
+      "id": "prop-gradient-lower-bound",
+      "type": "property",
+      "name": "Hallucinated gradient is a lower bound",
+      "section": "Section 3, Proposition 1",
+      "description": "The norm of the predicted-label gradient is no larger than the norm induced by any possible true label, so it conservatively estimates example influence.",
+      "source_text": "the norm of g_x is a lower bound on the norm of the loss gradient induced by the example with true label y with respect to the weights in the last layer, that is ||g_x|| <= ||g_x^y||.",
+      "code_role": "demonstrate"
+    },
+    {
+      "id": "eq-true-label-gradient-norm",
+      "type": "equation",
+      "name": "True-label gradient norm",
+      "section": "Section 3, Proposition 1",
+      "description": "The squared last-layer gradient norm factors into a probability-dependent scalar and the squared penultimate representation norm.",
+      "source_text": "$$||g_x^y||^2 = \\Big(\\sum_{i=1}^K p_i^2 + 1 - 2p_y\\Big)||z(x;V)||^2.$$",
+      "pseudocode": "gradient_norm_squared = (sum_i p_i^2 + 1 - 2 * p_y) * norm(z)^2",
+      "code_role": "theoretical"
+    },
+    {
+      "id": "prop-predicted-label-minimizes-gradient",
+      "type": "property",
+      "name": "Predicted label minimizes gradient norm",
+      "section": "Section 3, Proposition 1",
+      "description": "The argmax predicted class is the label whose possible output-layer gradient has minimum norm.",
+      "source_text": "Consequently, yhat = argmin_{y in [K]} ||g_x^y||.",
+      "code_role": "theoretical"
+    },
+    {
+      "id": "alg-kmeans-plus-plus",
+      "type": "algorithm",
+      "name": "k-MEANS++ seeding sampler",
+      "section": "Appendix A, Algorithm 2",
+      "description": "The sampler chooses the first center uniformly and then samples each subsequent center with probability proportional to squared distance from the nearest selected center.",
+      "source_text": "C_1 <- {c_1}, where c_1 is sampled uniformly at random from G.\nfor t = 2, ..., k: do\nDefine D_t(x) := min_{c in C_{t-1}} ||x - c||_2.\nc_t <- Sample x from G with probability D_t(x)^2 / sum_{x in G} D_t(x)^2.\nC_t <- C_{t-1} union {c_t}.",
+      "pseudocode": "choose first center uniformly; for each next center compute nearest-center distance; sample point proportional to squared distance; add it; return k centers",
+      "code_role": "implement"
+    },
+    {
+      "id": "prop-kmeans-diversity",
+      "type": "property",
+      "name": "k-MEANS++ expected diversity guarantee",
+      "section": "Appendix A",
+      "description": "The returned centers approximate the k-means objective in expectation, supporting diverse selection.",
+      "source_text": "It is shown in (Arthur and Vassilvitskii) 2007) that the set of centers returned is guaranteed to approximate the k-means objective function in expectation, thus ensuring diversity.",
+      "code_role": "theoretical"
+    },
+    {
+      "id": "exp-badge-robustness",
+      "type": "experiment",
+      "name": "BADGE robustness across settings",
+      "section": "Section 4",
+      "description": "Evaluate BADGE across neural architectures, batch sizes, and image and non-image datasets using active-learning accuracy versus queried labels.",
+      "source_text": "We show that BADGE is robust to architecture choice, batch size, and dataset, generally performing as well as or better than the best baseline across our experiments, which vary all of the aforementioned environmental conditions.",
+      "code_role": "implement"
+    },
+    {
+      "id": "exp-gradient-space-diagnostics",
+      "type": "experiment",
+      "name": "Gradient-space uncertainty and diversity diagnostics",
+      "section": "Section 4 and Appendix F",
+      "description": "Measure selected-batch average gradient norm as uncertainty and the Gram determinant as diversity to assess whether BADGE selects high-magnitude, diverse batches.",
+      "source_text": "Plots a and b show the log determinants of the Gram matrices of gradient embeddings within batches as learning progresses. Plots c and d show the average embedding magnitude (a measurement of predictive uncertainty) in the selected batch.",
+      "code_role": "implement"
+    },
+    {
+      "id": "exp-kmeans-runtime",
+      "type": "experiment",
+      "name": "k-MEANS++ sampling efficiency",
+      "section": "Section 3 and Appendix G",
+      "description": "Compare active-learning accuracy and sampling runtime when using k-MEANS++ on gradient embeddings, showing similar accuracy with lower computational cost than k-DPP sampling.",
+      "source_text": "although k-DPP and k-MEANS++ are based on different sampling criteria, the classification accuracies of their induced active learning algorithm are similar. In addition, when large batch sizes are required (e.g. k = 1000), the running times of k-DPP sampling are generally much higher than those of k-MEANS++.",
+      "code_role": "demonstrate"
+    },
+    {
+      "id": "hyp-initial-label-count",
+      "type": "hyperparameter",
+      "name": "Initial labeled examples M",
+      "section": "Algorithm 1 and Section 4",
+      "description": "Number of examples initially sampled uniformly and labeled before iterative acquisition; experiments use M=100.",
+      "source_text": "initial number of examples M",
+      "pseudocode": "M = 100",
+      "code_role": "implement"
+    },
+    {
+      "id": "hyp-batch-size",
+      "type": "hyperparameter",
+      "name": "Acquisition batch size B",
+      "section": "Algorithm 1 and Section 4",
+      "description": "Number of unlabeled examples selected and queried at each acquisition round; experiments use B in {100, 1000, 10000}.",
+      "source_text": "batch size B varying from {100,1000,10000}",
+      "pseudocode": "B in {100, 1000, 10000}",
+      "code_role": "implement"
+    },
+    {
+      "id": "hyp-training-optimizer",
+      "type": "hyperparameter",
+      "name": "Cross-entropy and Adam training protocol",
+      "section": "Section 4",
+      "description": "Retrain from scratch with cross-entropy and Adam until training accuracy exceeds 99 percent, without warm starts, schedules, or augmentation.",
+      "source_text": "we train models using cross-entropy loss and the Adam variant of SGD until training accuracy exceeds 99%. We avoid warm starting and retrain models from scratch every time new samples are queried.",
+      "pseudocode": "reinitialize model; optimize cross_entropy with Adam until training_accuracy > 0.99",
+      "code_role": "implement"
+    },
+    {
+      "id": "hyp-learning-rates",
+      "type": "hyperparameter",
+      "name": "Learning rates",
+      "section": "Section 4",
+      "description": "Use learning rate 0.001 for image data and 0.0001 for non-image data.",
+      "source_text": "We use a learning rate of 0.001 for image data and of 0.0001 for non-image data.",
+      "pseudocode": "learning_rate = 0.001 if image_data else 0.0001",
+      "code_role": "implement"
+    },
+    {
+      "id": "hyp-repetitions",
+      "type": "hyperparameter",
+      "name": "Independent experiment repetitions",
+      "section": "Section 4",
+      "description": "Repeat each experiment five times and report standard errors or variability bands.",
+      "source_text": "All experiments are repeated five times.",
+      "pseudocode": "repeat experiment 5 times",
+      "code_role": "implement"
+    },
+    {
+      "id": "prop-robustness",
+      "type": "property",
+      "name": "Empirical robustness claim",
+      "section": "Section 6",
+      "description": "BADGE is intended to remain effective across architecture choices, batch sizes, and datasets because it combines uncertainty and diversity without extra tuning.",
+      "source_text": "We have established that BADGE is empirically an effective deep active learning algorithm across different architectures and batch sizes, performing similar to or better than other active learning algorithms.",
+      "code_role": "demonstrate"
+    }
+  ]
+}

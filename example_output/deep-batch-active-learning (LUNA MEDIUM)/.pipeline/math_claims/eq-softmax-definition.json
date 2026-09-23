@@ -1,0 +1,20 @@
+{
+  "claims": [
+    {
+      "claim_type": "monotonicity",
+      "quote": "Exponentiation makes larger logits receive more weight, while division by the total converts those weights into a competition among the K classes.",
+      "formulas": ["Softmax activation"],
+      "formal": {
+        "lhs": "exp(z_i)",
+        "relation": "monotone_increasing",
+        "variables": [
+          {
+            "name": "z_i",
+            "domain": [-10, 10],
+            "role": "variable"
+          }
+        ]
+      }
+    }
+  ]
+}

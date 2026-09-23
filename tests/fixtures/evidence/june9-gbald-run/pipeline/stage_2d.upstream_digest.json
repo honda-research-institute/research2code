@@ -1,0 +1,8 @@
+{
+  ".pipeline/arch_contract.json": "sha256:d30865b29a33f405b11216d28e2a205015f82c5090e80441a14a17e266cb5468",
+  ".pipeline/method_spec.json": "sha256:c407d4c5e31d06d9856d1b5f717ba38efc941d88e8d8b18857cdf02257f4a661",
+  "method/data.py": "sha256:ab0600d1fc65b952821ed529898e66442e66f96cabc1d66ae3ffcf147aa86db8",
+  "method/method.py": "sha256:f6c288193fbf0234aec1efcdfe39c5ab63c5d0073474b0592caab50b2dac97ab",
+  "method/model.py": "sha256:4e270dc88c3bfe044b33cf5df4206d0a27987e68ddc97c40e9a8ce59e2094790",
+  "method/training.py": "sha256:cd6414ea5181d54f4eade9bb414f113b66b38d33b4b7020677f78bdc076226f8"
+}

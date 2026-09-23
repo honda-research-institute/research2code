@@ -1,0 +1,30 @@
+{
+  "candidate_sha256": "63b7ea6b4d9fd97a922047f58e20ba557bdab6f4b4a023d6ef067266a6a89db8",
+  "case_id": "badge-accepted-directional-account",
+  "prohibited_interpretations": [
+    "ordinary k-means clustering",
+    "farthest-first",
+    "guaranteed diverse batches",
+    "the embedding is computed from the selected batch"
+  ],
+  "provenance": {
+    "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+    "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+    "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+    "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+  },
+  "rationale": "Preserves the contract's five-step directional account, both uncertainty-and-diversity mechanisms, and the architecture-conditioned scope of the uncertainty interpretation. Does not describe the selector as ordinary k-means, deterministic farthest-first traversal, or a diversity guarantee, and does not reverse the embedding-to-selection dependency.",
+  "required_disclosures": [],
+  "required_facts": [
+    "hallucinated label",
+    "gradient embedding",
+    "last (output) layer",
+    "k-MEANS++",
+    "labels are queried",
+    "retrains on the enlarged labeled set",
+    "conditioned on the common network structure",
+    "not an architecture-free guarantee"
+  ],
+  "source_sha256": "2aa2899ae9d8d682dd75ca1da861691ebc545a4c45bb005998dec400d47644dc",
+  "verdict": "accepted"
+}

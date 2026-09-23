@@ -1,0 +1,209 @@
+"""Target data + source-detector loading for domain adaptation (self-training).
+
+Default behavior: `load_target_data()` (no args) returns a small synthetic
+point-cloud sequence generated in-memory — enough to exercise the
+pseudo-label → retrain loop at smoke scale. `load_source_detectors()` returns
+a few deterministic *mock* pre-trained detectors that emit plausible-but-noisy
+3D boxes, standing in for the real PV-RCNN++ / VoxelRCNN / CenterPoint
+ensemble the paper uses.
+
+For domain adaptation, "data" is the UNLABELED target-domain sensor stream
+(point-cloud frames + poses + timestamps) — not a labeled dataset. The labels
+the method trains on are the *pseudo-labels* the method itself generates from
+the source detectors. See `method/method.py` for the pseudo-label pipeline.
+
+To use real target data, drop a loader into `method/example_data/` (see
+`example_data/README.md`) and pass its name to `load_target_data`. To use real
+pre-trained source detectors, replace the mock `Detector` instances returned by
+`load_source_detectors` with wrappers around your checkpoints (keep the
+`.predict(frame) -> List[BoundingBox3D]` + `.source_domain` interface stable).
+"""
+
+# NOTE: this template is paradigm-fixed. The scaffolder renders it with
+# {{ method_name }}, {{ paradigm_id }}, and other slots; the architecture-coder
+# writes the target <DetectorClass> in method/model.py; method.py writes the
+# pseudo-label generation pipeline. data.py stays paradigm-shaped — it provides
+# the unlabeled target stream + the source-detector ensemble the method adapts.
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import torch
+
+
+# ---------------------------------------------------------------------------
+# Public types
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class BoundingBox3D:
+    """A 3D detection: center (x, y, z), size (l, w, h), yaw, class id, score.
+
+    Minimal shape sufficient for the smoke pseudo-label loop. Real detectors
+    can subclass or duck-type this as long as these fields are present.
+    """
+
+    center: torch.Tensor          # (3,) — x, y, z in meters
+    size: torch.Tensor            # (3,) — length, width, height in meters
+    yaw: float                    # heading angle in radians
+    class_id: int                 # 0=vehicle, 1=pedestrian, 2=cyclist (typical)
+    score: float                  # detector confidence in [0, 1]
+
+
+@dataclass
+class TargetDataset:
+    """An unlabeled target-domain sensor sequence.
+
+    Exposes `.frames` (per-frame point clouds), `.poses` (sensor-to-world
+    transforms), and `.timestamps` (seconds). No ground-truth labels — that's
+    the whole point of the domain-adaptation setting.
+    """
+
+    frames: List[torch.Tensor]            # each (N_i, C): per-point (x,y,z,intensity,...)
+    poses: List[torch.Tensor]             # each (4, 4): sensor->world transform
+    timestamps: List[float]               # seconds
+    name: str = "smoke_target"
+    meta: Dict[str, Any] = field(default_factory=dict)
+
+    def __len__(self) -> int:
+        return len(self.frames)
+
+
+class Detector:
+    """A mock pre-trained source-domain detector.
+
+    Produces deterministic-given-seed, plausible-but-noisy 3D boxes. Stands in
+    for a real checkpoint (PV-RCNN++, VoxelRCNN, CenterPoint). The KBF box
+    fusion (method.py) consults `.source_domain` to weight detectors per the
+    paper's Section 4.3.2.
+    """
+
+    def __init__(self, source_domain: str, *, seed: int = 0, n_boxes: int = 6):
+        self.source_domain = source_domain
+        self._rng = np.random.default_rng(seed)
+        self._n_boxes = n_boxes
+
+    def predict(self, point_cloud: torch.Tensor) -> List[BoundingBox3D]:
+        """Emit a few noisy boxes near the point cloud's spatial extent.
+
+        Deterministic given the detector's seed + the frame contents (so the
+        smoke pseudo-label loop is reproducible). A real detector replaces this
+        body with a forward pass over its checkpoint.
+        """
+        if point_cloud.numel() == 0:
+            return []
+        xyz = point_cloud[:, :3]
+        lo = xyz.min(dim=0).values
+        hi = xyz.max(dim=0).values
+        boxes: List[BoundingBox3D] = []
+        for _ in range(self._n_boxes):
+            frac = torch.tensor(self._rng.random(3), dtype=torch.float32)
+            center = lo + frac * (hi - lo)
+            size = torch.tensor([4.0, 2.0, 1.6], dtype=torch.float32)
+            yaw = float(self._rng.uniform(-np.pi, np.pi))
+            class_id = int(self._rng.integers(0, 3))
+            score = float(self._rng.uniform(0.3, 0.95))
+            boxes.append(BoundingBox3D(center=center, size=size, yaw=yaw,
+                                       class_id=class_id, score=score))
+        return boxes
+
+
+# ---------------------------------------------------------------------------
+# Synthetic smoke target sequence
+# ---------------------------------------------------------------------------
+
+
+def _synthetic_sequence(n_frames: int, seed: int) -> TargetDataset:
+    """Generate a short in-memory point-cloud sequence for smoke runs.
+
+    Each frame is a noisy plane (ground) plus a few dense clusters (objects);
+    the sensor pose translates forward each frame. Enough structure for the
+    mock detectors to fire and the pseudo-label loop to run end-to-end.
+    """
+    rng = np.random.default_rng(seed)
+    frames: List[torch.Tensor] = []
+    poses: List[torch.Tensor] = []
+    timestamps: List[float] = []
+    for t in range(n_frames):
+        n_ground = 400
+        ground = np.column_stack([
+            rng.uniform(-20, 20, n_ground),
+            rng.uniform(-20, 20, n_ground),
+            rng.normal(0.0, 0.05, n_ground),
+            rng.uniform(0.0, 0.3, n_ground),  # intensity
+        ])
+        clusters = []
+        for _ in range(3):
+            cx, cy = rng.uniform(-15, 15, 2)
+            pts = np.column_stack([
+                rng.normal(cx, 0.6, 60),
+                rng.normal(cy, 0.6, 60),
+                rng.uniform(0.0, 1.8, 60),
+                rng.uniform(0.2, 0.9, 60),
+            ])
+            clusters.append(pts)
+        frame = np.vstack([ground, *clusters]).astype(np.float32)
+        frames.append(torch.from_numpy(frame))
+        pose = torch.eye(4, dtype=torch.float32)
+        pose[0, 3] = float(t) * 1.0  # translate +1m/frame along x
+        poses.append(pose)
+        timestamps.append(float(t) * 0.1)  # 10 Hz
+    return TargetDataset(frames=frames, poses=poses, timestamps=timestamps,
+                         name="smoke_target", meta={"synthetic": True, "seed": seed})
+
+
+# ---------------------------------------------------------------------------
+# Public entry points
+# ---------------------------------------------------------------------------
+
+
+def load_target_data(name: str = 'smoke_target', *, n_frames: int = 50, seed: int = 0) -> TargetDataset:
+    """Return an unlabeled target-domain sequence.
+
+    `name='smoke_target'` (the default) returns a synthetic in-memory sequence
+    of `n_frames` frames. Any other name is looked up as `<name>.py` in
+    `method/example_data/` and must expose `build_target(n_frames, seed) ->
+    TargetDataset` (see example_data/README.md).
+    """
+    if name == "smoke_target":
+        return _synthetic_sequence(n_frames=n_frames, seed=seed)
+
+    from pathlib import Path
+    import importlib.util
+
+    py_path = Path(__file__).resolve().parent / "example_data" / f"{name}.py"
+    if not py_path.exists():
+        raise FileNotFoundError(
+            f"target dataset {name!r} not found at {py_path}; the only bundled "
+            f"sequence is 'smoke_target'. Drop a {name}.py exposing "
+            f"build_target(n_frames, seed) -> TargetDataset into example_data/."
+        )
+    spec = importlib.util.spec_from_file_location(name, py_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"could not load {py_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if not hasattr(module, "build_target"):
+        raise AttributeError(
+            f"{py_path} is missing the required module-level "
+            "`build_target(n_frames, seed) -> TargetDataset`."
+        )
+    return module.build_target(n_frames=n_frames, seed=seed)
+
+
+def load_source_detectors(names: List[str] = None, *, ensemble_size: int = 3) -> List[Detector]:
+    """Return the ensemble of pre-trained source-domain detectors.
+
+    `names` is the list of source-domain identifiers (e.g.
+    `["Waymo", "nuScenes", "Lyft"]`). When None, a default `ensemble_size`-long
+    list of mock source domains is used. Each returned `Detector` is a
+    deterministic mock for smoke runs; replace with real checkpoint wrappers
+    for paper-faithful runs (keep the `.predict` / `.source_domain` interface).
+    """
+    if names is None:
+        names = [f"source_{i}" for i in range(ensemble_size)]
+    return [Detector(source_domain=nm, seed=i) for i, nm in enumerate(names)]

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "target_agent": "r2c-architecture-coder",
+  "target_file": "method/training.py",
+  "bug_shape": "uncatalogued",
+  "root_cause": "The end-to-end demo evaluates correctly, but the training producer makes only a very weak optimization run: it uses full-batch SGD at learning rate 0.001 and receives an eight-epoch cap, so the MLP remains near an untrained chance-level classifier. This is undertraining in the training loop, not a failure of BADGE acquisition or test-label evaluation.",
+  "proposed_fix": "Update method/training.py's optimizer/training schedule so the supplied smoke configuration can fit the labeled MNIST subset before evaluation (prefer the paper-described Adam variant, or otherwise use a demonstrably sufficient learning-rate/epoch schedule while preserving retrain-from-scratch). Keep the model reset and per-round fresh-model contract intact, and ensure the fix is reflected in the training function's documented protocol rather than changing BADGE's selector.",
+  "value_origin_trace": [
+    "Notebook §5 cell 31: the smoke gate observes the printed accuracy series produced by the §5 evaluation loop.",
+    ".pipeline/notebook_draft.py:269 — each series value is appended from `accuracy` returned after the post-acquisition round training.",
+    ".pipeline/notebook_draft.py:232 — `accuracy = evaluate_accuracy(round_model, x_test, y_test)` evaluates the retrained model on the held-out test tensors.",
+    ".pipeline/notebook_draft.py:218-225 — `round_model` is produced by `train_from_scratch` with `learning_rate=cfg['learning_rate']` and `max_epochs=cfg['max_epochs']` (the effective cap is 8 in params.json).",
+    "method/training.py:45-55 — the receiver uses full-batch `torch.optim.SGD(..., lr=learning_rate)` and performs at most the configured epoch count; this is the first step that leaves the model undertrained.",
+    ".pipeline/notebook_draft.py:89-95 / method/data.py:166-169 — `x_test, y_test` originate from the MNIST subset loader as float features and integer class IDs, so the evaluation target is a real held-out dataset rather than training labels or a constant-predictor proxy."
+  ],
+  "reasoning": "The failing cell is only a print/evaluation pointer and contains no faulty computation. Producer-side hypothesis: method/training.py's optimizer and short full-batch schedule do not move the freshly reset MLP far enough from chance; this is supported directly by lines 45-55 and the eight-epoch params setting. Consumer-side hypothesis: notebook evaluation is miswired to training labels or the acquisition positions; ruled out because evaluate_accuracy receives x_test/y_test at line 232, while acquisition is performed only after the accuracy is computed and the loop explicitly maps returned positions through unlabeled_idx. The architecture contract requires a differentiable classifier and retrain-from-scratch, both already satisfied, so route to the architecture coder's training.py rather than method.py or the notebook. The taxonomy's listed smoke bug IDs cover crash/reproducibility/shape cases but not silent undertraining, hence uncatalogued.",
+  "paper_fidelity_check": "Strengthening the training schedule, especially using the paper-described Adam variant of SGD, is paper-faithful and preserves BADGE's required fresh retraining before each acquisition. It changes only the smoke implementation's currently insufficient optimization budget; it does not substitute another acquisition rule, alter gradient embeddings, or evaluate against training labels."
+}

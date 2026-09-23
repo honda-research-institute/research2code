@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0.0",
+  "params": {
+    "batch_size": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Section 7.4, Algorithm 1",
+      "note": "Paper uses batch_size=100 per data_setup."
+    },
+    "num_rounds": {
+      "value": 5,
+      "source": "system_default",
+      "paper_value": 90,
+      "reasoning": "Paper runs 90 rounds (~9,000 labels at batch_size=100). At smoke scale we run 5 rounds (~500 labels) \u2014 enough to see a learning curve emerge while keeping the acquisition loop (which re-trains and re-scores the pool every round) cheap to run on a laptop CPU at smoke scale."
+    },
+    "initial_labeled": {
+      "value": 1000,
+      "source": "paper",
+      "paper_section": "Section 7.4, Algorithm 1",
+      "note": "Paper bootstraps with 1000 uniformly-random labeled examples."
+    },
+    "pool_size": {
+      "value": 800,
+      "source": "system_default",
+      "paper_value": "full training set",
+      "reasoning": "Paper uses the full training set (typically 60k\u201373k samples) as the unlabeled pool. We subsample to 800 to keep each round's gradient-embedding pass over the whole pool cheap (the pool is re-scored every round, so this is the dominant cost of the acquisition loop). Note: this is a smoke-scale default, not a runtime estimate \u2014 the smoke gate is what actually verifies the notebook fits its per-cell time budget. Pool ratio (total_budget / pool_size) \u2248 1.88. This exceeds the paradigm field guide's `demo_scale.max_budget_to_pool_ratio` of 0.4 \u2014 methods may converge before diversity is meaningfully tested. Increase pool_size (or reduce num_rounds \u00d7 batch_size) for cleaner diversity-baseline comparisons."
+    },
+    "learning_rate": {
+      "value": 0.001,
+      "source": "system_inferred",
+      "reasoning": "Paper does not explicitly specify the learning rate (spec.training.learning_rate: 'Not explicitly stated in the paper; conventional defaults of 0.001 used for image data'). Selected 0.001 based on Adam-default convention following standard deep AL practice (Gal et al. 2017, Kirsch et al. 2019)."
+    },
+    "max_epochs": {
+      "value": 8,
+      "source": "system_inferred",
+      "reasoning": "The paper states no epoch cap; per-round training stops at the convention accuracy threshold below. At smoke scale the labeled sets are tiny (\u2264 ~500 examples) and `train_until_accuracy` usually stops well before the cap; 8 is a low safety bound that keeps per-round training fast at smoke scale. Increase it for full-scale training."
+    },
+    "train_until_accuracy": {
+      "value": 0.99,
+      "source": "system_inferred",
+      "reasoning": "Deep-AL convention: BALD-line papers train each acquisition round to \u226599% training accuracy (Gal et al. 2017). This paper's spec states no explicit threshold, so the value is a field convention rather than a paper claim."
+    },
+    "hidden_dim": {
+      "value": 256,
+      "source": "system_inferred",
+      "reasoning": "Paper states no data-type-keyed MLP width. We use hidden_dim=256 as the field-guide-typical AL convention."
+    },
+    "dropout_rate": {
+      "value": 0.5,
+      "source": "paper",
+      "paper_section": "Section 7.2, Section 7.4",
+      "note": "Paper-stated dropout rate (spec specific_features: 'Dropout rate of 0.5')."
+    },
+    "R_0": {
+      "value": 7.843,
+      "source": "system_default",
+      "paper_section": "Section 4.2, Eq. (5), Section 7.1, Section 7.9",
+      "paper_value": 2000.0,
+      "reasoning": "AUTO-RESOLVED (A003): the paper value is 2000.0, but this run uses 7.843. Derivation: 2000.0 * (1/255) = 7.843. The geometric prior p(y|x,theta) = R_0/||x-D_j|| uses raw L2 distances. Under ToTensor() normalization, pixel distances shrink by ~255\u00d7, so R_0 must shrink proportionally to preserve the same probability threshold the paper calibrated. The paper explicitly states R_0 is for 'raw [0, 255] pixel distances' and 'If data is normalized (e.g., divided by 255), this value would need to be rescaled by approximately 255 times.' See assumptions.md entry A003. Previous note: Distance threshold for the geometric probability model p(y|x,theta) = R_0 / ||x - D_j||. Used in both Stage 1 core-set construction (Eq. 5) and Stage 2 geometric ranking (Eq. 13). Calibrated for raw [0, 255] pixel distances on MNIST/SVHN/CIFAR-10 image data. The value 2000.0 corresponds to typical L2 distances between raw image pixel vectors. If data is normalized (e.g., divided by 255), this value would need to be rescaled by approximately 255 times. The paper sets R_0 = 2.0e+3 for all three image datasets with the same (unnormalized or minimally preprocessed) pixel representation."
+    },
+    "eta": {
+      "value": 0.9,
+      "source": "paper",
+      "note": "Paper-stated value recovered from paper_map."
+    },
+    "mc_samples": {
+      "value": 20,
+      "source": "system_default",
+      "paper_value": 2000,
+      "reasoning": "Paper uses 2000 MC dropout samples. We use 20 \u2014 the bayesian-AL field-guide minimum for BALD's posterior estimate to be meaningful (Gal et al. recommend T \u2265 20). Larger T at paper scale gives a tighter estimate but dominates runtime at smoke scale."
+    },
+    "batch_returns": {
+      "value": 300,
+      "source": "paper",
+      "paper_section": "Section 7.3, Section 7.4, Eq. (14)",
+      "note": "Paper explicitly states 'b = 300' for batch acquisition. See Section 7.4: 'GBALD ranks 300 acquisitions to select 100 data for the training.'"
+    },
+    "batch_outputs": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Section 7.3, Section 7.4, Eq. (14)",
+      "note": "Paper explicitly states 'b' = 100' for batch acquisition. See Section 7.4: 'GBALD ranks 300 acquisitions to select 100 data for the training.'"
+    }
+  }
+}

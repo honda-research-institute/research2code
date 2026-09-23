@@ -1,0 +1,25 @@
+{
+  "claims": [
+    {
+      "claim_type": "monotonicity",
+      "quote": "If the network already gives y high probability, the negative term -2p_y makes that hypothetical correction smaller; if y has low probability, the correction is larger.",
+      "formulas": ["Last-layer gradient norm"],
+      "formal": {
+        "lhs": "probability_sq_sum + 1 - 2 * p_y",
+        "relation": "monotone_decreasing",
+        "variables": [
+          {
+            "name": "p_y",
+            "domain": [0, 1],
+            "role": "variable"
+          },
+          {
+            "name": "probability_sq_sum",
+            "domain": [0, 1],
+            "role": "parameter"
+          }
+        ]
+      }
+    }
+  ]
+}

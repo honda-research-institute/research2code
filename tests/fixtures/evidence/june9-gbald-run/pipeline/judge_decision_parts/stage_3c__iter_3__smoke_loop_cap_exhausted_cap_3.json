@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_3c",
+  "iteration": 3,
+  "validator_label": "smoke_loop_cap_exhausted:cap=3",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-method-coder",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "select_batch maps core-set indices from x_pool space into x_unlabeled without offset adjustment. x_pool = cat([x_labeled, x_unlabeled]) at line 380 combines labeled (0..L-1) and unlabeled (L..L+U-1). Core-set indices from construct_ellipsoid_core_set reference the combined x_pool. Lines 391-392 filter 'idx >= len(x_labeled)' but then use the raw x_pool index to slice x_unlabeled — e.g., index 461 on an x_unlabeled of size 400. The indices need -len(x_labeled) offset to map into x_unlabeled space.",
+    "proposed_fix": "At lines 390-392 change to: `new_labeled_indices = [idx - labeled_len for idx in core_set_indices if idx >= labeled_len]` where `labeled_len = len(x_labeled)` is captured before the torch.cat. This offsets x_pool-space indices into x_unlabeled-space. Then update lines 398-400 to use the same offset-aware `new_labeled_indices` (already correct once new_labeled_indices is fixed)."
+  },
+  "rationale": "No oscillation: prior iterations fixed (1) a NameError in notebook setup, (2) a missing torch.nn import in training.py, (3) a keepdim=True shape bug in compute_geometric_prior — each landed and exposed the next layer. This is a new bug: index-space mapping error in select_batch, owned by r2c-method-coder. The root cause is concrete, local to method/method.py, and the fix is a single arithmetic adjustment.",
+  "confidence": "high",
+  "files_examined": [
+    "method/method.py",
+    ".pipeline/params.json",
+    "paradigms/supervised_ml/active_learning/bayesian/FIELD_GUIDE.md",
+    "paradigms/supervised_ml/active_learning/FIELD_GUIDE.md"
+  ]
+}

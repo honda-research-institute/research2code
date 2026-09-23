@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_3a",
+  "iteration": 0,
+  "validator_label": "render_notebook.py + validate_notebook_output.py",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-notebook-generator",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The rendered notebook has the setup-pieces section heading as `## 3. Setup pieces`, but the matched taxonomy layout requires the exact heading prefix `## 3. The setup pieces`. The draft carries the same drift, so the notebook generator must correct the section title in its output (and preserve the declared 3.1–3.4 subsections).",
+    "proposed_fix": "Update the notebook draft/rendered section heading to `## 3. The setup pieces` so it matches the taxonomy `setup_pieces` title; do not rely on the Contents entry alone, and keep the setup-pieces overview plus all declared subsections intact."
+  },
+  "rationale": "The validator checks actual markdown cell headings, not the table of contents. The taxonomy declares `setup_pieces` with title `## 3. The setup pieces`, while both notebook.ipynb and notebook_draft.py contain `## 3. Setup pieces`; this is a localized producer output mismatch, not an upstream spec or validator defect.",
+  "confidence": "high",
+  "files_examined": [
+    "scripts/validate_notebook_output.py",
+    "r2c_runs/deep-batch-active-learning/notebook.ipynb",
+    "r2c_runs/deep-batch-active-learning/.pipeline/notebook_draft.py",
+    "docs/ssot/taxonomies.yaml",
+    "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-gradient-embedding": {
+      "what": "For an unlabeled input x, this computes the gradient of the cross-entropy loss with respect to the network's output-layer parameters theta_out, using the model's current parameters theta_t and its own predicted label yhat(x) as the temporary target. The resulting vector g_x is the point's representation in a gradient space, and its direction and magnitude are then available for selecting a batch.",
+      "why_novel": "The gradient operation itself is standard machinery; the distinctive change is to evaluate it with the predicted label yhat(x), rather than a known ground-truth label that is unavailable for an unlabeled pool. This creates the paper's hallucinated gradient embedding, whose magnitude can reflect predictive uncertainty while the vectors' relationships can support diversity in the same batch without a hand-tuned uncertainty-versus-diversity weight.",
+      "intuition": "Treat each unlabeled example as if the network had just received its current guess as the label, and record which output-layer parameters that hypothetical training step would change and by how much. An uncertain example produces a larger hypothetical correction, while examples that would correct the model in different directions are separated in this space; BADGE can therefore seek points that are both informative and non-redundant."
+    }
+  }
+}

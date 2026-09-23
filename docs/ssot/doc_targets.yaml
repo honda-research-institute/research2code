@@ -1,0 +1,8 @@
+schema_version: "1.0"
+targets:
+  - id: taxonomy_role_views
+    description: "Per-role taxonomy pack views generated from docs/ssot/taxonomies.yaml."
+    renderer: taxonomy_role_views
+    mode: file_set
+    target: docs/generated/field-guides
+    tag: taxonomy-role-views

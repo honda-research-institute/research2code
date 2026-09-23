@@ -1,0 +1,16 @@
+{
+  "schema_version": "2.0.0",
+  "generated_at": "2026-09-04T14:39:45Z",
+  "paradigm": "active_learning/batch_acquisition",
+  "verdict": "undetermined",
+  "evidence_line": null,
+  "evidence_cell": null,
+  "decided_by": null,
+  "marker_gloss": null,
+  "markers_declared": true,
+  "family_kit_committed": true,
+  "kit_coverage_finding": null,
+  "reason": "markers are declared for this family but none matched the headline demo section's executed outputs",
+  "headline_section_id": "running",
+  "headline_section_number": 5
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2d",
+  "iteration": 0,
+  "validator_label": "element_tests:test_eq_softmax_cross_entropy.py",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-test-generator",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The test assertion is inconsistent with the paper's stated gradient expression. For logits (0, ln 3), the predicted class is 1 and embedding z=2, so (p-one_hot)z equals [-0.5, 0.5], whose components sum to zero; the expected [-0.5, -0.5] and sum -1 are test defects.",
+    "proposed_fix": "Regenerate test_eq_softmax_cross_entropy.py with the paper-grounded expected gradient tensor [[-0.5, 0.5]] and a zero-sum assertion, or otherwise assert the stated log-sum-exp minus target-logit relationship without imposing the incorrect signs. Do not change compute_gradient_embeddings."
+  },
+  "rationale": "The element explicitly gives the softmax cross-entropy formula, and the implementation computes its gradient as (probabilities - one_hot) times the embedding. With the test's logits and embedding, that produces [-0.5, 0.5], so the failing negative second component and sum -1 are not entailed by the element. No prior decision routed this module to the test generator, so its one regeneration remains available.",
+  "confidence": "high",
+  "files_examined": [
+    "method/tests/test_eq_softmax_cross_entropy.py",
+    "method/method.py",
+    ".pipeline/arch_contract.json"
+  ]
+}

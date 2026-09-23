@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2x_params",
+  "review_status": "passed",
+  "summary": "All semantic checks passed. Every source: paper param is correctly attributed to the paper (verified against Section 7.4 for batch_size, num_rounds, initial_labeled, train_until_accuracy; Sections 4.2/7.9 for R_0 and eta). System_default params have thorough reasoning explaining deviations from paper values.",
+  "findings": [],
+  "checks_summary": [
+    {"check_id": "paper_source_values_match_paper", "status": "pass", "note": "All six paper-sourced params (batch_size, num_rounds, initial_labeled, train_until_accuracy, R_0, eta) verified against paper text and spec. Values match."},
+    {"check_id": "system_default_reasoning_explains_deviation", "status": "pass", "note": "pool_size, mc_samples, and core_set_size all have thorough reasoning explaining runtime-scale deviations from paper values."}
+  ],
+  "caveats": [
+    "The eta param (source: paper) has a terse note ('Paper-stated value recovered from paper_map') and lacks a paper_section field, unlike all other paper-sourced params. Value is correct (0.9, from hyp-gbald-defaults in paper_map → Section 7.9) but the provenance entry is less auditable than it could be.",
+    "The mc_samples param is labelled source: system_default with paper_value: 2000 and the reasoning correctly cites the paper's value. The params model does not enforce a paper_value field for system_default sources, so it is technically missing from schema validation, but the value is present in the file. The reviewer notes this is a positive: the provenance is clear."
+  ]
+}

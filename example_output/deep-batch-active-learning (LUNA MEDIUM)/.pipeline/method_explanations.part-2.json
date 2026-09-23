@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-classifier-argmax": {
+      "what": "For an input x, the neural network with parameters theta produces one score f(x; theta)_y for each class y in the K-class set [K]. The argmax selects the class whose score is largest, so h_theta(x) is the classifier's predicted label. This is the basic prediction rule used to turn the network's scores into a discrete class decision.",
+      "why_novel": "This is standard classifier machinery, not a BADGE-specific contribution. BADGE builds its active-learning selection strategy from the model's predictions and a hallucinated gradient representation, while this equation simply defines the predicted class from the network scores.",
+      "intuition": "At inference time, treat each class score as a vote from the network and choose the class with the strongest vote. The equation makes that choice explicit: compare all K scores for x, and return the index of the largest one."
+    }
+  }
+}

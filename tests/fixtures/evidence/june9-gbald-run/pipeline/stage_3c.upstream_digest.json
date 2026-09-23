@@ -1,0 +1,11 @@
+{
+  ".pipeline/notebook_draft.py": "sha256:dbf32aaf4a3282d81aedb09e0be87c6ea0286c4866037f87e58fecdae1f76d3d",
+  ".pipeline/params.json": "sha256:024aa1ada711d912855fb11f4522adf06078b8bab6aaf982780032e034252cd6",
+  "method/__init__.py": "sha256:0ddbea06d30083aac3a17f15d3dcbf5f0dcf61a40c332a4361a538d39c38e4bc",
+  "method/data.py": "sha256:ab0600d1fc65b952821ed529898e66442e66f96cabc1d66ae3ffcf147aa86db8",
+  "method/method.py": "sha256:2585c55eafc49c5be25f5c051b581880cc89f03e893f37b26e7216b8374e7154",
+  "method/model.py": "sha256:4e270dc88c3bfe044b33cf5df4206d0a27987e68ddc97c40e9a8ce59e2094790",
+  "method/training.py": "sha256:32529087b42d629b0f54ded8422dc93e23e77024905f21a84677dfd82cdae0ae",
+  "notebook.ipynb": "sha256:46269dee6da2ece01c9faf2e3692c6c8fa13b400ba6113c3192b2dd751a2f98b",
+  "requirements.txt": "sha256:3bdebebb0315ce0f9db9f957a1510f2b41508ba1d100dd14e6afc44d06c405f7"
+}

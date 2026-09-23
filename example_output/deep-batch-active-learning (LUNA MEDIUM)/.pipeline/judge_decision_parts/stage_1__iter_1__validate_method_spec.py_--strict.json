@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_1",
+  "iteration": 1,
+  "validator_label": "validate_method_spec.py --strict",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-method-analyzer",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The MethodSpec's core_method.key_elements and the methodology contract crosswalk both reference the dangling IDs `algorithm-1` and `gradient-embedding`, while paper_map.json defines the corresponding BADGE elements as `alg-badge` and `eq-gradient-embedding`. The methodology-fidelity fields themselves are internally consistent (must_replicate with empty approved-approximation lists and feasible verdict), so the repair is to restore the crosswalk to the paper map's canonical IDs at every dependent site.",
+    "proposed_fix": "Re-emit method_spec.json with core_method.key_elements changed to the existing paper-map IDs `alg-badge` and `eq-gradient-embedding`, and make methodology_replication_contract.elements[gradient-embedding-acquisition].paper_element_ids use those same two IDs. Preserve the existing methodology invariant: replication_status `must_replicate`, acceptable_approximations empty, methodology_contract_pack.approved_approximations empty, and replication_feasibility verdict `feasible` with an empty approved_approximations list; do not alter the single-method scope or add baselines."
+  },
+  "rationale": "The validator's cross-check is legitimate: it verifies that both core-method references and the methodology contract's behavioral crosswalk resolve into the closed paper_map identity set. The map already contains the exact BADGE algorithm and gradient-embedding elements under canonical IDs, so this is a producer-authored naming/crosswalk defect rather than an incomplete taxonomy or pipeline bug. The prior iteration dispatched the same analyzer for a distinct data_setup invariant; this failure is a new crosswalk class, not oscillation.",
+  "confidence": "high",
+  "files_examined": [
+    "scripts/validate_method_spec.py",
+    "schemas/judge_decision.py",
+    "schemas/method_spec.py",
+    "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+    "r2c_runs/deep-batch-active-learning/.pipeline/paper_map.json",
+    "docs/ssot/taxonomies.yaml",
+    ".opencode/agents/r2c-method-analyzer.md"
+  ]
+}

@@ -1,0 +1,371 @@
+"""Portable structured training history for forecasting packages.
+
+The helper returns one canonical JSON-compatible record beside the trained
+model.  It is deliberately pure and never writes the pipeline-owned
+``.pipeline/training_history.json`` artifact.  The pipeline later rebinds the
+record's ranges and target-scaling identity to independent evidence.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+from collections.abc import Mapping, Sequence
+
+
+SCHEMA_VERSION = "1.0.0"
+LOSS_INDEX_KINDS = ("epoch", "step")
+SELECTION_DIRECTIONS = ("minimize", "maximize")
+TIE_BREAK = "best_then_earliest"
+
+_RANGE_KEYS = {
+    "validator", "target_root", "model_id", "start", "stop", "certainty",
+}
+_LOSS_KEYS = {"index", "value", "sample_weight", "checkpoint_id"}
+_SELECTION_OBSERVATION_KEYS = {"index", "value", "checkpoint_id"}
+_RECORDED_KEYS = {
+    "schema_version", "status", "model_id", "checkpoint_id", "seed",
+    "config_id", "target_scaling_state_id", "fitting_range",
+    "loss_index_kind", "loss_observations", "selection_range", "selection",
+    "record_digest",
+}
+_NOT_APPLICABLE_KEYS = {
+    "schema_version", "status", "reason", "record_digest",
+}
+_PERFORMED_KEYS = {
+    "status", "metric_id", "direction", "observations",
+    "selected_checkpoint_id", "tie_break",
+}
+_NOT_PERFORMED_KEYS = {"status", "reason"}
+
+
+class TrainingHistoryError(ValueError):
+    """The generated package's closed training-history contract was violated."""
+
+
+def _canonical_json(value: object) -> str:
+    try:
+        return json.dumps(
+            value, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=False, allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise TrainingHistoryError(
+            f"training history is not canonical JSON: {exc}"
+        ) from exc
+
+
+def _digest(value: object) -> str:
+    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _text(value: object, root: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise TrainingHistoryError(
+            f"{root} must be non-blank and already stripped"
+        )
+    return value
+
+
+def _integer(value: object, root: str, *, nonnegative: bool = False) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) \
+            or (nonnegative and value < 0):
+        qualifier = "nonnegative " if nonnegative else ""
+        raise TrainingHistoryError(f"{root} must be a {qualifier}integer")
+    return value
+
+
+def _range(value: object, *, model_id: str, label: str) -> dict[str, object]:
+    if not isinstance(value, Mapping) or set(value) != _RANGE_KEYS:
+        raise TrainingHistoryError(f"{label} has unsupported shape")
+    normalized = json.loads(_canonical_json(dict(value)))
+    if normalized.get("validator") != "eval_split_lineage" \
+            or normalized.get("certainty") != "exact":
+        raise TrainingHistoryError(
+            f"{label} must retain exact eval_split_lineage authority"
+        )
+    normalized["target_root"] = _text(
+        normalized.get("target_root"), f"{label}.target_root"
+    )
+    range_model = _text(normalized.get("model_id"), f"{label}.model_id")
+    if range_model != model_id:
+        raise TrainingHistoryError(
+            f"{label} model {range_model!r} disagrees with record model "
+            f"{model_id!r}"
+        )
+    start = _integer(
+        normalized.get("start"), f"{label}.start", nonnegative=True
+    )
+    stop = _integer(
+        normalized.get("stop"), f"{label}.stop", nonnegative=True
+    )
+    if stop <= start:
+        raise TrainingHistoryError(f"{label} [{start}, {stop}) must be nonempty")
+    return normalized
+
+
+def _observations(
+    value: object, *, label: str, selection: bool = False,
+) -> list[dict[str, object]]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) \
+            or not value:
+        raise TrainingHistoryError(f"{label} requires at least one observation")
+    expected = _SELECTION_OBSERVATION_KEYS if selection else _LOSS_KEYS
+    rows: list[dict[str, object]] = []
+    prior = -1
+    checkpoints: set[str] = set()
+    for offset, raw in enumerate(value):
+        if not isinstance(raw, Mapping) or set(raw) != expected:
+            raise TrainingHistoryError(f"{label}[{offset}] has unsupported shape")
+        index = _integer(
+            raw.get("index"), f"{label}[{offset}].index", nonnegative=True
+        )
+        if index <= prior:
+            raise TrainingHistoryError(f"{label} indices must be strictly increasing")
+        prior = index
+        observed = raw.get("value")
+        if isinstance(observed, bool) or not isinstance(observed, (int, float)) \
+                or not math.isfinite(float(observed)):
+            raise TrainingHistoryError(f"{label}[{offset}].value must be finite")
+        checkpoint = _text(
+            raw.get("checkpoint_id"), f"{label}[{offset}].checkpoint_id"
+        )
+        if checkpoint in checkpoints:
+            raise TrainingHistoryError(
+                f"{label} repeats checkpoint {checkpoint!r}"
+            )
+        checkpoints.add(checkpoint)
+        row: dict[str, object] = {
+            "index": index,
+            "value": float(observed),
+            "checkpoint_id": checkpoint,
+        }
+        if not selection:
+            weight = _integer(
+                raw.get("sample_weight"), f"{label}[{offset}].sample_weight"
+            )
+            if weight <= 0:
+                raise TrainingHistoryError(
+                    f"{label}[{offset}].sample_weight must be positive"
+                )
+            row["sample_weight"] = weight
+        rows.append(row)
+    return rows
+
+
+def _best_checkpoint(
+    observations: Sequence[Mapping[str, object]], direction: str,
+) -> str:
+    choose = min if direction == "minimize" else max
+    best = choose(float(row["value"]) for row in observations)
+    return next(
+        str(row["checkpoint_id"])
+        for row in observations
+        if float(row["value"]) == best
+    )
+
+
+def _target_scaling_state_id(state: object) -> str:
+    if not isinstance(state, Mapping):
+        raise TrainingHistoryError("target_scaling_state must be a mapping")
+    normalized = json.loads(_canonical_json(dict(state)))
+    state_id = normalized.pop("state_digest", None)
+    if not isinstance(state_id, str) or state_id != _digest(normalized):
+        raise TrainingHistoryError(
+            "target_scaling_state failed its canonical state_digest"
+        )
+    return state_id
+
+
+def _normalize_recorded(
+    *, model_id: object, checkpoint_id: object, seed: object,
+    config_id: object, target_scaling_state_id: object,
+    fitting_range: object, loss_index_kind: object,
+    loss_observations: object, selection_range: object, selection: object,
+) -> dict[str, object]:
+    model = _text(model_id, "model_id")
+    checkpoint = _text(checkpoint_id, "checkpoint_id")
+    seed_value = _integer(seed, "seed", nonnegative=True)
+    config = _text(config_id, "config_id")
+    state_id = _text(target_scaling_state_id, "target_scaling_state_id")
+    fitting = _range(fitting_range, model_id=model, label="fitting_range")
+    if loss_index_kind not in LOSS_INDEX_KINDS:
+        raise TrainingHistoryError(
+            f"loss_index_kind must be one of {list(LOSS_INDEX_KINDS)!r}"
+        )
+    losses = _observations(loss_observations, label="loss_observations")
+    loss_bindings = {
+        (int(row["index"]), str(row["checkpoint_id"])) for row in losses
+    }
+    if checkpoint not in {row["checkpoint_id"] for row in losses}:
+        raise TrainingHistoryError(
+            "record checkpoint_id must occur in loss_observations"
+        )
+    if not isinstance(selection, Mapping):
+        raise TrainingHistoryError("selection must be a mapping")
+    if selection.get("status") == "performed":
+        if set(selection) != _PERFORMED_KEYS:
+            raise TrainingHistoryError("performed selection has unsupported shape")
+        selected_range = _range(
+            selection_range, model_id=model, label="selection_range"
+        )
+        if selected_range["target_root"] != fitting["target_root"]:
+            raise TrainingHistoryError(
+                "fitting and selection ranges must name the same target root"
+            )
+        if max(int(fitting["start"]), int(selected_range["start"])) \
+                < min(int(fitting["stop"]), int(selected_range["stop"])):
+            raise TrainingHistoryError(
+                "fitting and selection ranges must be disjoint"
+            )
+        metric_id = _text(selection.get("metric_id"), "selection.metric_id")
+        direction = selection.get("direction")
+        if direction not in SELECTION_DIRECTIONS:
+            raise TrainingHistoryError(
+                "selection.direction must be 'minimize' or 'maximize'"
+            )
+        selected_rows = _observations(
+            selection.get("observations"), label="selection.observations",
+            selection=True,
+        )
+        if any(
+            (int(row["index"]), str(row["checkpoint_id"])) not in loss_bindings
+            for row in selected_rows
+        ):
+            raise TrainingHistoryError(
+                "every selection observation must bind to loss_observations"
+            )
+        if selection.get("tie_break") != TIE_BREAK:
+            raise TrainingHistoryError(
+                f"selection.tie_break must equal {TIE_BREAK!r}"
+            )
+        chosen = _best_checkpoint(selected_rows, str(direction))
+        declared = _text(
+            selection.get("selected_checkpoint_id"),
+            "selection.selected_checkpoint_id",
+        )
+        if declared != chosen or checkpoint != chosen:
+            raise TrainingHistoryError(
+                f"selected and recorded checkpoint must equal {chosen!r}"
+            )
+        normalized_selection: dict[str, object] = {
+            "status": "performed", "metric_id": metric_id,
+            "direction": direction, "observations": selected_rows,
+            "selected_checkpoint_id": chosen, "tie_break": TIE_BREAK,
+        }
+    elif selection.get("status") == "not_performed":
+        if set(selection) != _NOT_PERFORMED_KEYS or selection_range is not None:
+            raise TrainingHistoryError(
+                "not_performed selection requires selection_range=None and "
+                "only status/reason"
+            )
+        final_checkpoint = str(losses[-1]["checkpoint_id"])
+        if checkpoint != final_checkpoint:
+            raise TrainingHistoryError(
+                "without model selection, the recorded checkpoint must equal "
+                f"the final ordered loss checkpoint {final_checkpoint!r}"
+            )
+        selected_range = None
+        normalized_selection = {
+            "status": "not_performed",
+            "reason": _text(selection.get("reason"), "selection.reason"),
+        }
+    else:
+        raise TrainingHistoryError(
+            "selection.status must be 'performed' or 'not_performed'"
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "recorded",
+        "model_id": model,
+        "checkpoint_id": checkpoint,
+        "seed": seed_value,
+        "config_id": config,
+        "target_scaling_state_id": state_id,
+        "fitting_range": fitting,
+        "loss_index_kind": loss_index_kind,
+        "loss_observations": losses,
+        "selection_range": selected_range,
+        "selection": normalized_selection,
+    }
+
+
+def record_training_history(
+    *, model_id: str, checkpoint_id: str, seed: int, config_id: str,
+    target_scaling_state: Mapping[str, object],
+    fitting_range: Mapping[str, object], loss_index_kind: str,
+    loss_observations: Sequence[Mapping[str, object]],
+    selection_range: Mapping[str, object] | None,
+    selection: Mapping[str, object],
+) -> dict[str, object]:
+    """Return one canonical training record; never write an artifact."""
+    record = _normalize_recorded(
+        model_id=model_id, checkpoint_id=checkpoint_id, seed=seed,
+        config_id=config_id,
+        target_scaling_state_id=_target_scaling_state_id(target_scaling_state),
+        fitting_range=fitting_range, loss_index_kind=loss_index_kind,
+        loss_observations=loss_observations, selection_range=selection_range,
+        selection=selection,
+    )
+    record["record_digest"] = _digest(record)
+    return validate_training_history(record)
+
+
+def not_applicable_training_history(*, reason: str) -> dict[str, object]:
+    """Return the explicit honest arm for a method with no training phase."""
+    record: dict[str, object] = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "not_applicable",
+        "reason": _text(reason, "reason"),
+    }
+    record["record_digest"] = _digest(record)
+    return validate_training_history(record)
+
+
+def validate_training_history(record: Mapping[str, object]) -> dict[str, object]:
+    """Validate the closed record without consulting logs or notebook prose."""
+    if not isinstance(record, Mapping):
+        raise TrainingHistoryError("training history must be a mapping")
+    expected = (
+        _NOT_APPLICABLE_KEYS
+        if record.get("status") == "not_applicable" else _RECORDED_KEYS
+    )
+    if set(record) != expected:
+        raise TrainingHistoryError("training history has unsupported shape")
+    normalized = json.loads(_canonical_json(dict(record)))
+    digest = normalized.pop("record_digest", None)
+    if not isinstance(digest, str) or digest != _digest(normalized):
+        raise TrainingHistoryError("training history failed its record_digest")
+    if normalized.get("schema_version") != SCHEMA_VERSION:
+        raise TrainingHistoryError("training history schema is unsupported")
+    if normalized.get("status") == "not_applicable":
+        _text(normalized.get("reason"), "reason")
+        normalized["record_digest"] = digest
+        return normalized
+    if normalized.get("status") != "recorded":
+        raise TrainingHistoryError("status must be recorded or not_applicable")
+    rebuilt = _normalize_recorded(
+        model_id=normalized.get("model_id"),
+        checkpoint_id=normalized.get("checkpoint_id"), seed=normalized.get("seed"),
+        config_id=normalized.get("config_id"),
+        target_scaling_state_id=normalized.get("target_scaling_state_id"),
+        fitting_range=normalized.get("fitting_range"),
+        loss_index_kind=normalized.get("loss_index_kind"),
+        loss_observations=normalized.get("loss_observations"),
+        selection_range=normalized.get("selection_range"),
+        selection=normalized.get("selection"),
+    )
+    if rebuilt != normalized:
+        raise TrainingHistoryError(
+            "training history is not the canonical version-one record"
+        )
+    normalized["record_digest"] = digest
+    return normalized
+
+
+__all__ = [
+    "LOSS_INDEX_KINDS", "SCHEMA_VERSION", "SELECTION_DIRECTIONS",
+    "TIE_BREAK", "TrainingHistoryError", "not_applicable_training_history",
+    "record_training_history", "validate_training_history",
+]

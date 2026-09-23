@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_3a_notebook",
+  "review_status": "passed",
+  "summary": "All notebook semantic and integration checks passed. The tutorial documents a single BADGE method run, and its live loop retrains, acquires, maps indices, and evaluates in the correct order.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "AL-nb-above-chance",
+      "status": "pass",
+      "note": "The notebook evaluates predictions on the separate test set with the model's argmax and records the resulting accuracy curve; no training-label shortcut or constant predictor is used."
+    },
+    {
+      "check_id": "notebook_narrative_matches_code",
+      "status": "pass",
+      "note": "The BADGE sections describe hallucinated final-layer gradient embeddings, k-MEANS++ over those embeddings, and the same select_batch path used by the code."
+    },
+    {
+      "check_id": "paper_citations_accurate",
+      "status": "pass",
+      "note": "The notebook's citations to Algorithm 1, Section 3, Equation 1, Proposition 1, and Appendix A Algorithm 2 match the corresponding paper-map locations."
+    },
+    {
+      "check_id": "AL-nb-loop-evaluates-each-round",
+      "status": "pass",
+      "note": "Each acquisition round calls train_and_evaluate after updating the labeled set, and the curve records the returned test accuracy."
+    },
+    {
+      "check_id": "AL-nb-loop-retrains-from-scratch",
+      "status": "pass",
+      "note": "train_and_evaluate constructs a fresh model before every training call, including after each acquisition."
+    },
+    {
+      "check_id": "AL-nb-loop-index-space",
+      "status": "pass",
+      "note": "Returned positions are mapped through chosen_global = unlabeled_idx[selected_positions], followed by disjoint union/difference updates."
+    },
+    {
+      "check_id": "AL-nb-loop-acquisition-round-semantics",
+      "status": "pass",
+      "note": "The initial set is evaluated once and range(cfg[\"num_rounds\"]) performs one acquisition and post-acquisition evaluation per round, yielding num_rounds+1 points."
+    },
+    {
+      "check_id": "AL-nb-ranking-monotonicity",
+      "status": "pass",
+      "note": "The notebook makes no independent ranking-score claim that conflicts with code; its k-MEANS++ prose correctly describes squared nearest-center distance sampling."
+    },
+    {
+      "check_id": "methodology_contract:gradient-embedding-acquisition",
+      "status": "pass",
+      "note": "The live notebook calls BADGE select_batch on the unlabeled pool, whose reviewed path computes final-layer gradient embeddings and then k-MEANS++ seeding; no baseline or forbidden substitution is introduced."
+    }
+  ],
+  "caveats": [
+    "The notebook intentionally uses smoke-scale defaults, one seed, five rounds, and a flattened MLP rather than the paper's full SVHN benchmark protocol; these departures are explicitly disclosed in the opening and parameter sections."
+  ]
+}

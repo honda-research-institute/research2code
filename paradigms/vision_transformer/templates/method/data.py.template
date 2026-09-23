@@ -1,0 +1,190 @@
+"""Image dataset loading for Vision Transformer demos.
+
+Default behavior: `load_data()` (no args) downloads a subset of CIFAR-10
+into `method/example_data/` and wraps it in torchvision transforms so
+images are ready for the ViT forward pass. Subsequent runs reload the
+cached `.pt` file directly.
+
+To use your own data, you have two options:
+
+  - **Pass a path explicitly**: `load_data("my_data/")` where the directory
+    contains a `.pt` file.
+  - **Override the default**: drop your `.pt` file inside `method/example_data/`.
+
+Your `.pt` file must contain:
+
+    {"x_train": tensor, "y_train": tensor, "x_test": tensor, "y_test": tensor}
+
+where `x_*` are 4D float tensors `(N, 3, H, W)` (NCHW image format) and
+`y_*` are 1D long tensors `(N,)` of class labels in range `[0, n_classes)`.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Tuple
+
+import torch
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, TensorDataset
+
+
+# ---------------------------------------------------------------------------
+# Default transforms
+# ---------------------------------------------------------------------------
+
+DEFAULT_TRAIN_TRANSFORM = transforms.Compose(
+    [
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(32, padding=4),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
+    ]
+)
+
+DEFAULT_TEST_TRANSFORM = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
+    ]
+)
+
+CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
+CIFAR10_STD = (0.2470, 0.2435, 0.2616)
+
+# ---------------------------------------------------------------------------
+# CIFAR-10 download + cache
+# ---------------------------------------------------------------------------
+
+
+def _download_cifar10_subset(
+    save_dir: Path,
+    img_size: int,
+    seed: int,
+    train_transform,
+    test_transform,
+    train_subset: int = 10000,
+    test_subset: int = 1000,
+) -> Tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
+    """Download CIFAR-10 and return train/test datasets (with optional subsetting)."""
+
+    if os.environ.get("R2C_OFFLINE", "").strip().lower() in {"1", "true", "yes", "on"}:
+        # Offline guard: validation harnesses set R2C_OFFLINE so a missing
+        # local dataset fails fast and loud instead of starting an unbounded
+        # ~150MB download (the 2026-07-13 stage-2d dry-run stall).
+        raise RuntimeError(
+            "R2C_OFFLINE is set: refusing to download CIFAR-10. Place a .pt "
+            "dataset under method/example_data/ (or pass `path=`) to run "
+            "without network access."
+        )
+    import numpy as np
+    try:
+        from torchvision import datasets
+    except ImportError as e:  # actionable, classifiable env error (ENV-4)
+        raise ImportError(
+            "The CIFAR-10 fallback needs torchvision (declared in requirements.txt). "
+            "Install it (`pip install torchvision`), or place a .pt/.npz/.csv dataset "
+            "under method/example_data/ to skip the download."
+        ) from e
+
+    cache_dir = save_dir / "_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    full_train = datasets.CIFAR10(
+        root=str(cache_dir / "_torchvision"),
+        train=True,
+        download=True,
+        transform=train_transform,
+    )
+    full_test = datasets.CIFAR10(
+        root=str(cache_dir / "_torchvision"),
+        train=False,
+        download=True,
+        transform=test_transform,
+    )
+
+    rng = np.random.default_rng(seed)
+    train_idx = rng.choice(len(full_train), size=min(train_subset, len(full_train)), replace=False)
+    test_idx = rng.choice(len(full_test), size=min(test_subset, len(full_test)), replace=False)
+
+    # Build TensorDatasets from subsets for fast reload
+    x_train = torch.stack([full_train[int(i)][0] for i in train_idx])
+    y_train = torch.tensor([full_train[int(i)][1] for i in train_idx], dtype=torch.long)
+    x_test = torch.stack([full_test[int(i)][0] for i in test_idx])
+    y_test = torch.tensor([full_test[int(i)][1] for i in test_idx], dtype=torch.long)
+
+    # Cache for fast reload
+    cache_path = save_dir / "cifar10_subset.pt"
+    torch.save(
+        {
+            "x_train": x_train,
+            "y_train": y_train,
+            "x_test": x_test,
+            "y_test": y_test,
+        },
+        cache_path,
+    )
+
+    train_dataset = TensorDataset(x_train, y_train)
+    test_dataset = TensorDataset(x_test, y_test)
+    return train_dataset, test_dataset
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+DEFAULT_DATA_DIR = Path(__file__).parent / "example_data"
+
+
+def load_data(
+    path: str | os.PathLike | None = None,
+    *,
+    img_size: int = 32,
+    train_transform=None,
+    test_transform=None,
+    seed: int = 0,
+    batch_size: int = 256,
+) -> Tuple[DataLoader, DataLoader]:
+    """Return (train_loader, test_loader) for image classification.
+
+    If `path` is None (the default), reads from `method/example_data/`.
+    Dispatched in priority order: cached `.pt` > CIFAR-10 download.
+
+    `img_size` is passed for documentation but the CIFAR-10 loader uses
+    the dataset's native resolution (32x32). At paper scale, the user
+    would pass a path to their ImageNet `.pt` cache.
+    """
+    if train_transform is None:
+        train_transform = DEFAULT_TRAIN_TRANSFORM
+    if test_transform is None:
+        test_transform = DEFAULT_TEST_TRANSFORM
+
+    data_dir = DEFAULT_DATA_DIR if path is None else Path(path)
+
+    # Try cached .pt first
+    cache_path = data_dir / "cifar10_subset.pt"
+    if cache_path.is_file():
+        d = torch.load(cache_path, weights_only=False)
+        train_dataset = TensorDataset(d["x_train"], d["y_train"])
+        test_dataset = TensorDataset(d["x_test"], d["y_test"])
+    else:
+        # Download CIFAR-10 as the default smoke dataset
+        data_dir.mkdir(parents=True, exist_ok=True)
+        train_dataset, test_dataset = _download_cifar10_subset(
+            save_dir=data_dir,
+            img_size=img_size,
+            seed=seed,
+            train_transform=train_transform,
+            test_transform=test_transform,
+        )
+
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True, drop_last=True
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=batch_size, shuffle=False
+    )
+
+    return train_loader, test_loader

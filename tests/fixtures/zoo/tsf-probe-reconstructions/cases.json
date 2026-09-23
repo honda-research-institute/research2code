@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0.0",
+  "scope": "Synthetic schema-2 probe inputs reconstructed from audited output and representation shapes. These cases calibrate generic probes; they do not certify archived runs or invent paper-protocol truth.",
+  "audited_output_bad": {
+    "mode": "known_bad",
+    "representation": null,
+    "autoregressive": false,
+    "expected_failures": ["TSF-1", "TSF-3", "TSF-4", "TSF-5"],
+    "provenance": [
+      "current: genuine Student-t fields but independent horizons and near-zero magnitude against demand in the tens",
+      "_7: conditional means returned as samples; this synthetic mode combines the generic broadcast-sample and collapse failure classes without claiming one archived roll had every defect"
+    ]
+  },
+  "relational_self_path_severed": {
+    "mode": "severed_relational",
+    "representation": "dense_adjacency",
+    "autoregressive": false,
+    "expected_failures": ["TSF-3"],
+    "provenance": [
+      "night3, archived as _7, carries the executed isolated-series own-history invariant under a 100x perturbation; this tiny dense package reconstructs only that generic severed-self-signal consequence",
+      "current and _10 remain relational-index-domain known-bad reproducers owned by R2C-084; they are representation evidence here, not the source of the TSF-3 claim"
+    ]
+  },
+  "archived_11_sparse_good": {
+    "mode": "healthy",
+    "representation": "sparse_edge_index",
+    "autoregressive": false,
+    "expected_passes": ["TSF-1", "TSF-3", "TSF-4", "TSF-5"],
+    "expected_not_applicable": ["TSF-2"],
+    "provenance": [
+      "_11 supplies the sparse, local-endpoint-bounded representation control only; its independent-horizon output is not treated as an ancestral-path pass"
+    ]
+  },
+  "synthetic_ancestral_good": {
+    "mode": "ancestral",
+    "representation": "sparse_edge_index",
+    "autoregressive": true,
+    "expected_passes": ["TSF-1", "TSF-2", "TSF-3", "TSF-4", "TSF-5"],
+    "provenance": [
+      "Generic seeded ancestral-path positive control; _10 has a matching output-path shape but remains relational-indexing known-bad and is not certified here"
+    ]
+  },
+  "archived_7_dense_good": {
+    "mode": "healthy",
+    "representation": "dense_adjacency",
+    "autoregressive": false,
+    "expected_passes": ["TSF-1", "TSF-3", "TSF-4", "TSF-5"],
+    "expected_not_applicable": ["TSF-2"],
+    "provenance": [
+      "_7 supplies the dense representation control only; its conditional-means-as-samples output remains known-bad and is not copied into this healthy synthetic package"
+    ]
+  },
+  "graph_free_adjacent_good": {
+    "mode": "healthy",
+    "representation": null,
+    "autoregressive": false,
+    "expected_passes": ["TSF-1", "TSF-3", "TSF-4", "TSF-5"],
+    "expected_not_applicable": ["TSF-2"],
+    "provenance": [
+      "Adjacent family control required by R2C-087; no graph, topology, neighbor, or ablation claim"
+    ]
+  }
+}

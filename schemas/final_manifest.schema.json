@@ -1,0 +1,1135 @@
+{
+  "$defs": {
+    "ArtifactRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "description": "Run-directory-relative artifact path.",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "producer_stage": {
+          "title": "Producer Stage",
+          "type": "string"
+        },
+        "producer_stage_label": {
+          "title": "Producer Stage Label",
+          "type": "string"
+        },
+        "required_for_delivery": {
+          "title": "Required For Delivery",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "present",
+            "missing",
+            "hash_mismatch"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "validation_status": {
+          "enum": [
+            "passed",
+            "failed",
+            "missing",
+            "skipped",
+            "degraded",
+            "blocked",
+            "unknown"
+          ],
+          "title": "Validation Status",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "byte_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Byte Size"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "display_name",
+        "producer_stage",
+        "producer_stage_label",
+        "required_for_delivery",
+        "status",
+        "validation_status"
+      ],
+      "title": "ArtifactRecord",
+      "type": "object"
+    },
+    "DeliveryReason": {
+      "additionalProperties": false,
+      "description": "One demoting reason or non-demoting disclosure behind the label.",
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict"
+        },
+        "observed_verdict": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Verdict"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        }
+      },
+      "required": [
+        "source",
+        "id",
+        "message"
+      ],
+      "title": "DeliveryReason",
+      "type": "object"
+    },
+    "DeliveryVerdict": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "pattern": "^(?:1\\.(?:[7-9]|[1-9][0-9]+)\\.[0-9]+|(?:[2-9]|[1-9][0-9]+)\\.[0-9]+\\.[0-9]+)$"
+              }
+            },
+            "required": [
+              "schema_version"
+            ]
+          },
+          "then": {
+            "required": [
+              "graph_evidence_applicability"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "graph_evidence_applicability": {
+                "const": "homogeneous_graph_v1"
+              }
+            },
+            "required": [
+              "graph_evidence_applicability"
+            ]
+          },
+          "then": {
+            "properties": {
+              "demo_verdict": {
+                "properties": {
+                  "schema_version": {
+                    "pattern": "^2\\.",
+                    "type": "string"
+                  },
+                  "evidence_status": {
+                    "required": [
+                      "graph_construction",
+                      "graph_alignment",
+                      "contribution"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "evidence_status"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "demo_verdict"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "graph_evidence_applicability": {
+                "const": "homogeneous_graph_v1"
+              },
+              "label": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "graph_evidence_applicability",
+              "label"
+            ]
+          },
+          "then": {
+            "properties": {
+              "demo_verdict": {
+                "properties": {
+                  "evidence_status": {
+                    "properties": {
+                      "graph_construction": {
+                        "properties": {
+                          "status": {
+                            "const": "demonstrated"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "graph_alignment": {
+                        "properties": {
+                          "status": {
+                            "const": "demonstrated"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "mechanism": {
+                        "properties": {
+                          "status": {
+                            "const": "demonstrated"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "contribution": {
+                        "properties": {
+                          "status": {
+                            "const": "demonstrated"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "The three-state delivery decision: `draft` on any demoting reason;\n`verified` needs zero demoters AND contribution evidence (a passing\ncontribution-tier probe); zero demoters WITHOUT contribution evidence\nis `uncertified_new_territory` (the false-verified hole, closed). A\nverified label still carries its disclosures (warn/unprobeable).\nReaders stay tolerant of pre-1.1.0 two-value verdicts \u2014 old manifests\nremain valid.\n\nPartial delivery (1.2.0): `partial` is declared FIRST so the word\nPARTIAL lands in the first line of the rendered delivery block (\u00a73.5\ncriterion 1), and `stubbed_elements` is the structured record no\nrewording can lose (\u00a73.5 criterion 5). Nothing partial can read\n`verified` \u2014 the derivation guarantees it, the validator re-checks.",
+      "properties": {
+        "partial": {
+          "default": false,
+          "title": "Partial",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "default": "1.1.0",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "label": {
+          "enum": [
+            "verified",
+            "draft",
+            "explanation_only",
+            "uncertified_new_territory"
+          ],
+          "title": "Label",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/DeliveryReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "disclosures": {
+          "items": {
+            "$ref": "#/$defs/DeliveryReason"
+          },
+          "title": "Disclosures",
+          "type": "array"
+        },
+        "probe_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Probe Counts",
+          "type": "object"
+        },
+        "stubbed_elements": {
+          "items": {
+            "$ref": "#/$defs/StubbedElement"
+          },
+          "title": "Stubbed Elements",
+          "type": "array"
+        },
+        "graph_evidence_applicability": {
+          "anyOf": [
+            {
+              "enum": [
+                "not_applicable",
+                "homogeneous_graph_v1"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Required on delivery schema 1.7+. This discriminator lets a standalone final manifest distinguish graph-free evidence from a graph-bearing record whose graph axes were removed or never projected.",
+          "title": "Graph Evidence Applicability"
+        },
+        "missing_probe_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Probe Family"
+        },
+        "demo_verdict": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DemoVerdictRecord"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "DeliveryVerdict",
+      "type": "object"
+    },
+    "DemoEvidenceReason": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "DemoEvidenceReason",
+      "type": "object"
+    },
+    "DemoEvidenceStatus": {
+      "additionalProperties": false,
+      "description": "Orthogonal evidence axes introduced by R2C-086 and R2C-088.\n\nThe graph-only axes are omitted from serialization when absent so a\ngraph-free evidence payload keeps its pre-v1.8 byte shape. They reuse the\nmechanism status grammar because each asks whether one graph obligation\nwas demonstrated, while keeping construction, alignment, and contribution\nseparate.",
+      "properties": {
+        "execution": {
+          "$ref": "#/$defs/ExecutionEvidenceAxis"
+        },
+        "evaluation_validity": {
+          "$ref": "#/$defs/EvaluationValidityAxis"
+        },
+        "mechanism": {
+          "$ref": "#/$defs/MechanismEvidenceAxis"
+        },
+        "skill": {
+          "$ref": "#/$defs/SkillEvidenceAxis"
+        },
+        "paper_benchmark": {
+          "$ref": "#/$defs/PaperBenchmarkEvidenceAxis"
+        },
+        "graph_construction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MechanismEvidenceAxis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "graph_alignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MechanismEvidenceAxis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "contribution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MechanismEvidenceAxis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "execution",
+        "evaluation_validity",
+        "mechanism",
+        "skill",
+        "paper_benchmark"
+      ],
+      "title": "DemoEvidenceStatus",
+      "type": "object"
+    },
+    "DemoVerdictRecord": {
+      "additionalProperties": false,
+      "description": "Compact record of the post-smoke demo-success verdict (1.7.0):\ndid the headline demonstration demonstrably work, per the family's\ntaxonomy-declared markers. `failed` always coexists with a\n`demo_verdict`-sourced demoting reason (the derivation guarantees it,\nthe validator below re-checks) \u2014 the demo failure demotes through its\nOWN reason, never through adjacent-demoter luck.",
+      "properties": {
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "verdict": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "undetermined"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "evidence_line": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Line"
+        },
+        "evidence_cell": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Cell"
+        },
+        "decided_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decided By"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "evidence_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DemoEvidenceStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "verdict"
+      ],
+      "title": "DemoVerdictRecord",
+      "type": "object"
+    },
+    "EvaluationValidityAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "valid",
+            "invalid",
+            "unresolved",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/DemoEvidenceReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "EvaluationValidityAxis",
+      "type": "object"
+    },
+    "ExecutionEvidenceAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "failed",
+            "undetermined"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/DemoEvidenceReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExecutionEvidenceAxis",
+      "type": "object"
+    },
+    "ManifestReferences": {
+      "additionalProperties": false,
+      "properties": {
+        "report_md": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Md"
+        },
+        "method_spec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method Spec"
+        },
+        "assumptions_md": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assumptions Md"
+        },
+        "deferred_findings_md": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deferred Findings Md"
+        },
+        "known_issues_md": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Issues Md"
+        },
+        "probe_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probe Report"
+        },
+        "claims_ledger": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claims Ledger"
+        },
+        "review_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Report"
+        },
+        "run_events": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Events"
+        },
+        "driver_state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Driver State"
+        },
+        "final_manifest": {
+          "default": "final_manifest.json",
+          "title": "Final Manifest",
+          "type": "string"
+        }
+      },
+      "title": "ManifestReferences",
+      "type": "object"
+    },
+    "MechanismEvidenceAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "demonstrated",
+            "not_demonstrated",
+            "undetermined",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/DemoEvidenceReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "MechanismEvidenceAxis",
+      "type": "object"
+    },
+    "PaperBenchmarkEvidenceAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "reproduced",
+            "not_reproduced",
+            "not_assessed",
+            "undetermined"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/DemoEvidenceReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "PaperBenchmarkEvidenceAxis",
+      "type": "object"
+    },
+    "SkillEvidenceAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "demonstrated",
+            "not_demonstrated",
+            "undetermined",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/DemoEvidenceReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "SkillEvidenceAxis",
+      "type": "object"
+    },
+    "StageSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "stage_id": {
+          "title": "Stage Id",
+          "type": "string"
+        },
+        "stage_label": {
+          "title": "Stage Label",
+          "type": "string"
+        },
+        "stage_category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Category"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "skipped",
+            "halted",
+            "degraded",
+            "missing"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "last_event_sequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Event Sequence"
+        }
+      },
+      "required": [
+        "stage_id",
+        "stage_label",
+        "status"
+      ],
+      "title": "StageSummary",
+      "type": "object"
+    },
+    "StubbedElement": {
+      "additionalProperties": false,
+      "description": "One component the pipeline could not build, shipped as an explicit\nself-identifying stub with a researcher-consumable work order (partial\ndelivery design \u00a73.1/\u00a73.3). Structured on purpose: the digest and the\nrecurrence counters aggregate these without string parsing.",
+      "properties": {
+        "element_id": {
+          "description": "Methodology-contract element id the stub stands in for.",
+          "title": "Element Id",
+          "type": "string"
+        },
+        "role": {
+          "description": "Contract ranking: `core` (core_methodology) dominates the surfaces; everything else is `supporting`.",
+          "enum": [
+            "core",
+            "supporting"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "work_order": {
+          "description": "Run-directory-relative path to the work-order markdown.",
+          "title": "Work Order",
+          "type": "string"
+        },
+        "stub_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Run-directory-relative path to the stub module, when the stub is a code file.",
+          "title": "Stub Path"
+        }
+      },
+      "required": [
+        "element_id",
+        "role",
+        "work_order"
+      ],
+      "title": "StubbedElement",
+      "type": "object"
+    },
+    "ValidationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "stage_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Id"
+        },
+        "stage_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Label"
+        },
+        "validator": {
+          "title": "Validator",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "missing",
+            "skipped",
+            "degraded",
+            "blocked",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "artifacts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "event_sequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Sequence"
+        }
+      },
+      "required": [
+        "validator",
+        "status"
+      ],
+      "title": "ValidationRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "paper_slug": {
+      "title": "Paper Slug",
+      "type": "string"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    },
+    "git_commit": {
+      "title": "Git Commit",
+      "type": "string"
+    },
+    "config_hash": {
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "run_status": {
+      "enum": [
+        "passed",
+        "degraded",
+        "blocked"
+      ],
+      "title": "Run Status",
+      "type": "string"
+    },
+    "stage_summary": {
+      "items": {
+        "$ref": "#/$defs/StageSummary"
+      },
+      "title": "Stage Summary",
+      "type": "array"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRecord"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "validation_summary": {
+      "items": {
+        "$ref": "#/$defs/ValidationRecord"
+      },
+      "title": "Validation Summary",
+      "type": "array"
+    },
+    "references": {
+      "$ref": "#/$defs/ManifestReferences"
+    },
+    "diagnostics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "delivery": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeliveryVerdict"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "run_id",
+    "paper_slug",
+    "generated_at",
+    "git_commit",
+    "config_hash",
+    "run_status",
+    "stage_summary",
+    "artifacts",
+    "validation_summary",
+    "references"
+  ],
+  "title": "FinalManifest",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://r2c.local/schemas/final_manifest/v1.9.0"
+}

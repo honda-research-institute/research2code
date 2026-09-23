@@ -1,0 +1,943 @@
+{
+  "schema_version": "1.0.0",
+  "sliced_from": "data_flow.json",
+  "seed_symbols": [
+    "accuracy",
+    "e",
+    "model",
+    "training"
+  ],
+  "symbols": {
+    "SEED": {
+      "assignments": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 51,
+          "scope": "<module>",
+          "expr": "42"
+        }
+      ],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 52,
+          "scope": "<module>",
+          "context": "np.random.seed(SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 53,
+          "scope": "<module>",
+          "context": "torch.manual_seed(SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 90,
+          "scope": "<module>",
+          "context": "x_pool, y_pool, x_test, y_test = load_data(pool_size=cfg['pool_size'], n_test=1000, seed=SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 122,
+          "scope": "<module>",
+          "context": "rng = np.random.default_rng(SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 138,
+          "scope": "<module>",
+          "context": "bootstrap_model = train_from_scratch(bootstrap_model, x_pool[bootstrap_labeled_idx], y_pool[boots..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 184,
+          "scope": "<module>",
+          "context": "demo_positions = kmeans_plus_plus_seeding(bootstrap_embeddings, cfg['batch_size'], seed=SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 248,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 259,
+          "scope": "<module>",
+          "context": "selected_positions = select_batch(model, x_pool[unlabeled_idx], cfg['batch_size'], SEED + round_i..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 266,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED + round_index + 1)"
+        }
+      ]
+    },
+    "accuracy": {
+      "assignments": [
+        {
+          "file": "method/training.py",
+          "line": 60,
+          "scope": "train_from_scratch",
+          "expr": "(model(x_train).argmax(dim=1) == y_train).float().mean().item()"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 232,
+          "scope": "train_and_evaluate",
+          "expr": "evaluate_accuracy(round_model, x_test, y_test)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 248,
+          "scope": "<module>",
+          "expr": "train_and_evaluate(labeled_idx, SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 265,
+          "scope": "<module>",
+          "expr": "train_and_evaluate(labeled_idx, SEED + round_index + 1)"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/training.py",
+          "line": 64,
+          "scope": "train_from_scratch",
+          "context": "if accuracy >= train_until_accuracy: break"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 235,
+          "scope": "train_and_evaluate",
+          "context": "print(f'round seed={round_seed}: labels={len(current_indices)}, training_loss={loss_value:.4f}, t..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 237,
+          "scope": "train_and_evaluate",
+          "context": "return (round_model, accuracy)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 250,
+          "scope": "<module>",
+          "context": "learning_curve.append(accuracy)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 269,
+          "scope": "<module>",
+          "context": "learning_curve.append(accuracy)"
+        }
+      ]
+    },
+    "build_model": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 104,
+          "scope": "<module>",
+          "context": "model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 126,
+          "scope": "<module>",
+          "context": "bootstrap_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_di..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 213,
+          "scope": "train_and_evaluate",
+          "context": "round_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        }
+      ]
+    },
+    "cfg": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 90,
+          "scope": "<module>",
+          "context": "x_pool, y_pool, x_test, y_test = load_data(pool_size=cfg['pool_size'], n_test=1000, seed=SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 107,
+          "scope": "<module>",
+          "context": "model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 124,
+          "scope": "<module>",
+          "context": "bootstrap_labeled_idx = rng.choice(len(x_pool), size=cfg['initial_labeled'], replace=False).astyp..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 129,
+          "scope": "<module>",
+          "context": "bootstrap_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_di..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 135,
+          "scope": "<module>",
+          "context": "bootstrap_model = train_from_scratch(bootstrap_model, x_pool[bootstrap_labeled_idx], y_pool[boots..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 136,
+          "scope": "<module>",
+          "context": "bootstrap_model = train_from_scratch(bootstrap_model, x_pool[bootstrap_labeled_idx], y_pool[boots..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 137,
+          "scope": "<module>",
+          "context": "bootstrap_model = train_from_scratch(bootstrap_model, x_pool[bootstrap_labeled_idx], y_pool[boots..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 184,
+          "scope": "<module>",
+          "context": "demo_positions = kmeans_plus_plus_seeding(bootstrap_embeddings, cfg['batch_size'], seed=SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 216,
+          "scope": "train_and_evaluate",
+          "context": "round_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 222,
+          "scope": "train_and_evaluate",
+          "context": "round_model = train_from_scratch(round_model, x_pool[current_indices], y_pool[current_indices], l..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 223,
+          "scope": "train_and_evaluate",
+          "context": "round_model = train_from_scratch(round_model, x_pool[current_indices], y_pool[current_indices], l..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 224,
+          "scope": "train_and_evaluate",
+          "context": "round_model = train_from_scratch(round_model, x_pool[current_indices], y_pool[current_indices], l..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 252,
+          "scope": "<module>",
+          "context": "for round_index in range(cfg['num_rounds']): model.eval() with torch.no_grad(): selected_position..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 258,
+          "scope": "<module>",
+          "context": "selected_positions = select_batch(model, x_pool[unlabeled_idx], cfg['batch_size'], SEED + round_i..."
+        }
+      ]
+    },
+    "compute_gradient_embeddings": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": "method/method.py",
+          "line": 109,
+          "scope": "select_batch",
+          "context": "embeddings = compute_gradient_embeddings(model, x_unlabeled)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 164,
+          "scope": "<module>",
+          "context": "bootstrap_embeddings = compute_gradient_embeddings(bootstrap_model, x_pool)"
+        }
+      ]
+    },
+    "e": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": "method/data.py",
+          "line": 152,
+          "scope": "_download_mnist_subset",
+          "context": "raise ImportError('The MNIST smoke/example fallback needs torchvision (declared in requirements.t..."
+        }
+      ]
+    },
+    "evaluate_accuracy": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 232,
+          "scope": "train_and_evaluate",
+          "context": "accuracy = evaluate_accuracy(round_model, x_test, y_test)"
+        }
+      ]
+    },
+    "float": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": "method/data.py",
+          "line": 95,
+          "scope": "read",
+          "context": "arr = np.array(rows, dtype=float)"
+        },
+        {
+          "file": "method/method.py",
+          "line": 83,
+          "scope": "kmeans_plus_plus_seeding",
+          "context": "total = float(nearest_sq.sum())"
+        },
+        {
+          "file": "method/training.py",
+          "line": 30,
+          "scope": "train_from_scratch",
+          "context": "<expr>"
+        },
+        {
+          "file": "method/training.py",
+          "line": 32,
+          "scope": "train_from_scratch",
+          "context": "<expr>"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 169,
+          "scope": "<module>",
+          "context": "print('mean embedding norm:', float(embedding_norms.mean()))"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 189,
+          "scope": "<module>",
+          "context": "print('selected mean embedding norm:', float(demo_norms.mean()))"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 209,
+          "scope": "evaluate_accuracy",
+          "context": "return float((predictions == y).float().mean().item())"
+        }
+      ]
+    },
+    "hidden_dim": {
+      "assignments": [
+        {
+          "file": "method/model.py",
+          "line": 31,
+          "scope": "__init__",
+          "expr": "<parameter of __init__>"
+        },
+        {
+          "file": "method/training.py",
+          "line": 18,
+          "scope": "build_model",
+          "expr": "<parameter of build_model>"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/model.py",
+          "line": 33,
+          "scope": "__init__",
+          "context": "self.encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ReLU())"
+        },
+        {
+          "file": "method/model.py",
+          "line": 34,
+          "scope": "__init__",
+          "context": "self.classifier = nn.Linear(hidden_dim, n_classes)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 21,
+          "scope": "build_model",
+          "context": "return GradientEmbeddingClassifier(input_dim=input_dim, n_classes=n_classes, hidden_dim=hidden_dim)"
+        }
+      ]
+    },
+    "input_dim": {
+      "assignments": [
+        {
+          "file": "method/model.py",
+          "line": 31,
+          "scope": "__init__",
+          "expr": "<parameter of __init__>"
+        },
+        {
+          "file": "method/training.py",
+          "line": 18,
+          "scope": "build_model",
+          "expr": "<parameter of build_model>"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 93,
+          "scope": "<module>",
+          "expr": "int(x_pool.shape[1])"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/model.py",
+          "line": 33,
+          "scope": "__init__",
+          "context": "self.encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ReLU())"
+        },
+        {
+          "file": "method/training.py",
+          "line": 21,
+          "scope": "build_model",
+          "context": "return GradientEmbeddingClassifier(input_dim=input_dim, n_classes=n_classes, hidden_dim=hidden_dim)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 96,
+          "scope": "<module>",
+          "context": "print('input_dim:', input_dim, 'classes:', n_classes)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 105,
+          "scope": "<module>",
+          "context": "model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 127,
+          "scope": "<module>",
+          "context": "bootstrap_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_di..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 214,
+          "scope": "train_and_evaluate",
+          "context": "round_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        }
+      ]
+    },
+    "labeled_idx": {
+      "assignments": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 241,
+          "scope": "<module>",
+          "expr": "np.asarray(bootstrap_labeled_idx, dtype=np.int64).copy()"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 263,
+          "scope": "<module>",
+          "expr": "np.union1d(labeled_idx, chosen_global)"
+        }
+      ],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 243,
+          "scope": "<module>",
+          "context": "unlabeled_idx = np.setdiff1d(np.arange(len(x_pool), dtype=np.int64), labeled_idx)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 248,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 249,
+          "scope": "<module>",
+          "context": "label_counts.append(len(labeled_idx))"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 263,
+          "scope": "<module>",
+          "context": "labeled_idx = np.union1d(labeled_idx, chosen_global)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 266,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED + round_index + 1)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 268,
+          "scope": "<module>",
+          "context": "label_counts.append(len(labeled_idx))"
+        }
+      ]
+    },
+    "model": {
+      "assignments": [
+        {
+          "file": "method/method.py",
+          "line": 21,
+          "scope": "compute_gradient_embeddings",
+          "expr": "<parameter of compute_gradient_embeddings>"
+        },
+        {
+          "file": "method/method.py",
+          "line": 101,
+          "scope": "select_batch",
+          "expr": "<parameter of select_batch>"
+        },
+        {
+          "file": "method/training.py",
+          "line": 25,
+          "scope": "train_from_scratch",
+          "expr": "<parameter of train_from_scratch>"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 104,
+          "scope": "<module>",
+          "expr": "build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 248,
+          "scope": "<module>",
+          "expr": "train_and_evaluate(labeled_idx, SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 265,
+          "scope": "<module>",
+          "expr": "train_and_evaluate(labeled_idx, SEED + round_index + 1)"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/method.py",
+          "line": 34,
+          "scope": "compute_gradient_embeddings",
+          "context": "was_training = bool(model.training)"
+        },
+        {
+          "file": "method/method.py",
+          "line": 35,
+          "scope": "compute_gradient_embeddings",
+          "context": "model.eval()"
+        },
+        {
+          "file": "method/method.py",
+          "line": 38,
+          "scope": "compute_gradient_embeddings",
+          "context": "logits, features = model.forward_with_embedding(x_unlabeled)"
+        },
+        {
+          "file": "method/method.py",
+          "line": 54,
+          "scope": "compute_gradient_embeddings",
+          "context": "model.train(was_training)"
+        },
+        {
+          "file": "method/method.py",
+          "line": 109,
+          "scope": "select_batch",
+          "context": "embeddings = compute_gradient_embeddings(model, x_unlabeled)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 40,
+          "scope": "train_from_scratch",
+          "context": "for layer in model.modules(): reset = getattr(layer, 'reset_parameters', None) if callable(reset)..."
+        },
+        {
+          "file": "method/training.py",
+          "line": 45,
+          "scope": "train_from_scratch",
+          "context": "optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 47,
+          "scope": "train_from_scratch",
+          "context": "model.train()"
+        },
+        {
+          "file": "method/training.py",
+          "line": 53,
+          "scope": "train_from_scratch",
+          "context": "loss = loss_fn(model(x_train), y_train)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 58,
+          "scope": "train_from_scratch",
+          "context": "model.eval()"
+        },
+        {
+          "file": "method/training.py",
+          "line": 61,
+          "scope": "train_from_scratch",
+          "context": "accuracy = (model(x_train).argmax(dim=1) == y_train).float().mean().item()"
+        },
+        {
+          "file": "method/training.py",
+          "line": 63,
+          "scope": "train_from_scratch",
+          "context": "model.train()"
+        },
+        {
+          "file": "method/training.py",
+          "line": 66,
+          "scope": "train_from_scratch",
+          "context": "return model"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 109,
+          "scope": "<module>",
+          "context": "print(model)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 253,
+          "scope": "<module>",
+          "context": "model.eval()"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 256,
+          "scope": "<module>",
+          "context": "selected_positions = select_batch(model, x_pool[unlabeled_idx], cfg['batch_size'], SEED + round_i..."
+        }
+      ]
+    },
+    "n_classes": {
+      "assignments": [
+        {
+          "file": "method/model.py",
+          "line": 31,
+          "scope": "__init__",
+          "expr": "<parameter of __init__>"
+        },
+        {
+          "file": "method/training.py",
+          "line": 18,
+          "scope": "build_model",
+          "expr": "<parameter of build_model>"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 92,
+          "scope": "<module>",
+          "expr": "int(y_pool.max().item()) + 1"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/model.py",
+          "line": 34,
+          "scope": "__init__",
+          "context": "self.classifier = nn.Linear(hidden_dim, n_classes)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 21,
+          "scope": "build_model",
+          "context": "return GradientEmbeddingClassifier(input_dim=input_dim, n_classes=n_classes, hidden_dim=hidden_dim)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 96,
+          "scope": "<module>",
+          "context": "print('input_dim:', input_dim, 'classes:', n_classes)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 106,
+          "scope": "<module>",
+          "context": "model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 128,
+          "scope": "<module>",
+          "context": "bootstrap_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_di..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 215,
+          "scope": "train_and_evaluate",
+          "context": "round_model = build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        }
+      ]
+    },
+    "round_index": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 259,
+          "scope": "<module>",
+          "context": "selected_positions = select_batch(model, x_pool[unlabeled_idx], cfg['batch_size'], SEED + round_i..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 266,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED + round_index + 1)"
+        }
+      ]
+    },
+    "round_model": {
+      "assignments": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 213,
+          "scope": "train_and_evaluate",
+          "expr": "build_model(input_dim=input_dim, n_classes=n_classes, hidden_dim=cfg['hidden_dim'])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 218,
+          "scope": "train_and_evaluate",
+          "expr": "train_from_scratch(round_model, x_pool[current_indices], y_pool[current_indices], learning_rate=cfg['learning_rate'],..."
+        }
+      ],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 219,
+          "scope": "train_and_evaluate",
+          "context": "round_model = train_from_scratch(round_model, x_pool[current_indices], y_pool[current_indices], l..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 227,
+          "scope": "train_and_evaluate",
+          "context": "round_model.eval()"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 230,
+          "scope": "train_and_evaluate",
+          "context": "loss_value = torch.nn.functional.cross_entropy(round_model(x_pool[current_indices]), y_pool[curre..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 232,
+          "scope": "train_and_evaluate",
+          "context": "accuracy = evaluate_accuracy(round_model, x_test, y_test)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 237,
+          "scope": "train_and_evaluate",
+          "context": "return (round_model, accuracy)"
+        }
+      ]
+    },
+    "select_batch": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": "method/tests/test_alg_badge.py",
+          "line": 24,
+          "scope": "test_badge_selects_a_seeded_kmeans_batch",
+          "context": "selected = select_batch(ToyModel(), torch.zeros(2, 1), batch_size=2, seed=0)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 255,
+          "scope": "<module>",
+          "context": "selected_positions = select_batch(model, x_pool[unlabeled_idx], cfg['batch_size'], SEED + round_i..."
+        }
+      ]
+    },
+    "train_and_evaluate": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 248,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 265,
+          "scope": "<module>",
+          "context": "model, accuracy = train_and_evaluate(labeled_idx, SEED + round_index + 1)"
+        }
+      ]
+    },
+    "train_from_scratch": {
+      "assignments": [],
+      "reads": [
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 131,
+          "scope": "<module>",
+          "context": "bootstrap_model = train_from_scratch(bootstrap_model, x_pool[bootstrap_labeled_idx], y_pool[boots..."
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 218,
+          "scope": "train_and_evaluate",
+          "context": "round_model = train_from_scratch(round_model, x_pool[current_indices], y_pool[current_indices], l..."
+        }
+      ]
+    },
+    "training": {
+      "assignments": [
+        {
+          "file": "method/tests/test_alg_badge.py",
+          "line": 11,
+          "scope": "ToyModel",
+          "expr": "True"
+        }
+      ],
+      "reads": []
+    },
+    "x_test": {
+      "assignments": [
+        {
+          "file": "method/data.py",
+          "line": 168,
+          "scope": "_download_mnist_subset",
+          "expr": "torch.stack([full_test[int(i)][0] for i in test_idx])"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 89,
+          "scope": "<module>",
+          "expr": "load_data(pool_size=cfg['pool_size'], n_test=1000, seed=SEED)"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/data.py",
+          "line": 175,
+          "scope": "_download_mnist_subset",
+          "context": "torch.save({'x_pool': x_pool, 'y_pool': y_pool, 'x_test': x_test, 'y_test': y_test, '_meta': {'po..."
+        },
+        {
+          "file": "method/data.py",
+          "line": 181,
+          "scope": "_download_mnist_subset",
+          "context": "return (x_pool, y_pool, x_test, y_test)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 95,
+          "scope": "<module>",
+          "context": "print('test:', tuple(x_test.shape), tuple(y_test.shape))"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 232,
+          "scope": "train_and_evaluate",
+          "context": "accuracy = evaluate_accuracy(round_model, x_test, y_test)"
+        }
+      ]
+    },
+    "x_train": {
+      "assignments": [
+        {
+          "file": "method/training.py",
+          "line": 25,
+          "scope": "train_from_scratch",
+          "expr": "<parameter of train_from_scratch>"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/training.py",
+          "line": 53,
+          "scope": "train_from_scratch",
+          "context": "loss = loss_fn(model(x_train), y_train)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 61,
+          "scope": "train_from_scratch",
+          "context": "accuracy = (model(x_train).argmax(dim=1) == y_train).float().mean().item()"
+        }
+      ]
+    },
+    "y_test": {
+      "assignments": [
+        {
+          "file": "method/data.py",
+          "line": 169,
+          "scope": "_download_mnist_subset",
+          "expr": "torch.tensor([full_test[int(i)][1] for i in test_idx], dtype=torch.long)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 89,
+          "scope": "<module>",
+          "expr": "load_data(pool_size=cfg['pool_size'], n_test=1000, seed=SEED)"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/data.py",
+          "line": 176,
+          "scope": "_download_mnist_subset",
+          "context": "torch.save({'x_pool': x_pool, 'y_pool': y_pool, 'x_test': x_test, 'y_test': y_test, '_meta': {'po..."
+        },
+        {
+          "file": "method/data.py",
+          "line": 181,
+          "scope": "_download_mnist_subset",
+          "context": "return (x_pool, y_pool, x_test, y_test)"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 95,
+          "scope": "<module>",
+          "context": "print('test:', tuple(x_test.shape), tuple(y_test.shape))"
+        },
+        {
+          "file": ".pipeline/notebook_draft.py",
+          "line": 232,
+          "scope": "train_and_evaluate",
+          "context": "accuracy = evaluate_accuracy(round_model, x_test, y_test)"
+        }
+      ]
+    },
+    "y_train": {
+      "assignments": [
+        {
+          "file": "method/training.py",
+          "line": 25,
+          "scope": "train_from_scratch",
+          "expr": "<parameter of train_from_scratch>"
+        }
+      ],
+      "reads": [
+        {
+          "file": "method/training.py",
+          "line": 53,
+          "scope": "train_from_scratch",
+          "context": "loss = loss_fn(model(x_train), y_train)"
+        },
+        {
+          "file": "method/training.py",
+          "line": 61,
+          "scope": "train_from_scratch",
+          "context": "accuracy = (model(x_train).argmax(dim=1) == y_train).float().mean().item()"
+        }
+      ]
+    }
+  }
+}

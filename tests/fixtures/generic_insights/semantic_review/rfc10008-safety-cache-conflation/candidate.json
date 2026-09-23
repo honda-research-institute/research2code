@@ -1,0 +1,26 @@
+{
+ "case_id": "rfc10008-safety-cache-conflation",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "QUERY requests are safe with regard to the target resource ([HTTP], Section 9.2.1); that is, the client does not request or expect any change to the state of the target resource. This does not prevent the server from creating additional HTTP resources through which additional information can be retrieved (see Sections 2.3 and 2.4).",
+   "span": {
+    "end": 10075,
+    "start": 9742
+   }
+  },
+  {
+   "id": "c02",
+   "quote": "The response to a QUERY method is cacheable; a cache MAY use it to satisfy subsequent QUERY requests as per Section 4 of [HTTP-CACHING].",
+   "span": {
+    "end": 16212,
+    "start": 16076
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "Because QUERY is safe, caches and intermediaries may treat any QUERY request exactly like a GET request."
+}

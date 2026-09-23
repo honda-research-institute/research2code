@@ -1,0 +1,51 @@
+# example_data/
+
+This directory is where `load_data()` reads data from. This package never
+downloads anything at runtime: the loader reads what is here and returns it
+as a dict of named numpy arrays.
+
+If a `PROVENANCE.json` sits beside this file, R2C bundled a demo-scale
+extract of the dataset the paper itself cites (fetched anonymously at build
+time, subsampled deterministically). That file records the source, the
+checksum of the original fetch, exactly what was kept and cut, and the
+honesty note: numbers computed on a subsample demonstrate the method's
+mechanism and are not the paper's benchmark results. Replace the bundled
+files with the full dataset (or your own) at any time — your files take
+priority in the same formats below.
+
+The method's declared entry point (what ultimately consumes this data):
+
+```
+{{ interface_signature }}
+```
+
+## Supported formats
+
+Drop a file into this directory. `load_data` checks formats in this priority
+order: `.npz` → `.json` → delimited tables (`.csv` and `.tsv`).
+
+### Option 1 — `.npz` (fastest)
+
+A numpy archive (any name); every array in it is returned under its key:
+
+```python
+np.savez("example_data/my_dataset.npz", x=..., y=...)
+```
+
+### Option 2 — `.json`
+
+A single `.json` file (any name) mapping names to nested numeric lists:
+
+```json
+{
+  "x": [[0.1, 0.5], [0.3, 0.2]],
+  "y": [3, 7]
+}
+```
+
+### Option 3 — `.csv` or `.tsv`
+
+A single 2-D numeric table, returned under the key `"data"`. TSV uses the
+same contract with a tab delimiter.
+
+If several files of one format exist, the alphabetically first is used.

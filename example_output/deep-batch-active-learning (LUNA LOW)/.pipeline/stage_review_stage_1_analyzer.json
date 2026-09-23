@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_1_analyzer",
+  "review_status": "issues_found",
+  "summary": "The BADGE mechanism is accurately summarized and the paper-grounded core elements are present. However, the methodology contract binds a core k-MEANS++ element to a verification probe name that is not declared by the matched taxonomy node, so the analyzer output is not internally integrated with the available verification surface.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "methodology_contract_verification_probe_refs",
+      "severity": "important",
+      "target_agent": "analyzer",
+      "issue_type": "other",
+      "file": ".pipeline/method_spec.json",
+      "location": "methodology_replication_contract.elements[kmeanspp-gradient-selection].verification_probe_refs",
+      "description": "The contract references verification probe `AL-kmeanspp-incremental-distances`, but the matched batch_acquisition taxonomy declares only the exact probes `al_loop.acquisition_contract`, `al_loop.demo_config_reachability`, `al_loop.eval_label_alignment`, `al_loop.fresh_retrain`, `al_loop.microharness`, `al_stage1.coreset_construction`, and `claims.contribution_floor`. This leaves the core k-MEANS++ methodology requirement unverifiable through the declared integration surface.",
+      "proposed_fix": "Re-emit the analyzer spec with the k-MEANS++ element bound to the taxonomy's applicable exact probe, most likely `al_loop.microharness` for incremental-distance behavior, while preserving the contract's paper-grounded requirements, approved approximations, and replication-feasibility status."
+    }
+  ],
+  "checks_summary": [
+    {
+      "check_id": "core_method_summary_matches_paper",
+      "status": "pass",
+      "note": "The summary names BADGE's predicted-label final-layer gradient embeddings and sequential k-MEANS++ diversity mechanism, matching Sections 2-3 and Algorithm 1."
+    },
+    {
+      "check_id": "critical_requirements_essential_features",
+      "status": "pass",
+      "note": "The core elements are appropriately centered on gradient embeddings and k-MEANS++ selection; no comparison baseline is treated as part of the contribution."
+    },
+    {
+      "check_id": "methodology_contract_verification_probe_refs",
+      "status": "fail",
+      "note": "The k-MEANS++ contract uses an undeclared probe reference, as identified above."
+    }
+  ],
+  "caveats": [
+    "The paper contains extensive baseline comparisons, but under the single-method scope contract those comparisons are not implementation requirements and were not reviewed as core method elements."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-classifier-prediction": {
+      "what": "For an input x, the neural network f(x; θ) produces one score or probability f(x; θ)_y for each of K classes. The classifier h_θ(x) returns the class index y with the largest such output. In BADGE, this predicted class supplies the hallucinated label used when forming a gradient embedding for an unlabeled point.",
+      "why_novel": "This argmax prediction rule is standard multiclass-classification machinery, not a new contribution by itself. Its role here is to provide the predicted label that BADGE uses in its hallucinated gradient construction, which the paper positions as a way to combine uncertainty and diversity in batch selection.",
+      "intuition": "The network is making its best current guess: among all class outputs, take the largest one. That guess lets BADGE ask, in effect, how the model's parameters would be pushed if this unlabeled example really had the class the model currently favors; the later gradient representation can then distinguish confident, redundant guesses from informative ones."
+    }
+  }
+}

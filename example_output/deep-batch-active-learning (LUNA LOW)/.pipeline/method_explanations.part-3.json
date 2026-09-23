@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-gradient-embedding": {
+      "what": "For an unlabeled input x, this equation forms an embedding g_x by differentiating the cross-entropy loss ell_CE of the network f with respect to each final-layer weight block W_i. It uses the model's predicted class y_hat as if it were the label: for class i, the block is the probability residual p_i - I(y_hat = i) multiplied by the penultimate feature vector z(x; V), where p_i is the predicted probability and I is an indicator. The resulting collection of class-specific blocks is the point's hallucinated gradient representation for acquisition.",
+      "why_novel": "The cross-entropy gradient itself is standard machinery, but BADGE uses this particular predicted-label, or hallucinated-label, final-layer gradient as the acquisition embedding. Unlike selecting only low-confidence points or only diverse points, the embedding exposes both the probability residuals and the shared feature vector, so its geometry can support the paper's stated combination of uncertainty and diversity without a hand-tuned trade-off hyperparameter.",
+      "intuition": "Pretend that the network's own prediction y_hat is the missing label, then ask which final-layer weights this example would push and in what direction. A point with a large probability residual produces a larger gradient signal, while two points with similar residuals but different penultimate features point in different directions; thus magnitude reflects how much the current model could be changed and direction reflects how the examples differ. This is the paper's core idea of representing candidates in a hallucinated gradient space so a batch can be both uncertain and disparate."
+    }
+  }
+}

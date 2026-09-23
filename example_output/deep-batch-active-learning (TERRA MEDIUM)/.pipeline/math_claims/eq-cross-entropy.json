@@ -1,0 +1,29 @@
+{
+  "claims": [
+    {
+      "claim_type": "equivalence",
+      "quote": "The indicator I(y=i) selects only the probability assigned to the true class, so the K-class sum reduces to ln(1/p_y), equivalently -log(p_y); training minimizes this quantity over labeled examples.",
+      "formulas": ["Cross-entropy training loss"],
+      "formal": {
+        "lhs": "log(1 / p_y)",
+        "rhs": "-log(p_y)",
+        "relation": "algebraic_identity",
+        "variables": [
+          {"name": "p_y", "domain": [0.001, 1.0], "role": "variable"}
+        ]
+      }
+    },
+    {
+      "claim_type": "monotonicity",
+      "quote": "Assigning the true class probability close to one gives a loss near zero, whereas assigning it a very small probability produces a large penalty, so minimizing the loss pushes probability toward the observed label.",
+      "formulas": ["Cross-entropy training loss"],
+      "formal": {
+        "lhs": "-log(p_y)",
+        "relation": "monotone_decreasing",
+        "variables": [
+          {"name": "p_y", "domain": [0.001, 1.0], "role": "variable"}
+        ]
+      }
+    }
+  ]
+}

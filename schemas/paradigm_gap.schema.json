@@ -1,0 +1,207 @@
+{
+  "$defs": {
+    "EvidenceQuote": {
+      "additionalProperties": false,
+      "properties": {
+        "paper_section": {
+          "description": "Paper section, heading, or paper_map element id.",
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "quote_or_observation": {
+          "description": "Short paper-grounded evidence for the decision.",
+          "title": "Quote Or Observation",
+          "type": "string"
+        },
+        "relevance": {
+          "description": "Why this evidence supports the paradigm decision.",
+          "title": "Relevance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paper_section",
+        "quote_or_observation",
+        "relevance"
+      ],
+      "title": "EvidenceQuote",
+      "type": "object"
+    },
+    "GapDecision": {
+      "enum": [
+        "existing_exact_match",
+        "new_subparadigm_needed",
+        "new_top_level_needed",
+        "unsupported_or_unclear"
+      ],
+      "title": "GapDecision",
+      "type": "string"
+    },
+    "ParadigmCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "paradigm_id": {
+          "title": "Paradigm Id",
+          "type": "string"
+        },
+        "taxonomy_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Taxonomy Id"
+        },
+        "fit": {
+          "description": "Why this existing taxonomy node was considered.",
+          "title": "Fit",
+          "type": "string"
+        },
+        "decision": {
+          "description": "Accepted/rejected/partial fit rationale.",
+          "title": "Decision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paradigm_id",
+        "fit",
+        "decision"
+      ],
+      "title": "ParadigmCandidate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/GapDecision"
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "paper_slug": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Paper Slug"
+    },
+    "paper_title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Paper Title"
+    },
+    "paper_paradigm_summary": {
+      "title": "Paper Paradigm Summary",
+      "type": "string"
+    },
+    "matched_existing_paradigm": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Legacy paradigm id, lowercase path form (e.g. 'active_learning/bayesian').",
+      "title": "Matched Existing Paradigm"
+    },
+    "proposed_parent_paradigm": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Legacy paradigm id of the parent, lowercase path form. No taxonomy family codes, no prose glosses.",
+      "title": "Proposed Parent Paradigm"
+    },
+    "proposed_new_paradigm_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Proposed id in lowercase legacy path form (e.g. 'federated_learning' for a new top level).",
+      "title": "Proposed New Paradigm Id"
+    },
+    "candidate_matches": {
+      "items": {
+        "$ref": "#/$defs/ParadigmCandidate"
+      },
+      "title": "Candidate Matches",
+      "type": "array"
+    },
+    "rejected_matches": {
+      "items": {
+        "$ref": "#/$defs/ParadigmCandidate"
+      },
+      "title": "Rejected Matches",
+      "type": "array"
+    },
+    "registered_paradigms": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Registered Paradigms",
+      "type": "array"
+    },
+    "paper_evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceQuote"
+      },
+      "minItems": 1,
+      "title": "Paper Evidence",
+      "type": "array"
+    },
+    "recommended_next_action": {
+      "title": "Recommended Next Action",
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision",
+    "confidence",
+    "paper_paradigm_summary",
+    "paper_evidence",
+    "recommended_next_action"
+  ],
+  "title": "ParadigmGapReport",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://r2c.local/schemas/paradigm_gap/v1.0.0"
+}

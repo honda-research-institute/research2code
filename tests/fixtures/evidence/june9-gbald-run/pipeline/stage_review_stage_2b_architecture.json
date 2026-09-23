@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2b_architecture",
+  "review_status": "issues_found",
+  "summary": "One finding: training.py line 93 references `nn.CrossEntropyLoss()` but `nn` (torch.nn) is not imported, causing a NameError at runtime. All field-guide checks otherwise pass — essential features are properly implemented and annotated, the architecture substitution is documented, and the training protocol matches the spec.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "training_protocol_matches_paper",
+      "severity": "important",
+      "target_agent": "architecture-coder",
+      "issue_type": "other",
+      "file": "method/training.py",
+      "location": "train_from_scratch, line 93",
+      "description": "Line 93 uses `nn.CrossEntropyLoss()` but `nn` (torch.nn) is not imported. The imports (lines 13-19) include `torch`, `torch.optim as optim`, `TensorDataset`, `DataLoader`, and `MCDropoutMLP`, but not `torch.nn`. This causes a NameError at runtime, breaking the entire training function. The fix is to add `import torch.nn as nn` (or use `torch.nn.CrossEntropyLoss()`).",
+      "proposed_fix": "Add `import torch.nn as nn` to the imports in method/training.py."
+    }
+  ],
+  "checks_summary": [
+    {"check_id": "essential_features_implemented_not_just_annotated", "status": "pass", "note": "model.py has nn.Dropout(p=dropout_rate) at lines 60, 66 (dropout active at inference). forward() returns raw logits from the final Linear layer (line 69, no softmax). # essential annotations at lines 31-32 match the actual code."},
+    {"check_id": "architecture_substitution_documented", "status": "pass", "note": "Module docstring (lines 7-19) explicitly documents the CNN→MLP substitution, preserves the essential contract (dropout at inference, logits output, recommended dropout rate 0.5), and names the silent-failure mode for the bayesian AL paradigm."},
+    {"check_id": "training_protocol_matches_paper", "status": "fail", "note": "training.py uses `nn.CrossEntropyLoss()` without importing `torch.nn as nn` (NameError at runtime). The optimizer (Adam), protocol (retrain from scratch), and seeding are otherwise correct per spec."},
+    {"check_id": "dropout_active_at_inference", "status": "pass", "note": "Architecture has nn.Dropout layers (lines 60, 66). Nothing in model.py disables them. The bayesian-specific check confirms the architecture supports MC dropout scoring (which method.py will handle by calling model.train() before inference)."}
+  ],
+  "caveats": []
+}

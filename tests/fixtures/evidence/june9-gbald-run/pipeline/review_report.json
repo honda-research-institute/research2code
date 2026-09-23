@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "review_status": "issues_found",
+  "summary": "Stage 4 re-review (iteration 1). F001 (R_0 scale mismatch) is RESOLVED: params.json now has R_0=7.843 with AUTO-RESOLVED provenance, and assumptions.md documents the fix. However, a new regression was found: notebook.ipynb title cell (line 31) has stale prose claiming 'R_0=2000.0 calibrated for raw [0,255] pixel scale; MNIST is normalized to [0,1] here, so the geometric prior is approximate' — this is now incorrect since R_0 was rescaled to 7.843. The geometric prior is no longer 'approximate' in that sense.",
+  "findings": [
+    {
+      "id": "F002",
+      "severity": "important",
+      "target_agent": "notebook-generator",
+      "issue_type": "stale_documentation",
+      "file": "notebook.ipynb",
+      "location": "cell 1 (title cell), line 31",
+      "description": "The title cell prose claims 'R_0=2000.0 calibrated for raw [0,255] pixel scale; MNIST is normalized to [0,1] here, so the geometric prior is approximate'. This is stale after the F001 fix: R_0 was rescaled to 7.843 to match the [0,1] normalization, so the geometric prior is no longer 'approximate' due to scale mismatch. The prose should be updated to reflect the rescaling decision documented in assumptions.md entry A001.",
+      "proposed_fix": "Update the title cell markdown to reflect that R_0 was rescaled from 2000.0 to 7.843 to match the ToTensor() normalization. For example: 'R_0=7.843 (rescaled from paper's 2000.0 to match [0,1] normalization; see assumptions.md A001)'."
+    }
+  ]
+}

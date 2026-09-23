@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.14.0",
+  "paper": {
+    "title": "Deep Batch Active Learning by Diverse, Uncertain Gradient Lower Bounds",
+    "authors": "Ash et al.",
+    "repo_url": null
+  },
+  "core_method": {
+    "name": "BADGE",
+    "summary": "BADGE selects a batch of unlabeled examples by clustering uncertainty-aware gradient embeddings with k-means++ seeding.",
+    "type": "algorithm",
+    "paper_sections": [
+      "Section 3",
+      "Algorithm 1"
+    ],
+    "key_elements": [
+      "alg-badge",
+      "eq-gradient-embedding"
+    ]
+  },
+  "paper_claims": {
+    "method_description": "The method forms a gradient embedding for each unlabeled example by combining the predicted class probabilities with the gradient of the final linear classifier. It then uses k-means++ seeding on these embeddings to choose a diverse batch that favors uncertain examples.",
+    "claimed_results": "The paper reports that BADGE improves active-learning performance over uncertainty-only and diversity-only acquisition methods on image and text classification benchmarks. Its advantage is attributed to selecting batches that are both uncertain and diverse.",
+    "benchmark_scale": "For the selected SVHN ResNet benchmark, the paper starts with 100 labeled examples and uses batch size 100 through approximately 35,000 queried labels."
+  },
+  "try_it_out": {
+    "definition": "Train a classifier on the current labeled set, compute BADGE gradient embeddings for the unlabeled pool, and acquire one diverse batch.",
+    "user_provides": [
+      {
+        "name": "classifier",
+        "description": "A differentiable classifier returning class logits for a batch of inputs.",
+        "type": "model"
+      },
+      {
+        "name": "unlabeled_pool",
+        "description": "Unlabeled examples in a tensor or dataset format accepted by the classifier.",
+        "type": "data"
+      }
+    ],
+    "system_provides": [
+      {
+        "name": "BADGE batch selector",
+        "description": "The BADGE gradient-embedding acquisition function.",
+        "type": "code",
+        "symbol": "select_batch",
+        "symbol_kind": "function"
+      }
+    ]
+  },
+  "data_requirements": {
+    "format": "A finite pool of examples batchable by a PyTorch classifier; classification labels are needed only when training the supplied model.",
+    "example_datasets": [
+      "MNIST",
+      "CIFAR-10",
+      "SVHN",
+      "AG News"
+    ],
+    "auto_download_feasible": true,
+    "auto_download_details": "MNIST, CIFAR-10, and SVHN can be obtained through torchvision; AG News can be obtained through a standard dataset loader.",
+    "synthetic_feasible": true,
+    "synthetic_description": "Synthetic vectors with a small linear classifier can demonstrate gradient-embedding construction and batch selection."
+  },
+  "dependencies": {
+    "frameworks": [
+      "pytorch",
+      "numpy"
+    ],
+    "pretrained_models": [],
+    "compute": "CPU sufficient",
+    "estimated_time": "A smoke-scale selection run should complete in seconds on CPU; model training time depends on the supplied classifier and dataset."
+  },
+  "repo": {
+    "url": null,
+    "cloned": false,
+    "clone_path": null,
+    "key_files": []
+  },
+  "comparison": {
+    "classification": {
+      "id": "active_learning/batch_acquisition",
+      "detection_reasoning": "The paper is an iterative pool-based active-learning method whose contribution is a batch acquisition rule combining uncertainty and diversity through gradient embeddings; it is more specific than single-point uncertainty acquisition and is not Bayesian MC-dropout acquisition."
+    },
+    "description": "The paper compares BADGE with random, uncertainty, and diversity-based acquisition strategies; this package implements only BADGE.",
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, batch_size, seed) -> List[int]",
+      "seed_param": "seed",
+      "description": "Select a diverse uncertain batch using last-layer gradient embeddings and k-means++ seeding."
+    },
+    "controlled_variables": {
+      "unlabeled_pool": "Use the same unlabeled pool and preprocessing when comparing acquisition strategies.",
+      "label_budget": "Keep the acquired batch size and total labeling budget fixed."
+    },
+    "independent_variable": "The acquisition strategy used to select each newly labeled batch.",
+    "evaluation_checkpoints": "Evaluate after each acquisition round using the classifier trained on the resulting labeled set.",
+    "primary_metric": "Classification accuracy or task-appropriate test error.",
+    "visualization": "Plot the selected examples or their two-dimensional embedding projection for a single BADGE run."
+  },
+  "critical_requirements": {
+    "model": {
+      "architecture": "A differentiable classifier with a final linear classification layer.",
+      "paper_section": "Section 3",
+      "specific_features": [
+        {
+          "feature": "Final-layer gradient embedding access",
+          "why_essential": "BADGE scores examples using the gradient of the loss with respect to the final classifier parameters; replacing this with logits alone removes the method's uncertainty-diversity representation.",
+          "severity": "essential",
+          "paper_section": "Section 3"
+        }
+      ]
+    },
+    "training": {
+      "optimizer": "SGD",
+      "learning_rate": "The paper uses benchmark-specific training settings.",
+      "protocol": "retrain from scratch",
+      "mc_samples": null,
+      "num_epochs": null,
+      "seed": null,
+      "paper_section": "Experimental setup"
+    },
+    "data_setup": {
+      "initial_labeled": 100,
+      "batch_size": 100,
+      "total_budget": 35000,
+      "num_rounds": 349,
+      "benchmark_name": "SVHN ResNet benchmark, batch size 100",
+      "special_protocol": "Start with M=100 labeled examples, then acquire 100 examples for 349 rounds, giving 35,000 total labeled examples; retrain from scratch after each acquisition.",
+      "paper_section": "Experimental setup"
+    },
+    "blockers": [
+      {
+        "requirement": "Compute per-example final-layer gradient embeddings from classifier probabilities and final-layer features.",
+        "status": "must_implement",
+        "reason": "This is the defining acquisition representation and is fully specified by the paper.",
+        "resolution": "Implement the final-layer gradient embedding directly from the classifier's final features and class probabilities, then use those vectors for acquisition."
+      }
+    ],
+    "scale_dependent_hyperparameters": [],
+    "param_glossary": [],
+    "required_model_methods": []
+  },
+  "methodology_replication_contract": {
+    "schema_version": "1.0",
+    "elements": [
+      {
+        "element_id": "gradient-embedding-acquisition",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 3, Algorithm 1",
+        "paper_evidence": "BADGE constructs an embedding from the gradient of the loss with respect to the final classification layer and uses it for batch acquisition.",
+        "technical_concept": "Uncertainty-aware final-layer gradient embeddings",
+        "required_behavior": "Compute one gradient embedding per unlabeled example from predicted probabilities and final-layer features, then use those embeddings for batch selection.",
+        "demo_scale_implementation": "Compute the embeddings on the smoke-scale unlabeled pool and select the requested batch with k-means++ seeding.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not replace gradient embeddings with entropy, margin, raw probabilities, or input-space features.",
+          "Do not replace batch k-means++ seeding with independent pointwise ranking."
+        ],
+        "required_controls": [
+          "Use one fixed model snapshot for all candidate embeddings.",
+          "Return unique indices from the supplied unlabeled pool and respect batch_size."
+        ],
+        "fairness_checks": [
+          "Keep preprocessing and classifier outputs fixed while evaluating the acquisition function.",
+          "Do not compare against or implement another acquisition method in the package."
+        ],
+        "feasibility_rationale": "The algorithm is specified in the paper and can run on a small CPU-scale pool.",
+        "verification_expectations": [
+          "The live selector computes final-layer gradient embeddings before k-means++ seeding.",
+          "The returned indices are unique and bounded by the pool size."
+        ],
+        "verification_probe_refs": [],
+        "blockers": [],
+        "paper_element_ids": [
+          "alg-badge",
+          "eq-gradient-embedding"
+        ]
+      }
+    ]
+  },
+  "methodology_contract_pack": {
+    "schema_version": "1.0",
+    "summary": "The demo must preserve BADGE's uncertainty-aware final-layer gradient embeddings and diverse batch seeding.",
+    "core_methodology_element_ids": [
+      "gradient-embedding-acquisition"
+    ],
+    "implementation_obligations": [
+      "Compute per-example final-layer gradient embeddings from predicted probabilities and final-layer features.",
+      "Select the batch with k-means++ seeding over those embeddings."
+    ],
+    "approved_approximations": [],
+    "forbidden_substitutions": [
+      "Do not replace gradient embeddings with entropy, margin, raw probabilities, or input-space features.",
+      "Do not replace batch k-means++ seeding with independent pointwise ranking."
+    ],
+    "required_controls": [
+      "Use one fixed model snapshot for all candidate embeddings.",
+      "Return unique indices and respect batch_size."
+    ],
+    "verification_expectations": [
+      "The live selector computes gradient embeddings before k-means++ seeding.",
+      "The selector returns valid unique pool indices."
+    ]
+  },
+  "replication_feasibility": {
+    "schema_version": "1.0",
+    "verdict": "feasible",
+    "blockers": [],
+    "approved_approximations": []
+  },
+  "feasibility": "reproducible"
+}

@@ -1,0 +1,12 @@
+{
+  ".pipeline/arch_contract.json": "sha256:c605846e9199dfd40e5f2b467f8a64e28b9995e4bf609f16ecef41810da04c0f",
+  ".pipeline/method_spec.json": "sha256:d94c9f6833fdfc778fe766ff6ea99b4c68a74038a4dd6088ecdc5387ed8c8540",
+  "method/data.py": "sha256:c3993bdf0c66e24018c1b8ed8a849663f14a03f067b68520890c7bec062b47eb",
+  "method/method.py": "sha256:82bc23c98ef79f32d47323458044f8ddfc7dbc4f7cc234ec3da0d18545ebd5bd",
+  "method/model.py": "sha256:7a518ead8a43d39691eab8a64034771026c8a394430805ac61cdd027b06c526a",
+  "method/tests/test_alg_badge.py": "sha256:0ee8dc0585d6909d7fa2ab78495e019296a6ea8a15e48781afa22fd229c56b78",
+  "method/tests/test_alg_kmeans_plus_plus.py": "sha256:e755ab25ce493e14d54d63b5386e999b96bd6e4c0d457f39cadfd4e68dd8585f",
+  "method/tests/test_eq_classifier_cross_entropy.py": "sha256:15a630ae029429af5ed7b9a298f5798f95e14b099b117290da453ae344b53bb9",
+  "method/tests/test_eq_gradient_embedding.py": "sha256:a971dcb42458d3bf230cbeb30d0985dcb8d97f526b3c2859e2e96c06f38a96c4",
+  "method/training.py": "sha256:a4ea459f71c4fa73c172ed05e9e18b1e4f9435d3379de72463bdb7bab1496bfa"
+}

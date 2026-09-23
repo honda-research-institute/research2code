@@ -1,0 +1,20 @@
+# Example Data for Stochastic Optimization
+
+This paradigm uses generated smoke data by default, so no binary dataset is
+checked into the method package.
+
+`method/data.py` provides:
+
+- `make_quadratic_objective(...)` for deterministic convex optimization traces.
+- `make_synthetic_classification(...)` for tiny supervised objectives if a
+  notebook needs an input/output dataset.
+
+To use your own objective, provide a callable with this shape:
+
+```python
+def objective(params, batch=None):
+    return loss_float, gradient_array
+```
+
+The optimizer is responsible for maintaining optimizer state; the objective is
+responsible only for reporting the current loss and gradient.

@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_3a_notebook",
+  "review_status": "passed",
+  "summary": "All notebook semantic and integration checks passed. The notebook demonstrates only BADGE, preserves predicted-label gradient embeddings and seeded k-MEANS++ on the live acquisition path, and retrains a fresh model after every acquisition.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "AL-nb-above-chance",
+      "status": "pass",
+      "note": "The loop evaluates held-out test labels; final accuracy is an execution-time smoke-gate outcome rather than a narrative substitution."
+    },
+    {
+      "check_id": "notebook_narrative_matches_code",
+      "status": "pass",
+      "note": "Sections 4 and 5 accurately describe the gradient-embedding, k-MEANS++, pool-index mapping, and fresh-retraining paths exercised below them."
+    },
+    {
+      "check_id": "paper_citations_accurate",
+      "status": "pass",
+      "note": "The cited Algorithm 1, Section 3, Eq. 1, Appendix A Algorithm 2, and Section 4 locations match the referenced paper mechanisms."
+    },
+    {
+      "check_id": "AL-nb-loop-evaluates-each-round",
+      "status": "pass",
+      "note": "The loop computes held-out test accuracy for the initially trained model and for each newly retrained round model before appending each curve point."
+    },
+    {
+      "check_id": "AL-nb-loop-retrains-from-scratch",
+      "status": "pass",
+      "note": "A new model is built before initial training and inside every acquisition-round iteration, consistent with the paper's no-warm-start protocol."
+    },
+    {
+      "check_id": "AL-nb-loop-index-space",
+      "status": "pass",
+      "note": "Pool-relative positions are mapped through unlabeled_idx, then unioned into labeled_idx and removed by set difference without positional offsets."
+    },
+    {
+      "check_id": "AL-nb-loop-acquisition-round-semantics",
+      "status": "pass",
+      "note": "The initial evaluation is recorded once and range(cfg[\"num_rounds\"]) performs one acquisition, retraining, and evaluation per round, yielding num_rounds + 1 points."
+    },
+    {
+      "check_id": "AL-nb-ranking-monotonicity",
+      "status": "pass",
+      "note": "The notebook describes sampling proportional to squared nearest-center distance and does not make a contradictory rank-direction claim."
+    },
+    {
+      "check_id": "methodology_replication_contract",
+      "status": "pass",
+      "note": "The live notebook path calls BADGE selection on predicted-label gradient embeddings with seeded k-MEANS++ and preserves the required fresh-retraining control without forbidden substitutions."
+    }
+  ],
+  "caveats": [
+    "The notebook is intentionally unexecuted at this production stage; the smoke gate must confirm the observed final held-out accuracy exceeds chance."
+  ]
+}

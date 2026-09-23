@@ -1,0 +1,50 @@
+{
+ "case_id": "rfc10008-accepted-core-account",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "This specification defines the HTTP QUERY request method as a means of making a safe, idempotent request (Section 9.2 of [HTTP]) that encloses a representation describing how the request is to be processed by the target resource.",
+   "span": {
+    "end": 4453,
+    "start": 4224
+   }
+  },
+  {
+   "id": "c02",
+   "quote": "QUERY requests are safe with regard to the target resource ([HTTP], Section 9.2.1); that is, the client does not request or expect any change to the state of the target resource. This does not prevent the server from creating additional HTTP resources through which additional information can be retrieved (see Sections 2.3 and 2.4).",
+   "span": {
+    "end": 10075,
+    "start": 9742
+   }
+  },
+  {
+   "id": "c03",
+   "quote": "Furthermore, QUERY requests are idempotent ([HTTP], Section 9.2.2); they can be retried or repeated when needed, for instance, after a connection failure.",
+   "span": {
+    "end": 10231,
+    "start": 10077
+   }
+  },
+  {
+   "id": "c04",
+   "quote": "The response to a QUERY method is cacheable; a cache MAY use it to satisfy subsequent QUERY requests as per Section 4 of [HTTP-CACHING].",
+   "span": {
+    "end": 16212,
+    "start": 16076
+   }
+  },
+  {
+   "id": "c05",
+   "quote": "The cache key for a QUERY request (Section 2 of [HTTP-CACHING]) **MUST** incorporate the request content (Section 6 of [HTTP-CACHING]) and related metadata (Section 8 of [HTTP]).",
+   "span": {
+    "end": 16392,
+    "start": 16214
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "QUERY is a body-bearing HTTP method for making safe, idempotent queries whose input travels as request content. Safety is scoped to the target resource: the client does not request or expect changes to it, while processing may still create other resources through which additional information can be retrieved. Idempotence means the request can be retried or repeated when needed, for instance after a connection failure; the specification does not promise identical response representations across repetitions. Responses are cacheable under separate caching rules, with a cache key that incorporates request content and related metadata."
+}

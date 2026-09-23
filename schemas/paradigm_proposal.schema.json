@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "ParadigmProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "proposal_id": {
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "source_paper_slug": {
+          "title": "Source Paper Slug",
+          "type": "string"
+        },
+        "source_gap_report": {
+          "default": ".pipeline/paradigm_gap_report.json",
+          "title": "Source Gap Report",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "new_subparadigm_needed",
+            "new_top_level_needed"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "target_paradigm_id": {
+          "title": "Target Paradigm Id",
+          "type": "string"
+        },
+        "target_taxonomy_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional proposed taxonomy id. Maintainers may adjust it before promotion into docs/ssot/taxonomies.yaml.",
+          "title": "Target Taxonomy Id"
+        },
+        "extends": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extends"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "scope_summary": {
+          "title": "Scope Summary",
+          "type": "string"
+        },
+        "pack": {
+          "additionalProperties": true,
+          "description": "Small provisional taxonomy-node pack authored for review.",
+          "title": "Pack",
+          "type": "object"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/ProposalEvidence"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "coupling_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Coupling Warnings",
+          "type": "array"
+        },
+        "validation_command": {
+          "default": "python3 scripts/validate_paradigm_proposal.py <proposal_dir>",
+          "title": "Validation Command",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "source_paper_slug",
+        "decision",
+        "target_paradigm_id",
+        "title",
+        "scope_summary",
+        "evidence"
+      ],
+      "title": "ParadigmProposal",
+      "type": "object"
+    },
+    "ProposalEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "paper_section": {
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "quote_or_observation": {
+          "title": "Quote Or Observation",
+          "type": "string"
+        },
+        "relevance": {
+          "title": "Relevance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paper_section",
+        "quote_or_observation",
+        "relevance"
+      ],
+      "title": "ProposalEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "proposal_dir": {
+      "title": "Proposal Dir",
+      "type": "string"
+    },
+    "valid": {
+      "title": "Valid",
+      "type": "boolean"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "proposal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ParadigmProposal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "proposal_dir",
+    "valid"
+  ],
+  "title": "ProposalValidationResult",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://r2c.local/schemas/paradigm_proposal/v1.0.0"
+}

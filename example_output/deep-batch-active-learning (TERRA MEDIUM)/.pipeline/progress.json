@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0",
+  "slug": "deep-batch-active-learning",
+  "run_status": "completed",
+  "started_at": "2026-09-04T16:37:35Z",
+  "updated_at": "2026-09-04T16:59:04Z",
+  "current": null,
+  "stages": [
+    {
+      "stage_id": "stage_0",
+      "label": "Stage 0 - Setup & Paper Ingestion",
+      "status": "completed",
+      "started_at": "2026-09-04T16:37:35Z",
+      "ended_at": "2026-09-04T16:37:35Z",
+      "duration_s": 0.0,
+      "notes": "paper.md present at <repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper.md"
+    },
+    {
+      "stage_id": "stage_1",
+      "label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "status": "completed",
+      "started_at": "2026-09-04T16:37:35Z",
+      "ended_at": "2026-09-04T16:40:29Z",
+      "duration_s": 174.0,
+      "notes": "analyzer + paper_map + feasibility + review clean"
+    },
+    {
+      "stage_id": "stage_1x",
+      "label": "Stage 1.x - Method Explanation (METHOD.md)",
+      "status": "completed",
+      "started_at": "2026-09-04T16:40:29Z",
+      "ended_at": "2026-09-04T16:42:50Z",
+      "duration_s": 141.0,
+      "notes": "METHOD.md generated with 8 explanations"
+    },
+    {
+      "stage_id": "stage_2a",
+      "label": "Stage 2.a - Package Scaffold",
+      "status": "completed",
+      "started_at": "2026-09-04T16:42:50Z",
+      "ended_at": "2026-09-04T16:42:51Z",
+      "duration_s": 1.0,
+      "notes": "scaffolder + validator clean"
+    },
+    {
+      "stage_id": "stage_2b",
+      "label": "Stage 2.b - Architecture & Training",
+      "status": "completed",
+      "started_at": "2026-09-04T16:42:51Z",
+      "ended_at": "2026-09-04T16:45:29Z",
+      "duration_s": 158.0,
+      "notes": "architecture-coder + validator + review clean"
+    },
+    {
+      "stage_id": "stage_2c",
+      "label": "Stage 2.c - Method Implementation",
+      "status": "completed",
+      "started_at": "2026-09-04T16:45:29Z",
+      "ended_at": "2026-09-04T16:47:26Z",
+      "duration_s": 117.0,
+      "notes": "method-coder + validator + review clean"
+    },
+    {
+      "stage_id": "stage_2d",
+      "label": "Stage 2.d - Package Finalization",
+      "status": "completed",
+      "started_at": "2026-09-04T16:47:26Z",
+      "ended_at": "2026-09-04T16:55:00Z",
+      "duration_s": 454.0,
+      "notes": "init_finalizer + import validation + arch contract + dry-run clean + element tests"
+    },
+    {
+      "stage_id": "stage_2x",
+      "label": "Stage 2.x - Parameter Derivation",
+      "status": "completed",
+      "started_at": "2026-09-04T16:55:00Z",
+      "ended_at": "2026-09-04T16:55:34Z",
+      "duration_s": 34.0,
+      "notes": "derive_params + validator + review clean"
+    },
+    {
+      "stage_id": "stage_3a",
+      "label": "Stage 3.a - Notebook Authoring",
+      "status": "completed",
+      "started_at": "2026-09-04T16:55:34Z",
+      "ended_at": "2026-09-04T16:57:56Z",
+      "duration_s": 142.0,
+      "notes": "notebook-generator + render + validator + review clean"
+    },
+    {
+      "stage_id": "stage_3b",
+      "label": "Stage 3.b - Notebook Rendering",
+      "status": "completed",
+      "started_at": "2026-09-04T16:57:56Z",
+      "ended_at": "2026-09-04T16:57:57Z",
+      "duration_s": 1.0,
+      "notes": "render clean"
+    },
+    {
+      "stage_id": "stage_3c",
+      "label": "Stage 3.c - Smoke Execution",
+      "status": "completed",
+      "started_at": "2026-09-04T16:57:57Z",
+      "ended_at": "2026-09-04T16:58:34Z",
+      "duration_s": 37.0,
+      "notes": "smoke gate clean (iteration 0)"
+    },
+    {
+      "stage_id": "stage_4",
+      "label": "Stage 4 - Paper-Fidelity Review",
+      "status": "completed",
+      "started_at": "2026-09-04T16:58:34Z",
+      "ended_at": "2026-09-04T16:59:00Z",
+      "duration_s": 26.0,
+      "notes": "paper-fidelity review + validator clean"
+    },
+    {
+      "stage_id": "stage_5",
+      "label": "Stage 5 - Findings Routing",
+      "status": "completed",
+      "started_at": "2026-09-04T16:59:00Z",
+      "ended_at": "2026-09-04T16:59:00Z",
+      "duration_s": 0.0,
+      "notes": "1 nice-to-have logged; 2 stage-review caveat(s) logged"
+    }
+  ],
+  "totals": {
+    "stages_done": 13,
+    "stages_total": 13,
+    "elapsed_s": 1289.0,
+    "degrades": 0,
+    "halts": 0,
+    "dispatches_started": 42,
+    "dispatches_finished": 42,
+    "dispatches_succeeded": 42,
+    "dispatches_failed": 0,
+    "dispatches_recovered": 0,
+    "dispatches_completed": 42
+  }
+}

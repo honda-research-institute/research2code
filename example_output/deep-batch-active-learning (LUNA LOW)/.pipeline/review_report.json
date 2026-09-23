@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "review_status": "issues_found",
+  "summary": "The generated package and notebook keep BADGE as the single demonstrated method, and the live path uses predicted-label gradient embeddings followed by k-MEANS++ selection. The analyzer contract still contains an invalid verification-probe reference, so the core k-MEANS++ methodology requirement is not bound to a declared integration probe.",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "critical",
+      "target_agent": "analyzer",
+      "issue_type": "other",
+      "file": ".pipeline/method_spec.json",
+      "location": "methodology_replication_contract.elements[kmeanspp-gradient-selection].verification_probe_refs",
+      "description": "The contract still references `AL-kmeanspp-incremental-distances`, but the matched batch_acquisition taxonomy declares no probe with that name. This leaves the core k-MEANS++ incremental-distance requirement unverifiable through the declared integration surface even though the generated implementation contains the corresponding live logic.",
+      "proposed_fix": "Re-emit the full analyzer spec with this element bound to an exact applicable taxonomy probe, most likely `al_loop.microharness`, while preserving the paper-grounded requirements and feasibility fields.",
+      "resolution_status": "needs_user"
+    }
+  ]
+}

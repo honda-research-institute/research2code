@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0.0",
+  "params": {
+    "batch_size": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Section 7.4: 'The initial labeled data of MNIST, SVHN and CIFAR-10 are 20, 1000, 1000 random samples from their full training sets, respectively. The batch size of the compared baselines is 100, where GBALD ranks 300 acquisitions to select 100 data for the training'",
+      "note": "Paper uses batch_size=100 per data_setup."
+    },
+    "num_rounds": {
+      "value": 10,
+      "source": "system_default",
+      "paper_value": 100,
+      "reasoning": "Paper runs 100 rounds (~10,000 labels at batch_size=100). At smoke scale we run 10 rounds (~1,000 labels) \u2014 enough to see a learning curve emerge while keeping wall-time under ~5 min on a laptop CPU."
+    },
+    "initial_labeled": {
+      "value": 1000,
+      "source": "paper",
+      "paper_section": "Section 7.4: 'The initial labeled data of MNIST, SVHN and CIFAR-10 are 20, 1000, 1000 random samples from their full training sets, respectively. The batch size of the compared baselines is 100, where GBALD ranks 300 acquisitions to select 100 data for the training'",
+      "note": "Paper bootstraps with 1000 uniformly-random labeled examples.",
+      "used_in_notebook": false,
+      "unused_reason": "This method bootstraps the labeled set via `construct_core_set(core_set_size)` (Stage 1 of the algorithm) \u2014 the initial labeled set IS the core-set. The spec's data_setup mentions `initial_labeled` for paradigm-fixed reasons but the algorithm's runtime path doesn't reference it. Kept in the dict for spec fidelity; ignore at runtime."
+    },
+    "pool_size": {
+      "value": 5000,
+      "source": "system_default",
+      "paper_value": "full training set",
+      "reasoning": "Paper uses the full training set (typically 60k\u201373k samples) as the unlabeled pool. We subsample to 5,000 to keep gradient/distance computations fast. Pool ratio (total_budget / pool_size) \u2248 0.40. This is at or below the paradigm field guide's `demo_scale.max_budget_to_pool_ratio` of 0.4 \u2014 diversity baselines are still meaningfully tested at this scale."
+    },
+    "learning_rate": {
+      "value": 7.4,
+      "source": "system_inferred",
+      "reasoning": "Paper does not explicitly specify the learning rate (spec.training.learning_rate: 'Not explicitly stated in paper. Section 7.4 refers to [1] Gal et al. (2017) settings for training protocol. Paper uses b'). Selected 7.4 based on Adam-default convention following standard deep AL practice (Gal et al. 2017, Kirsch et al. 2019)."
+    },
+    "max_epochs": {
+      "value": 50,
+      "source": "system_inferred",
+      "reasoning": "Paper trains until training accuracy \u2265 99% with no explicit epoch cap. 50 is a safety bound that converges comfortably for the smoke-sized labeled sets the notebook uses (\u2264 ~1k examples)."
+    },
+    "train_until_accuracy": {
+      "value": 0.99,
+      "source": "system_inferred",
+      "reasoning": "Paper does not specify a training accuracy stopping target. The 0.99 value was inferred as a reasonable convergence target for the retrain-from-scratch protocol used across the AL loop (spec section references Gal et al. 2017 training settings instead of explicit paper values). The spec's training.num_epochs is null, and no epoch cap or accuracy threshold is stated in the paper."
+    },
+    "hidden_dim": {
+      "value": 256,
+      "source": "system_inferred",
+      "reasoning": "Paper architecture choice is data-type-dependent. We use hidden_dim=256 as the field-guide-typical AL convention."
+    },
+    "dropout_rate": {
+      "value": 0.5,
+      "source": "paper",
+      "paper_section": "Field-guide convention; bayesian-AL typical (Gal & Ghahramani 2016)",
+      "note": "Bayesian-AL field guide recommends dropout in [0.25, 0.5]."
+    },
+    "mc_samples": {
+      "value": 20,
+      "source": "system_default",
+      "paper_value": 2000,
+      "reasoning": "Paper uses 2000 MC dropout samples. We use 20 \u2014 the bayesian-AL field-guide minimum for BALD's posterior estimate to be meaningful (Gal et al. recommend T \u2265 20). Larger T at paper scale gives a tighter estimate but dominates runtime at smoke scale."
+    },
+    "core_set_size": {
+      "value": 1000,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (core_set_size=1000). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec and an entry to _PAPER_VALUE_SPEC_PATHS so this value is resolved against paper-truth."
+    },
+    "batch_returns": {
+      "value": 300,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (batch_returns=300). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec and an entry to _PAPER_VALUE_SPEC_PATHS so this value is resolved against paper-truth."
+    },
+    "batch_outputs": {
+      "value": 100,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (batch_outputs=100). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec and an entry to _PAPER_VALUE_SPEC_PATHS so this value is resolved against paper-truth."
+    },
+    "eta": {
+      "value": 0.9,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (eta=0.9). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec and an entry to _PAPER_VALUE_SPEC_PATHS so this value is resolved against paper-truth."
+    },
+    "R_0": {
+      "value": 2000.0,
+      "source": "spec_default",
+      "reasoning": "Value from the pluggable_component signature default (R_0=2000.0). The signature default is a runtime convenience chosen by the analyzer; it may or may not match the paper's stated value. If the paper specifies a value, add a structured source to the spec and an entry to _PAPER_VALUE_SPEC_PATHS so this value is resolved against paper-truth."
+    }
+  }
+}

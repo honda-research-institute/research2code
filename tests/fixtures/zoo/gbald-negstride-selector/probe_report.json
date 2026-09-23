@@ -1,0 +1,100 @@
+{
+  "target": "r2c_runs/bayesian-active-learning",
+  "counts": {
+    "pass": 6,
+    "fail": 0,
+    "flag_for_researcher": 0,
+    "warn": 1,
+    "unprobeable": 4
+  },
+  "verdicts": [
+    {
+      "probe_id": "US-10",
+      "verdict": "pass",
+      "message": "6 file(s) lint-clean (3 warning(s); engine: pyflakes)",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "US-2a",
+      "verdict": "warn",
+      "message": "eta: eta is source=paper but paper_section '' does not look like a paper locator",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "US-1",
+      "verdict": "pass",
+      "message": "params provenance probes clean over 14 entries",
+      "tier": "static",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "CT-3",
+      "verdict": "pass",
+      "message": "claims ledger built: 8 experiment claim(s) (2 comparative), every one explicitly untested_at_this_scale \u2014 the verification gap is visible, never silent",
+      "tier": "behavioral",
+      "evidence": "claims=['exp-uninformative-prior', 'exp-improved-acquisitions', 'exp-active-acquisitions-main', 'exp-repeated-samples', 'exp-noisy-samples', 'exp-vs-batchbald', 'exp-core-set-sensitivity', 'exp-t-test']",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "UB-6",
+      "verdict": "unprobeable",
+      "message": "notebook has no executed outputs (delivered unexecuted)",
+      "tier": "behavioral",
+      "evidence": "notebook.ipynb",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "AL-1",
+      "verdict": "pass",
+      "message": "loop bookkeeping invariants hold over 3 adversarial rounds",
+      "tier": "behavioral",
+      "evidence": "notebook.ipynb:96cfcef8",
+      "finding_class": "M-002"
+    },
+    {
+      "probe_id": "AL-4",
+      "verdict": "pass",
+      "message": "4 training calls used 4 distinct fresh models",
+      "tier": "behavioral",
+      "evidence": "notebook.ipynb:96cfcef8",
+      "finding_class": "M-003"
+    },
+    {
+      "probe_id": "UB-5",
+      "verdict": "pass",
+      "message": "live config trains to 1.000 train accuracy (chance 0.33, lr=0.001)",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "UB-7",
+      "verdict": "unprobeable",
+      "message": "baseline invocation raised ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().) ",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "CT-1",
+      "verdict": "unprobeable",
+      "message": "selector invocation raised ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().) ",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    },
+    {
+      "probe_id": "AL-5",
+      "verdict": "unprobeable",
+      "message": "selector invocation raised ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().) ",
+      "tier": "behavioral",
+      "evidence": "",
+      "finding_class": ""
+    }
+  ]
+}

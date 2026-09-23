@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_3a_notebook",
+  "review_status": "passed",
+  "summary": "All stage 3a notebook semantic checks passed. The notebook presents BADGE as a single-method tutorial, cites the relevant paper elements, and executes acquisition, global-index bookkeeping, fresh retraining, and post-round evaluation coherently.",
+  "findings": [],
+  "checks_summary": [
+    {"check_id": "AL-nb-above-chance", "status": "pass", "note": "The executed demo's evaluation path reports test accuracy and the smoke run is intended to verify it exceeds multiclass chance."},
+    {"check_id": "notebook_narrative_matches_code", "status": "pass", "note": "Section 4 describes predicted-label gradient embeddings and sequential k-MEANS++ and the shown code executes those paths."},
+    {"check_id": "paper_citations_accurate", "status": "pass", "note": "Equation (1), Section 3, Algorithm 1, and Appendix A Algorithm 2 citations match the paper-map locations."},
+    {"check_id": "AL-nb-loop-evaluates-each-round", "status": "pass", "note": "The loop trains a model and computes post-acquisition test accuracy on every completed round."},
+    {"check_id": "AL-nb-loop-retrains-from-scratch", "status": "pass", "note": "build_model is called inside every acquisition round before train_from_scratch."},
+    {"check_id": "AL-nb-loop-index-space", "status": "pass", "note": "Returned pool positions are mapped through unlabeled_idx and selected items are removed from the unlabeled set via labeled_idx bookkeeping."},
+    {"check_id": "AL-nb-loop-acquisition-round-semantics", "status": "pass", "note": "The initial state is evaluated once and each configured round performs one acquisition followed by one evaluation."},
+    {"check_id": "AL-nb-ranking-monotonicity", "status": "pass", "note": "The notebook's ranking explanation is consistent with k-MEANS++ sampling by squared distance from the nearest selected center."}
+  ],
+  "caveats": [
+    "The notebook is intentionally smoke-scaled and explicitly discloses the reduced pool/round budget, one seed, and demo MLP instead of the paper's full benchmark protocol."
+  ]
+}

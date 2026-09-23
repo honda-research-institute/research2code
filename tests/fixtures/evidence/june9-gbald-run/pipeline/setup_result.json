@@ -1,0 +1,10 @@
+{
+  "repo_root": "/home/researcher/research2code-mvp",
+  "input_path": "/home/researcher/research2code-mvp/input_papers/bayesian-active-learning.md",
+  "input_kind": "markdown",
+  "slug": "bayesian-active-learning",
+  "run_dir": "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning",
+  "pipeline_dir": "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline",
+  "paper_md_path": "/home/researcher/research2code-mvp/r2c_runs/bayesian-active-learning/.pipeline/paper.md",
+  "paper_md_present": true
+}

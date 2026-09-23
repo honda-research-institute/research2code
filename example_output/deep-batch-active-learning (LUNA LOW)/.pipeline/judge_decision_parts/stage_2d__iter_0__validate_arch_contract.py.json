@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2d",
+  "iteration": 0,
+  "validator_label": "validate_arch_contract.py",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-architecture-coder",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The architecture contract's data_loader.load_data_returns declares the training keys x_train and y_train and omits the exact four-key active-learning loader surface required by the matched build plan. Re-emit this block with exactly x_pool, y_pool, x_test, and y_test, using descriptors consistent with the scaffolded loader and the existing pool/test dimensions; preserve the rest of the contract.",
+    "proposed_fix": "Update arch_contract.json data_loader.load_data_returns so its key set is exactly ['x_pool', 'y_pool', 'x_test', 'y_test']; do not leave x_train or y_train in that loader-return block. Keep training inputs under training_loop.input, where the build plan separately requires x_train and y_train."
+  },
+  "rationale": "The validator explicitly enforces AL_ARCH_CONTRACT_REQUIREMENTS in scripts/build_plan.py: data_loader.load_data_returns has exact_keys x_pool, y_pool, x_test, y_test, while training_loop.input_shapes independently requires x_train and y_train. The failing artifact has the wrong loader key set but otherwise represents the declared active-learning paradigm, so the architecture-coder can repair the contract without upstream re-analysis or validator changes.",
+  "confidence": "high",
+  "files_examined": [
+    "scripts/validate_arch_contract.py",
+    "scripts/build_plan.py",
+    "docs/ssot/taxonomies.yaml",
+    "r2c_runs/deep-batch-active-learning/.pipeline/arch_contract.json",
+    "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json"
+  ]
+}

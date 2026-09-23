@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_1",
+  "iteration": 0,
+  "validator_label": "validate_method_spec.py --strict",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-method-analyzer",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The active-learning MethodSpec leaves all four required data_setup carriers null and labels the benchmark only as multiple benchmarks. The matched active_learning/batch_acquisition contract requires one auditable main-benchmark configuration with initial_labeled, batch_size, total_budget, and num_rounds populated as integers; the paper supplies the initial count and batch regimes, so the analyzer must select one paper-supported benchmark configuration rather than emit nulls or mix settings.",
+    "proposed_fix": "Re-emit the spec with a concrete benchmark_name and all four data_setup fields populated from that same paper benchmark, choosing a single supported batch regime and deriving a coherent number of acquisition rounds and total budget from the selected experiment/learning-curve configuration. Ensure total_budget approximately equals initial_labeled + num_rounds * batch_size, and keep the single-method scope (do not add baseline implementations or baseline promises)."
+  },
+  "rationale": "The failure is a legitimate MethodSpec-level invariant: schemas/method_spec.py explicitly rejects null AL fields, and the taxonomy node requires a single benchmark configuration. The analyzer owns method_spec.json and its own prompt requires these four fields for active_learning/*, so fix-mode can repair the artifact; this is not a validator bug or a methodology-contract inconsistency. The paper map and paper establish M=100 and B in {100, 1000, 10000}, while the current generic benchmark label and null budget/round fields fail the required auditable configuration contract.",
+  "confidence": "high",
+  "files_examined": [
+    "scripts/validate_method_spec.py",
+    "schemas/method_spec.py",
+    "schemas/judge_decision.py",
+    "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+    "r2c_runs/deep-batch-active-learning/.pipeline/paper_map.json",
+    "r2c_runs/deep-batch-active-learning/.pipeline/paper.md",
+    "docs/ssot/taxonomies.yaml",
+    ".opencode/agents/r2c-method-analyzer.md"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.1.0",
+  "review_status": "issues_found",
+  "summary": "Pass 0 methodology contract checks all pass: ellipsoid core-set initialization, geometric representativeness ranking, batch output selection, MC dropout uncertainty estimation with model.train(), and iteration budget scaling are all present and correct. No algorithmic drift, no essential feature gaps, no scope creep. Four minor findings: two cosmetic notebook prose issues, one provenance imprecision on R_0 (source=paper but runtime-rescaled), and one parameter (batch_returns) not resolved against paper-truth for MNIST.",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "nice-to-have",
+      "target_agent": "notebook-generator",
+      "issue_type": "narrative_inaccuracy",
+      "file": "notebook.ipynb",
+      "location": "cell 22 (§4.3 BALD Scoring markdown cell)",
+      "description": "The markdown explanation of why model.train() is critical contains a duplicated phrase: 'the method degenerates to the method degenerates to random sampling.' This appears to be a generation artifact; it should read 'and the method degenerates to random sampling.'"
+    },
+    {
+      "id": "F002",
+      "severity": "nice-to-have",
+      "target_agent": "notebook-generator",
+      "issue_type": "narrative_inaccuracy",
+      "file": "notebook.ipynb",
+      "location": "cell 17 (§4.1 Intuition markdown cell)",
+      "description": "Notebook §4.1 subsection item 2 reads 'Redundant acquisitions BALD's greedy scoring re-selects near-duplicates' — missing a colon or period after 'acquisitions', making the sentence structure confusing."
+    },
+    {
+      "id": "F003",
+      "severity": "important",
+      "target_agent": "parameter-deriver",
+      "issue_type": "provenance_reasoning_inaccurate",
+      "file": ".pipeline/params.json",
+      "location": "R_0 entry",
+      "description": "R_0 is marked as source='paper' with value 2000.0, but the notebook §3.4 immediately rescales it (R_0_scaled = 2000.0 * avg_feature_magnitude / 707.0 ≈ 5.7) to account for torchvision's ToTensor normalization. The params.json provenance record does not reflect that the actual runtime value differs significantly from the literal paper value. The algorithm behavior is correct per the spec's scale_dependent_hyperparameters formula, but the provenance metadata is imprecise.",
+      "proposed_fix": "Either (a) change R_0 source from 'paper' to 'system_inferred' with reasoning explaining the scale adaptation, or (b) add a note field documenting the rescaling formula applied at runtime."
+    },
+    {
+      "id": "F004",
+      "severity": "nice-to-have",
+      "target_agent": "parameter-deriver",
+      "issue_type": "other",
+      "file": ".pipeline/params.json",
+      "location": "batch_returns entry",
+      "description": "batch_returns=100 comes from the spec's pluggable_component signature default, not resolved against paper-truth. The paper's MNIST single-acquisition setting uses b=3. At demo scale with batch_size=3, the difference is functionally minimal since batch_size constrains the final output, and the Departures section documents this. However, the provenance source ('spec_default') should ideally be cross-checked and documented against the paper's stated value."
+    }
+  ]
+}

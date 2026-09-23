@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-cross-entropy": {
+      "what": "This loss takes the classifier's predicted class-probability vector p and the true class y. The indicator I(y=i) selects only the probability assigned to the true class, so the K-class sum reduces to ln(1/p_y), equivalently -log(p_y); training minimizes this quantity over labeled examples.",
+      "why_novel": "This is standard cross-entropy training loss, not a novel component of BADGE. It supplies the ordinary supervised objective for the neural classifier rather than introducing a separate uncertainty-diversity trade-off.",
+      "intuition": "The loss asks one simple question: how much probability did the model give the answer that turned out to be correct? Assigning the true class probability close to one gives a loss near zero, whereas assigning it a very small probability produces a large penalty, so minimizing the loss pushes probability toward the observed label."
+    }
+  }
+}

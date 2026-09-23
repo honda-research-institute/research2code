@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2x_params",
+  "review_status": "passed",
+  "summary": "All parameter provenance, deviation-reasoning, and demo-reachability checks passed.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "paper_source_values_match_paper",
+      "status": "pass",
+      "note": "Paper-sourced batch size, initial labeled count, learning rate, and training threshold are supported by the paper's Algorithm 1 / Section 4 statements."
+    },
+    {
+      "check_id": "system_default_reasoning_explains_deviation",
+      "status": "pass",
+      "note": "System-default num_rounds and pool_size include explicit paper-scale values and smoke-scale runtime rationale."
+    },
+    {
+      "check_id": "AL-params-demo-reachability",
+      "status": "pass",
+      "note": "initial_labeled (100) is below pool_size (12000), and five rounds of batch_size 100 do not exhaust the pool."
+    }
+  ],
+  "caveats": [
+    "The configuration is intentionally smoke-scaled: five rounds and a 12,000-example pool differ from the paper-scale benchmark, and the params file discloses those deviations."
+  ]
+}

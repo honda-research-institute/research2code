@@ -1,0 +1,348 @@
+
+{
+  "schema_version": "1.3.0",
+  "paper": {
+    "title": "Deep Batch Active Learning by Diverse, Uncertain Gradient Lower Bounds",
+    "authors": "Jordan T. Ash (Princeton University), Chicheng Zhang (University of Arizona), Akshay Krishnamurthy (Microsoft Research NYC), John Langford (Microsoft Research NYC), Alekh Agarwal (Microsoft Research Redmond)",
+    "repo_url": null
+  },
+  "core_method": {
+    "name": "BADGE: Batch Active learning by Diverse Gradient Embeddings",
+    "summary": "Selects batches of unlabeled examples by computing gradient embeddings of the cross-entropy loss with respect to the last layer weights (using the model's own predicted labels as proxy labels) and applying k-MEANS++ seeding to sample diverse, high-magnitude points in this gradient space, simultaneously capturing predictive uncertainty and sample diversity without hand-tuned hyperparameters.",
+    "type": "algorithm",
+    "paper_sections": [
+      "Section 2",
+      "Section 3",
+      "Algorithm 1",
+      "Equation 1",
+      "Appendix A (Algorithm 2)"
+    ],
+    "key_elements": [
+      "alg-badge",
+      "eq-gradient-embedding-softmax",
+      "alg-kmeans-plus-plus",
+      "concept-hallucinated-label",
+      "concept-gradient-embedding-space",
+      "concept-last-layer-optimization",
+      "eq-cross-entropy-loss"
+    ]
+  },
+  "paper_claims": {
+    "method_description": "BADGE selects batches of unlabeled examples by computing gradient embeddings of the cross-entropy loss w.r.t. the last layer weights, using the model's own predicted labels as 'hallucinated' labels. It then applies k-MEANS++ seeding on these embeddings to sample diverse, high-magnitude points. Gradient magnitude captures predictive uncertainty (confident examples have small gradient norms) while k-MEANS++ spread ensures diversity, solving the fundamental failure mode of pure uncertainty sampling where top-K uncertain examples are near-duplicates.",
+    "claimed_results": "BADGE consistently performs as well as or better than the best baseline across 231 experiments (7 datasets x 3 architectures x 3 batch sizes x 5 repeats). It beats CORESET on datasets where penultimate-layer features lack meaningful geometry, beats uncertainty-based methods when batch sizes are large, and outperforms the ALBL meta-algorithm. The key contribution is robustness across architecture, batch size, and dataset without any hand-tuned hyperparameters.",
+    "benchmark_scale": "7 datasets (MNIST, CIFAR-10, SVHN + 4 OpenML tabular datasets #6/#155/#156/#184), 3 architectures (2-layer MLP, ResNet-18, VGG-11), 3 batch sizes (100, 1000, 10000), initial labeled set M=100, trained with Adam until >99% training accuracy, 5 random seeds per configuration."
+  },
+  "try_it_out": {
+    "definition": "Try BADGE by running a batch active learning cycle: given a trained classifier and an unlabeled data pool, BADGE computes per-sample gradient embeddings and uses k-MEANS++ seeding to select a batch of diverse, uncertain examples for labeling. Watching the learning curve improve across rounds demonstrates the algorithm's effectiveness.",
+    "user_provides": [
+      {
+        "name": "Classification dataset",
+        "description": "A labeled dataset with feature vectors x_pool (N_pool, n_features) and integer labels y_pool (N_pool,). MNIST is the default demo dataset.",
+        "type": "data"
+      },
+      {
+        "name": "Model architecture",
+        "description": "A neural network classifier with a softmax output layer and an exposed penultimate layer (for gradient embedding computation). The paper's 2-layer MLP is the default.",
+        "type": "code"
+      }
+    ],
+    "system_provides": [
+      {
+        "name": "select_batch acquisition function",
+        "description": "The complete BADGE acquisition function: per-sample gradient embedding computation (Equation 1), k-MEANS++ seeding (Algorithm 2), and batch index selection.",
+        "type": "code"
+      },
+      {
+        "name": "Active learning training loop",
+        "description": "Bootstrap initialization (M random labels), per-round model retraining from scratch, acquisition, and test accuracy evaluation.",
+        "type": "code"
+      }
+    ]
+  },
+  "data_requirements": {
+    "format": "Tensors: x_pool (N_pool, n_features) feature vectors, y_pool (N_pool,) integer labels in [0, n_classes-1]. For image data with MLP, images are flattened to 1D vectors (e.g., MNIST 28x28 -> 784). For CNNs, images retain their 4D shape (B, C, H, W). For tabular OpenML data, features are raw numeric vectors.",
+    "example_datasets": [
+      "MNIST",
+      "CIFAR-10",
+      "SVHN",
+      "OpenML #6",
+      "OpenML #155",
+      "OpenML #156",
+      "OpenML #184"
+    ],
+    "auto_download_feasible": true,
+    "auto_download_details": "MNIST, CIFAR-10, SVHN available via torchvision.datasets. OpenML datasets available programmatically via skopenml.",
+    "synthetic_feasible": true,
+    "synthetic_description": "Can generate synthetic 2D classification data (e.g., concentric circles, two moons, or multiclass Gaussian blobs) for quick MLP demos on small pools."
+  },
+  "dependencies": {
+    "frameworks": [
+      "pytorch",
+      "numpy"
+    ],
+    "pretrained_models": [],
+    "compute": "CPU sufficient",
+    "estimated_time": "Minutes for smoke-scale demo (MLP on MNIST, small pool, ~10 rounds)"
+  },
+  "repo": {
+    "url": null,
+    "cloned": false,
+    "clone_path": null,
+    "key_files": []
+  },
+  "comparison": {
+    "classification": {
+      "id": "active_learning/batch_acquisition",
+      "field_guide_path": "paradigms/supervised_ml/active_learning/batch_acquisition/FIELD_GUIDE.md",
+      "detection_reasoning": "BADGE is the canonical reference method for the batch active acquisition paradigm. It selects multiple examples per round (B=100/1000/10000) using gradient embeddings and k-MEANS++ seeding, directly addressing the uncertainty-versus-diversity trade-off that defines batch AL."
+    },
+    "description": "The paper compares BADGE against 6 baselines (CORESET, Confidence, Margin, Entropy, ALBL, Random) across 33 dataset-architecture-batch_size combinations. The independent variable is the acquisition strategy; all methods share the same model architecture, training protocol (Adam, retrain from scratch until >99% accuracy), dataset, initial labeled set (M=100), and batch size. Results are aggregated via pairwise penalty matrices and normalized-error CDFs.",
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, batch_size, seed) -> List[int]",
+      "seed_param": "seed",
+      "description": "The BADGE acquisition function. Computes gradient embeddings for all unlabeled candidates using the model's predicted labels and last-layer weights, then selects batch_size diverse, high-magnitude samples via k-MEANS++ seeding. Returns indices into x_unlabeled. The only stochastic component is k-MEANS++'s initial centroid selection, controlled by seed. No extra parameters are needed beyond these arguments."
+    },
+    "controlled_variables": {
+      "model_architecture": "Same architecture class (MLP/ResNet/VGG) across all methods in a given experiment",
+      "training_protocol": "Retrain from scratch each round using Adam until >99% training accuracy; no warm-starting",
+      "label_budget": "Same initial labeled set size (M=100) and batch size B across methods",
+      "unlabeled_pool": "Same pool of unlabeled examples U available for selection across methods",
+      "data_preprocessing": "Identical preprocessing and normalization across all methods"
+    },
+    "independent_variable": "Batch acquisition strategy (BADGE vs. CORESET vs. Confidence vs. Margin vs. Entropy vs. ALBL vs. Random)",
+    "evaluation_checkpoints": "Test accuracy evaluated after the initial labeled set and after each acquisition round, producing a learning curve of accuracy vs. total labeled samples queried.",
+    "primary_metric": "Test accuracy (1 - 0/1 error) on the held-out test set",
+    "visualization": "Learning curves (accuracy vs. #labels queried), pairwise penalty matrices over all (dataset, architecture, batch_size) combinations, and CDFs of normalized errors relative to the Random baseline"
+  },
+  "critical_requirements": {
+    "model": {
+      "architecture": "Neural network classifier with a softmax output layer. The paper uses a 2-layer MLP with ReLU (hidden dim 256 for image data, 1024 for OpenML tabular data), an 18-layer ResNet, or an 11-layer VGG. For MNIST only MLP is used since the dataset is too easy for CNNs to differentiate methods.",
+      "paper_section": "Section 4 (Experiments)",
+      "specific_features": [
+        {
+          "feature": "Softmax output layer",
+          "why_essential": "The gradient embedding formula (Equation 1) is derived assuming softmax activation at the output. Proposition 1 (gradient norm lower bound) and the analytical embedding computation both require the softmax parametrization.",
+          "severity": "essential",
+          "paper_section": "Section 3 (Equation 1, Proposition 1)"
+        },
+        {
+          "feature": "Penultimate layer output accessible via forward_with_embedding hook",
+          "why_essential": "Gradient embedding computation (Equation 1: (g_x)_i = (p_i - I(y_hat==i)) * z) requires z(x;V), the penultimate layer output. Without access to z, the embedding cannot be computed analytically and would require per-sample autograd backpropagation.",
+          "severity": "essential",
+          "paper_section": "Section 3 (Equation 1)"
+        },
+        {
+          "feature": "Cross-entropy loss for gradient computation",
+          "why_essential": "The gradient embedding is defined as the gradient of the cross-entropy loss w.r.t. last layer weights. A different loss function would produce a fundamentally different embedding space.",
+          "severity": "essential",
+          "paper_section": "Section 2"
+        },
+        {
+          "feature": "ReLU hidden activations (for MLP architecture)",
+          "why_essential": "The paper's MLP uses ReLU activations. While the gradient embedding formula works with any penultimate output, the paper's specific results assume ReLU.",
+          "severity": "important",
+          "paper_section": "Section 4"
+        }
+      ]
+    },
+    "training": {
+      "optimizer": "Adam",
+      "learning_rate": "0.001 for image data (MNIST, CIFAR-10, SVHN), 0.0001 for non-image (OpenML) data",
+      "protocol": "retrain from scratch",
+      "mc_samples": null,
+      "num_epochs": null,
+      "seed": null,
+      "paper_section": "Section 4 (Experiments)"
+    },
+    "data_setup": {
+      "initial_labeled": 100,
+      "batch_size": 100,
+      "total_budget": 50000,
+      "num_rounds": 499,
+      "benchmark_name": "MNIST (MLP, batch_size=100)",
+      "special_protocol": null,
+      "paper_section": "Section 4 (Experiments)"
+    },
+    "blockers": [
+      {
+        "requirement": "Penultimate layer output for analytical gradient embedding computation",
+        "status": "must_implement",
+        "reason": "The model architecture must expose forward_with_embedding (or equivalent) to provide z(x;V) so gradient embeddings can be computed analytically via Equation 1 rather than requiring per-sample autograd.",
+        "resolution": "Implement forward_with_embedding(self, x: Tensor) -> tuple[Tensor, Tensor] on the architecture class, returning (logits, penultimate_z)."
+      },
+      {
+        "requirement": "Retrain from scratch each acquisition round (no warm-starting)",
+        "status": "must_implement",
+        "reason": "The paper explicitly avoids warm-starting (citing Ash and Adams, 2019) and builds a fresh model each round. Warm-starting changes the optimization trajectory and affects acquisition quality.",
+        "resolution": "The acquisition loop must call build_model() to create a fresh model with independent random initialization at the start of each round, then train_from_scratch on the current labeled set."
+      }
+    ],
+    "scale_dependent_hyperparameters": [],
+    "required_model_methods": [
+      {
+        "name": "forward_with_embedding",
+        "signature": "forward_with_embedding(self, x: Tensor) -> tuple[Tensor, Tensor]",
+        "returns_description": "Tuple of (logits, penultimate_embedding) where logits is the pre-softmax output from the final linear layer, shape (B, n_classes), and penultimate_embedding is the activation from the layer immediately before the classifier head, shape (B, hidden_dim). For an MLP, this is the output of the hidden ReLU layer.",
+        "purpose": "Gradient embedding computation (Equation 1) requires z(x;V), the penultimate layer output. For each sample n and class i: (g_n)_i = (p_ni - I(y_hat_n==i)) * z_n, producing the full K*d gradient embedding. This hook avoids per-sample autograd backpropagation.",
+        "called_from": "method/method.py within compute_gradient_embeddings: pass all unlabeled candidates through forward_with_embedding to get penultimate outputs and logits before computing gradient embeddings analytically.",
+        "paper_section": "Section 3 (Equation 1)"
+      }
+    ]
+  },
+  "methodology_replication_contract": {
+    "schema_version": "1.0",
+    "elements": [
+      {
+        "element_id": "gradient-embedding-computation",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 3 (Equation 1, Algorithm 1 Step 4)",
+        "paper_evidence": "The hallucinated-label gradient embedding g_x computed as (g_x)_i = (p_i - I(y_hat==i)) * z(x;V) across K class blocks of dimension d is the fundamental representation BADGE uses. Proposition 1 proves this embedding lower-bounds the true gradient for any label.",
+        "technical_concept": "Last-layer gradient embedding with hallucinated label",
+        "required_behavior": "For each unlabeled candidate, compute the model's predicted label y_hat (argmax of softmax output), then compute the gradient of the cross-entropy loss w.r.t. the last layer weight matrix W (shape K*d) using y_hat as the label. The result is a flattened K*d vector per sample.",
+        "demo_scale_implementation": "Use forward_with_embedding to obtain logits and penultimate z for all candidates. Compute softmax probabilities, identify y_hat per sample, then compute embeddings analytically: for class i, block_i = (p_i - I(y_hat==i)) * z, flattened to (N_candidates, K*d).",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not replace gradient embeddings with penultimate layer features alone (as CORESET does)",
+          "Do not use MC dropout, ensembles, or Bayesian uncertainty estimation; BADGE is purely deterministic gradient-based",
+          "Do not compute gradients w.r.t. all network parameters; Proposition 1 only holds for last-layer gradients",
+          "Do not use a different proxy label (e.g., uniformly random, or all K labels aggregated)"
+        ],
+        "required_controls": [
+          "Use the same trained model snapshot for all candidate gradient embedding computations within a single acquisition round",
+          "Ensure model.eval() (no dropout, no batchnorm noise) during embedding computation"
+        ],
+        "fairness_checks": [
+          "The gradient embedding computation must be identical across all candidates; only the input x varies",
+          "All candidates must be embedded with the same weight snapshot and same softmax parametrization"
+        ],
+        "feasibility_rationale": "The mechanism is fully specified by Equation 1 and Algorithm 1. It can be implemented at any scale given a model with forward_with_embedding and basic tensor operations.",
+        "verification_expectations": [
+          "method.py calls model.forward_with_embedding to obtain penultimate outputs for all candidates",
+          "Gradient embeddings are computed using the model's argmax softmax label, not any true labels",
+          "Embedding tensor has shape (N_candidates, K*d) where K is the number of classes and d is the hidden dimension"
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "kmeans-batch-selection",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 3 (Algorithm 1 Step 5), Appendix A (Algorithm 2)",
+        "paper_evidence": "k-MEANS++ seeding on gradient embeddings selects batches that are simultaneously diverse (via distance-based sequential sampling) and high-magnitude (probability proportional to squared distance to nearest centroid). The paper explicitly replaces k-DPP with k-MEANS++ for computational tractability.",
+        "technical_concept": "k-MEANS++ seeding on gradient embeddings",
+        "required_behavior": "Apply k-MEANS++ seeding to the gradient embedding vectors {g_x : x in U\\S} to select exactly batch_size candidates. The first centroid is chosen uniformly at random from candidates. Each subsequent centroid is chosen with probability proportional to the squared Euclidean distance to its nearest already-chosen centroid.",
+        "demo_scale_implementation": "Implement k-MEANS++ seeding (Algorithm 2 from Appendix A) operating on the gradient embedding vectors of shape (N_candidates, K*d). Use the seed parameter to initialize a NumPy random generator for the uniform first-centroid selection and all subsequent probabilistic choices.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not replace k-MEANS++ with random selection, top-k by gradient magnitude, or greedy furthest-first traversal (FF-k-CENTER)",
+          "Do not use k-DPP or any alternative sampling mechanism; k-MEANS++ was specifically chosen over k-DPP for its computational efficiency and near-identical statistical performance",
+          "Do not operate k-MEANS++ in input space, penultimate-layer feature space, or any space other than the gradient embedding space"
+        ],
+        "required_controls": [
+          "k-MEANS++ must operate in the gradient embedding space of dimension K*d",
+          "The distance metric must be Euclidean distance in the embedding space",
+          "The seed must control all stochastic choices in k-MEANS++ (first centroid, all subsequent samples)"
+        ],
+        "fairness_checks": [
+          "The embedding space is derived from the same model snapshot and same last-layer-restriction across all candidates",
+          "No candidates are removed or added to the pool during k-MEANS++ seeding"
+        ],
+        "feasibility_rationale": "k-MEANS++ seeding is a well-defined, efficiently implementable O(N*k*d) algorithm. The paper provides complete pseudocode in Appendix A. No scale-dependent hyperparameters exist.",
+        "verification_expectations": [
+          "method.py implements k-MEANS++ seeding as sequential sampling matching Algorithm 2 (first centroid uniform, subsequent proportional to squared distance)",
+          "The seeding operates on gradient embeddings (shape K*d), not on raw input features or penultimate-layer activations",
+          "The seed parameter is used to initialize a reproducible random generator for k-MEANS++"
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "last-layer-gradient-restriction",
+        "role": "supporting_mechanism",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 3 (Equation 1, Proposition 1, Algorithm 1 Step 4b)",
+        "paper_evidence": "BADGE computes gradients only w.r.t. the last (output) layer parameters theta_out = W in R^{K*d}. This restriction is essential for Proposition 1 (the lower bound proof) and keeps computation tractable (avoiding full-network backpropagation for each candidate).",
+        "technical_concept": "Gradient computation restricted to last layer weights only",
+        "required_behavior": "Gradient embedding computation targets only the last layer weight matrix W (shape K*d). The previous layer weights V (all hidden layer parameters) are not differentiated through. The embedding formula (Equation 1) inherently satisfies this restriction.",
+        "demo_scale_implementation": "Compute the gradient embedding analytically using z(x;V) and softmax outputs (Equation 1). This formula computes exactly the gradient w.r.t. W, with no backpropagation through V. The analytical computation is O(N*K*d) per batch.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not compute full-network gradients or backpropagate through hidden layers"
+        ],
+        "required_controls": [],
+        "fairness_checks": [],
+        "feasibility_rationale": "The analytical formula (Equation 1) inherently computes only last-layer gradients. The implementation uses forward_with_embedding to get z, then applies the formula directly. No approximation needed.",
+        "verification_expectations": [
+          "Embedding has shape K*d per sample (last layer weight dimensions), confirming restriction to last layer",
+          "No autograd backpropagation through the full network is used for embedding computation"
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "retrain-from-scratch-each-round",
+        "role": "evaluation_control",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 4 (Experiments)",
+        "paper_evidence": "The paper explicitly states: 'We avoid warm starting and retrain models from scratch every time new samples are queried (Ash and Adams, 2019).' Algorithm 1 Step 7: 'Train a model theta_{t+1} on S by minimizing E_S[CE(f(x;theta), y)].'",
+        "technical_concept": "Retrain model from scratch after each acquisition round",
+        "required_behavior": "At the start of each acquisition round, build a fresh model with independent random weight initialization and train it from scratch on the currently labeled set until training accuracy exceeds 99% (or the demo-equivalent stopping criterion).",
+        "demo_scale_implementation": "In the notebook acquisition loop, call build_model() to create a fresh model at each round, then train_from_scratch on x_pool[labeled_idx], y_pool[labeled_idx]. For demo scale, reduce the stop criterion (e.g., 80% training accuracy) or fix a small epoch count, but always build a new model.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not warm-start training from the previous round's model weights; this changes the optimization trajectory and acquisition quality"
+        ],
+        "required_controls": [
+          "Each round must produce a model with identical architecture but independent random initialization"
+        ],
+        "fairness_checks": [],
+        "feasibility_rationale": "This is a straightforward protocol: build a new model and train it each round. The paper provides clear pseudocode in Algorithm 1.",
+        "verification_expectations": [
+          "The acquisition loop calls build_model() at each round to create a fresh model",
+          "No model state (weights, optimizer) is carried over from the previous round"
+        ],
+        "blockers": []
+      }
+    ]
+  },
+  "methodology_contract_pack": {
+    "schema_version": "1.0",
+    "summary": "The demo must preserve BADGE's core dual mechanism: computing per-sample last-layer gradient embeddings with hallucinated labels, and selecting batches via k-MEANS++ seeding in that gradient space.",
+    "core_methodology_element_ids": [
+      "gradient-embedding-computation",
+      "kmeans-batch-selection"
+    ],
+    "implementation_obligations": [
+      "For each unlabeled candidate, compute the gradient of CE loss w.r.t. last layer weights using the model's predicted label (argmax of softmax output) as a proxy label.",
+      "Apply k-MEANS++ seeding on the resulting gradient embedding vectors to select batch_size diverse, high-magnitude samples.",
+      "Operate k-MEANS++ in the gradient embedding space (K*d dimensions), not in input space or penultimate-layer space.",
+      "Retrain the model from scratch at the start of each acquisition round."
+    ],
+    "approved_approximations": [],
+    "forbidden_substitutions": [
+      "Do not replace gradient embeddings with penultimate layer features alone (as CORESET does).",
+      "Do not replace k-MEANS++ with random selection, top-k magnitude, or greedy furthest-first traversal.",
+      "Do not use MC dropout, ensembles, or Bayesian uncertainty; BADGE is purely deterministic gradient-based.",
+      "Do not warm-start training from the previous round's model weights.",
+      "Do not compute full-network gradients; BADGE targets only last-layer weights."
+    ],
+    "required_controls": [
+      "Use the same trained model snapshot for all candidate gradient embeddings within a single round.",
+      "k-MEANS++ must operate in the gradient embedding space of dimension K*d.",
+      "Each round must produce a model with identical architecture but independent initialization."
+    ],
+    "verification_expectations": [
+      "method.py calls model.forward_with_embedding to obtain penultimate outputs for all candidates.",
+      "Gradient embeddings use the model's argmax label (not true labels) and have shape (N_candidates, K*d).",
+      "method.py implements k-MEANS++ seeding as sequential sampling matching Algorithm 2 from the paper.",
+      "The acquisition loop creates a fresh model at each round with no weight carryover."
+    ]
+  },
+  "replication_feasibility": {
+    "schema_version": "1.0",
+    "verdict": "feasible",
+    "blockers": [],
+    "approved_approximations": []
+  },
+  "feasibility": "reproducible"
+}

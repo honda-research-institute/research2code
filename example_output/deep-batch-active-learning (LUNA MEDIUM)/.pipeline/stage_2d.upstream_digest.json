@@ -1,0 +1,10 @@
+{
+  ".pipeline/arch_contract.json": "sha256:cfc7e2fd23a218b5c1240a5ac3283e6694bc97ab65f678d31ffd358073b1a295",
+  ".pipeline/method_spec.json": "sha256:75071f606b471489a60e1979224811f0f70c6694a4ea2421a7de307d136c2f9d",
+  "method/data.py": "sha256:c3993bdf0c66e24018c1b8ed8a849663f14a03f067b68520890c7bec062b47eb",
+  "method/method.py": "sha256:d540759d45330f5f3cedb0ae90bcfabb67f070c113bdee78538473094776ffec",
+  "method/model.py": "sha256:668cbf8e92d2eca9dc2bb1add457b155b24d3c70dbe1ad44fbe30637a77f2f4d",
+  "method/tests/test_alg_badge.py": "sha256:1b59f91ceea540ef1b1b8f703fa3fd8544d30766d2082be2a7f86f2630a1bf97",
+  "method/tests/test_alg_kmeans_plus_plus.py": "sha256:d61b209c1d7326192f958e962da5be9a1683698b17954785482363717666172f",
+  "method/training.py": "sha256:d3aed399d98337285191899ee01f77935bfd52481f915730e04eb707c09ddf99"
+}

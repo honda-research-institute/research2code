@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_1_analyzer",
+  "review_status": "passed",
+  "summary": "All three semantic checks passed. The spec accurately captures GBALD's two-stage contribution (ellipsoid core-set construction + geometric BALD ranking), essential model features are correctly classified, and the single scale-dependent hyperparameter (R_0) is properly declared.",
+  "findings": [],
+  "checks_summary": [
+    {"check_id": "core_method_summary_matches_paper", "status": "pass", "note": "Summary names both GBALD stages (ellipsoid core-set + BALD ranking with geometric representativeness), matching the paper abstract and introduction precisely."},
+    {"check_id": "critical_requirements_essential_features", "status": "pass", "note": "Three features declared: dropout active at inference (essential — correct, BALD degrades without it), dropout rate 0.5 (important — reasonable, affects calibration not correctness), standard classifier head (essential — correct, BALD needs per-class probabilities). No over-marking."},
+    {"check_id": "scale_dependent_hyperparameters_complete", "status": "pass", "note": "R_0 (Eq. 5 distance threshold) declared with paper_value=2000.0 and assumes_data_scale=raw_pixel_unnormalized. The eta factor (Eq. 11) is dimensionless and correctly omitted. Theoretical radii (R_a, R_b from proofs) correctly omitted as non-algorithmic."}
+  ],
+  "caveats": [
+    "The pluggable_component signature correctly follows the bayesian sub-paradigm override (includes x_labeled). The data_setup values form a consistent MNIST benchmark: initial_labeled=20, batch_size=100, num_rounds=6, total_budget=620 (arithmetic: 20 + 6*100 = 620). No methodology_replication_contract was present in the final spec (removed during fix-loop), so the contract baseline check did not apply."
+  ]
+}

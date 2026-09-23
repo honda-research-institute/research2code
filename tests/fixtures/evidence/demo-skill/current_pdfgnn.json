@@ -1,0 +1,23 @@
+{
+  "source": "r2c_runs/probabilistic-demand-forecasting-with-graph-neural-networks",
+  "captured_policy_date": "2026-08-08",
+  "execution": "completed",
+  "printed_verdict": "PASS",
+  "observed_metrics": {
+    "model_rmse": 6.1784,
+    "predict_zero_rmse": 8.6023,
+    "repeat_last_rmse": 4.3951
+  },
+  "executed_evaluation_record": null,
+  "evaluation_validity_receipt": {
+    "schema_version": "1.0.0",
+    "status": "invalid",
+    "validator": "eval_split_lineage",
+    "reasons": [
+      "exact_temporal_target_overlap"
+    ],
+    "evidence": {
+      "fixture": "tests/fixtures/evidence/pdfgnn-split-lineage-0807"
+    }
+  }
+}

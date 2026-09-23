@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "feasibility_at_spec": "reproducible",
+  "replication_feasibility_at_spec": "feasible",
+  "blocker_counts": {
+    "must_implement": 2,
+    "can_approximate": 0,
+    "cannot_implement": 0
+  },
+  "blockers": [
+    {
+      "requirement": "Predicted-label last-layer gradient embeddings",
+      "status": "must_implement",
+      "reason": "This is BADGE's uncertainty-and-representation mechanism; using probabilities or input features instead changes the acquisition rule.",
+      "resolution": "Compute the predicted class, form the cross-entropy residual for every class, multiply each residual by the true penultimate activation, and flatten the class blocks per candidate."
+    },
+    {
+      "requirement": "Seeded k-MEANS++ selection over gradient embeddings",
+      "status": "must_implement",
+      "reason": "The sampler supplies the within-batch diversity component of BADGE.",
+      "resolution": "Choose the first candidate uniformly using the supplied seed, then sample each subsequent candidate proportionally to its squared distance from the nearest already selected gradient embedding."
+    }
+  ]
+}

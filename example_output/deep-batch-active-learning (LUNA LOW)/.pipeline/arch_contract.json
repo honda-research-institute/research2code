@@ -1,0 +1,63 @@
+{
+  "schema_version": "2.0.0",
+  "paradigm_id": "active_learning/batch_acquisition",
+  "dimensions": {
+    "training_example_count": {"expression": {"kind": "literal", "value": 4}},
+    "forward_batch_count": {"expression": {"kind": "literal", "value": 4}},
+    "pool_example_count": {"expression": {"kind": "literal", "value": 5}},
+    "test_example_count": {"expression": {"kind": "literal", "value": 4}},
+    "selection_count": {"expression": {"kind": "literal", "value": 2}},
+    "feature_width": {"expression": {"kind": "literal", "value": 8}},
+    "class_count": {"expression": {"kind": "literal", "value": 3}},
+    "hidden_width": {"expression": {"kind": "literal", "value": 64}}
+  },
+  "data_loader": {
+    "load_data_returns": {
+      "x_pool": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "pool_example_count", "display_symbol": "P"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"},
+      "y_pool": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "pool_example_count", "display_symbol": "P"}], "device": "cpu", "constraint": {"kind": "class_id", "class_count_dimension": "class_count"}},
+      "x_test": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "test_example_count", "display_symbol": "T"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"},
+      "y_test": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "test_example_count", "display_symbol": "T"}], "device": "cpu", "constraint": {"kind": "class_id", "class_count_dimension": "class_count"}}
+    }
+  },
+  "architecture": {
+    "model": {
+      "class_name": "BADGEClassifier",
+      "constructor_args": {"input_dim": {"dimension": {"dimension": "feature_width"}}, "n_classes": {"dimension": {"dimension": "class_count"}}, "hidden_dim": {"dimension": {"dimension": "hidden_width"}}},
+      "forward": {
+        "input": {"x": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "forward_batch_count", "display_symbol": "B"}, {"dimension": "feature_width", "display_symbol": "D"}], "device": "cpu"}},
+        "output": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "forward_batch_count", "display_symbol": "B"}, {"dimension": "class_count", "display_symbol": "C"}], "device": "cpu"}
+      },
+      "additional_methods": {
+        "forward_with_embedding": {
+          "input": {"x": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "forward_batch_count"}, {"dimension": "feature_width"}], "device": "cpu"}},
+          "output": {"kind": "opaque", "type_description": "tuple[torch.Tensor, torch.Tensor]", "reason": "The method returns logits and the penultimate embedding as a tuple; schema 2 has no tuple-member grammar."}
+        }
+      }
+    }
+  },
+  "pluggable_component": {
+    "name": "select_batch",
+    "input": {
+      "model": {"kind": "opaque", "type_description": "torch.nn.Module", "reason": "The selector consumes the caller's trained classifier."},
+      "x_unlabeled": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "pool_example_count"}, {"dimension": "feature_width"}], "device": "cpu"},
+      "batch_size": {"kind": "scalar", "dtype": "int64", "source": {"dimension": {"dimension": "selection_count"}}},
+      "seed": {"kind": "scalar", "dtype": "int64", "source": {"literal": 0}}
+    },
+    "output": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "selection_count"}], "device": "cpu", "constraint": {"kind": "index", "indexed_dimension": "pool_example_count"}}
+  },
+  "training_loop": {
+    "function_name": "train_from_scratch",
+    "input": {
+      "model": {"kind": "opaque", "type_description": "BADGEClassifier", "reason": "The training entry mutates the supplied classifier in place."},
+      "x_train": {"kind": "tensor", "dtype": "float32", "dimensions": [{"dimension": "training_example_count"}, {"dimension": "feature_width"}], "device": "cpu"},
+      "y_train": {"kind": "tensor", "dtype": "int64", "dimensions": [{"dimension": "training_example_count"}], "device": "cpu", "constraint": {"kind": "class_id", "class_count_dimension": "class_count"}},
+      "learning_rate": {"kind": "scalar", "dtype": "float32", "source": {"literal": 0.001}},
+      "max_epochs": {"kind": "scalar", "dtype": "int64", "source": {"literal": 50}},
+      "train_until_accuracy": {"kind": "scalar", "dtype": "float32", "source": {"literal": 0.99}},
+      "seed": {"kind": "scalar", "dtype": "int64", "source": {"literal": 0}}
+    },
+    "output": {"kind": "opaque", "type_description": "BADGEClassifier", "reason": "Returns the trained model object."}
+  },
+  "optimizer_state": null,
+  "family_components": {}
+}

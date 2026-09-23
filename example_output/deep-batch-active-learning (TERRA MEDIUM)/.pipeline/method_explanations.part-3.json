@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-kmeanspp-probability": {
+      "what": "This rule draws the next center c_t from the gradient-embedding set G. Each candidate x receives weight D_t(x)^2, where D_t(x) is its distance to the nearest center already selected; normalizing these weights by their sum turns them into sampling probabilities. The selected center is therefore one part of the batch-construction procedure rather than a deterministic highest-distance choice.",
+      "why_novel": "The squared-distance sampling rule is standard k-MEANS++ machinery, not a new equation by itself. In BADGE, it is used to construct a batch from the paper's hallucinated gradient embeddings, so the standard rule supplies the diversity component alongside the embedding magnitudes that encode predictive uncertainty.",
+      "intuition": "A point already close to a chosen center represents much the same region of G, so it gets little chance of being selected again. A point far from every chosen center has a much larger squared-distance weight and is more likely to represent a new region. Squaring the distance accentuates that preference while retaining randomness, rather than forcing every next choice to be the single farthest point."
+    }
+  }
+}

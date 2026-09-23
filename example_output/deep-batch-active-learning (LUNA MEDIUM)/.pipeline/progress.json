@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0",
+  "slug": "deep-batch-active-learning",
+  "run_status": "completed",
+  "started_at": "2026-09-04T15:47:49Z",
+  "updated_at": "2026-09-04T16:10:01Z",
+  "current": null,
+  "stages": [
+    {
+      "stage_id": "stage_0",
+      "label": "Stage 0 - Setup & Paper Ingestion",
+      "status": "completed",
+      "started_at": "2026-09-04T15:47:49Z",
+      "ended_at": "2026-09-04T15:47:49Z",
+      "duration_s": 0.0,
+      "notes": "paper.md present at <repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper.md"
+    },
+    {
+      "stage_id": "stage_1",
+      "label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "status": "halted",
+      "started_at": "2026-09-04T15:47:49Z",
+      "ended_at": "2026-09-04T15:55:37Z",
+      "duration_s": 468.0,
+      "notes": "analyzer dispatch failed: r2c-method-analyzer modified or created files outside its allowlist. Out-of-scope writes: ['.opencode/opencode.json (tracked file modified during the dispatch; left in place for investigation, not restored)']. Allowed: ['.pipeline/method_spec.json', '.pipeline/paradigm_gap_report.json', '.pipeline/paradigm_gap_report.md']."
+    },
+    {
+      "stage_id": "stage_1x",
+      "label": "Stage 1.x - Method Explanation (METHOD.md)",
+      "status": "completed",
+      "started_at": "2026-09-04T15:52:51Z",
+      "ended_at": "2026-09-04T15:55:27Z",
+      "duration_s": 156.0,
+      "notes": "METHOD.md generated with 7 explanations"
+    },
+    {
+      "stage_id": "stage_2a",
+      "label": "Stage 2.a - Package Scaffold",
+      "status": "completed",
+      "started_at": "2026-09-04T15:55:27Z",
+      "ended_at": "2026-09-04T15:55:28Z",
+      "duration_s": 1.0,
+      "notes": "scaffolder + validator clean"
+    },
+    {
+      "stage_id": "stage_2b",
+      "label": "Stage 2.b - Architecture & Training",
+      "status": "completed",
+      "started_at": "2026-09-04T15:55:28Z",
+      "ended_at": "2026-09-04T15:58:00Z",
+      "duration_s": 152.0,
+      "notes": "architecture-coder + validator + review clean"
+    },
+    {
+      "stage_id": "stage_2c",
+      "label": "Stage 2.c - Method Implementation",
+      "status": "completed",
+      "started_at": "2026-09-04T15:58:00Z",
+      "ended_at": "2026-09-04T15:59:45Z",
+      "duration_s": 105.0,
+      "notes": "method-coder + validator + review clean"
+    },
+    {
+      "stage_id": "stage_2d",
+      "label": "Stage 2.d - Package Finalization",
+      "status": "completed",
+      "started_at": "2026-09-04T15:59:45Z",
+      "ended_at": "2026-09-04T16:04:06Z",
+      "duration_s": 261.0,
+      "notes": "init_finalizer + import validation + arch contract + dry-run clean + element tests"
+    },
+    {
+      "stage_id": "stage_2x",
+      "label": "Stage 2.x - Parameter Derivation",
+      "status": "completed",
+      "started_at": "2026-09-04T16:04:06Z",
+      "ended_at": "2026-09-04T16:04:29Z",
+      "duration_s": 23.0,
+      "notes": "derive_params + validator + review clean"
+    },
+    {
+      "stage_id": "stage_3a",
+      "label": "Stage 3.a - Notebook Authoring",
+      "status": "completed",
+      "started_at": "2026-09-04T16:04:29Z",
+      "ended_at": "2026-09-04T16:06:43Z",
+      "duration_s": 134.0,
+      "notes": "notebook-generator + render + validator + review clean"
+    },
+    {
+      "stage_id": "stage_3b",
+      "label": "Stage 3.b - Notebook Rendering",
+      "status": "completed",
+      "started_at": "2026-09-04T16:06:43Z",
+      "ended_at": "2026-09-04T16:06:44Z",
+      "duration_s": 1.0,
+      "notes": "render clean"
+    },
+    {
+      "stage_id": "stage_3c",
+      "label": "Stage 3.c - Smoke Execution",
+      "status": "completed",
+      "started_at": "2026-09-04T16:06:44Z",
+      "ended_at": "2026-09-04T16:09:26Z",
+      "duration_s": 162.0,
+      "notes": "smoke gate clean (iteration 1)"
+    },
+    {
+      "stage_id": "stage_4",
+      "label": "Stage 4 - Paper-Fidelity Review",
+      "status": "completed",
+      "started_at": "2026-09-04T16:09:26Z",
+      "ended_at": "2026-09-04T16:09:57Z",
+      "duration_s": 31.0,
+      "notes": "paper-fidelity review + validator clean"
+    },
+    {
+      "stage_id": "stage_5",
+      "label": "Stage 5 - Findings Routing",
+      "status": "completed",
+      "started_at": "2026-09-04T16:09:57Z",
+      "ended_at": "2026-09-04T16:09:57Z",
+      "duration_s": 0.0,
+      "notes": "4 important deferred; 2 open stage-review important disclosed; 4 stage-review caveat(s) logged"
+    }
+  ],
+  "totals": {
+    "stages_done": 13,
+    "stages_total": 13,
+    "elapsed_s": 1332.0,
+    "degrades": 0,
+    "halts": 1,
+    "dispatches_started": 52,
+    "dispatches_finished": 54,
+    "dispatches_succeeded": 53,
+    "dispatches_failed": 0,
+    "dispatches_recovered": 1,
+    "dispatches_completed": 53
+  }
+}

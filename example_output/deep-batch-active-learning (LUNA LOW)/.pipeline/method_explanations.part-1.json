@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-classifier-cross-entropy": {
+      "what": "The neural classifier f(x; theta) produces a probability p_i for each of the K classes when given input x. For a labeled example whose true class is y, the cross-entropy loss is ln(1/p_y), so training minimizes the mean of this loss over the labeled set by updating the network parameters theta. The classifier's prediction is the class with the highest score or probability.",
+      "why_novel": "This is standard multiclass cross-entropy training, not the novel part of BADGE. It supplies the trained classifier and the per-example loss from which the later hallucinated gradient representation is constructed; BADGE's contribution is to use that representation to combine uncertainty and diversity when selecting a batch.",
+      "intuition": "The loss is small when the network assigns high probability to the observed class y and large when it is wrong or doubtful about y. Repeating this over labeled examples teaches the network to put its probability mass on the correct class, producing the current model whose uncertainty and gradients can then guide active selection."
+    }
+  }
+}

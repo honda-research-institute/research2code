@@ -1,0 +1,42 @@
+"""Synthetic objective/data helpers for stochastic optimization demos."""
+
+from __future__ import annotations
+
+import numpy as np
+
+
+def make_quadratic_objective(dim: int = 4, *, noise_std: float = 0.0, seed: int = 0) -> tuple:
+    """Return a small convex objective and its optimum.
+
+    The objective callable accepts `(params, batch=None)` and returns
+    `(loss, grad)`. The optional noise term is deterministic for a fixed seed
+    and call order, which lets smoke runs exercise stochastic gradients without
+    losing reproducibility.
+    """
+
+    rng = np.random.default_rng(seed)
+    optimum = rng.normal(loc=0.0, scale=1.0, size=dim)
+    curvature = np.linspace(0.5, 2.0, dim)
+
+    def objective(params, batch=None):
+        params_arr = np.asarray(params, dtype=float)
+        diff = params_arr - optimum
+        base_grad = curvature * diff
+        grad = base_grad.copy()
+        if noise_std:
+            grad = grad + rng.normal(loc=0.0, scale=noise_std, size=dim)
+        loss = 0.5 * float(np.sum(curvature * diff * diff))
+        return loss, grad
+
+    return objective, optimum
+
+
+def make_synthetic_classification(n_samples: int = 128, n_features: int = 4, *, seed: int = 0) -> tuple:
+    """Return a tiny deterministic binary-classification dataset."""
+
+    rng = np.random.default_rng(seed)
+    weights = rng.normal(size=n_features)
+    x = rng.normal(size=(n_samples, n_features))
+    logits = x @ weights
+    y = (logits > np.median(logits)).astype(int)
+    return x.astype("float32"), y.astype("int64"), weights.astype("float32")

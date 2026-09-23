@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-kmeanspp-distance": {
+      "what": "For a candidate point x, D_t(x) is the Euclidean distance from x to its nearest already selected center in C_{t-1}. It produces one nonnegative distance score used to characterize how close the candidate is to the current set of centers.",
+      "why_novel": "This is standard nearest-center distance machinery rather than a novel equation by itself. In BADGE's broader selection strategy, it supplies the diversity component: a point far from every existing center is distinct in the representation space where the method performs selection.",
+      "intuition": "Imagine that the selected centers already mark regions represented in the batch. A candidate with small D_t(x) lies near one of those marked regions and is therefore redundant under this distance measure; a candidate with large D_t(x) reaches into a region not yet covered. The equation does not itself measure uncertainty—it only says how separated a candidate is from the current centers."
+    }
+  }
+}

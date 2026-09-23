@@ -1,0 +1,18 @@
+{
+  "claims": [
+    {
+      "claim_type": "domain",
+      "quote": "It produces one nonnegative distance score used to characterize how close the candidate is to the current set of centers.",
+      "formulas": ["Nearest-center distance"],
+      "formal": {
+        "lhs": "min(abs(x - c1), abs(x - c2))",
+        "relation": "nonnegative",
+        "variables": [
+          {"name": "x", "domain": [-100.0, 100.0], "role": "variable"},
+          {"name": "c1", "domain": [-100.0, 100.0], "role": "parameter"},
+          {"name": "c2", "domain": [-100.0, 100.0], "role": "parameter"}
+        ]
+      }
+    }
+  ]
+}

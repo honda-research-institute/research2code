@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "CodeRole": {
+      "description": "How the element gets used in generated code.\n\nSee `.opencode/skills/code-role-classification` for the full guidance.\nBriefly:\n    implement     \u2014 produces runnable code\n    demonstrate   \u2014 visualization or simulation that conveys the idea\n    theoretical   \u2014 proof scaffolding; not executed",
+      "enum": [
+        "implement",
+        "demonstrate",
+        "theoretical"
+      ],
+      "title": "CodeRole",
+      "type": "string"
+    },
+    "Element": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Unique within this paper map. Convention: kebab-case prefix per type (`alg-*`, `eq-*`, `concept-*`, `exp-*`, `prop-*`, `hyp-*`).",
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ElementType"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "section": {
+          "description": "Paper section reference, e.g., \"Section 3\" or \"Algorithm 1\".",
+          "title": "Section",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "source_text": {
+          "description": "Exact verbatim passage from the paper. For equation elements this is the equation EXACTLY as the paper writes it, LaTeX and $/$$ delimiters included (validated as a substring of paper.md); METHOD.md renders it as display math. Prose passages stay plain text. May be empty for elements that summarize claims without a single quotable line.",
+          "title": "Source Text",
+          "type": "string"
+        },
+        "pseudocode": {
+          "default": "",
+          "description": "Plain-ASCII representation of the element's computable content if available; else \"\". For algorithms this is the step-by-step pseudocode; for equations this is the ASCII-form expression (e.g., `g_x = (p_i - I(y_hat=i)) * z(x; V)`); for other element types it is typically empty. LaTeX commands must be replaced with ASCII (e.g., `\\sum` \u2192 `sum`).",
+          "title": "Pseudocode",
+          "type": "string"
+        },
+        "dependencies": {
+          "description": "IDs of elements this depends on. Must resolve within this paper map.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "related_equations": {
+          "description": "IDs of equation-type elements related to this. Must resolve within this paper map AND must reference elements whose type is `equation`.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Equations",
+          "type": "array"
+        },
+        "code_role": {
+          "$ref": "#/$defs/CodeRole"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "name",
+        "section",
+        "description",
+        "source_text",
+        "code_role"
+      ],
+      "title": "Element",
+      "type": "object"
+    },
+    "ElementType": {
+      "enum": [
+        "algorithm",
+        "equation",
+        "concept",
+        "experiment",
+        "property",
+        "hyperparameter"
+      ],
+      "title": "ElementType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "description": "Schema version this paper map was written against. Validators reject maps whose version they do not understand.",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "elements": {
+      "items": {
+        "$ref": "#/$defs/Element"
+      },
+      "title": "Elements",
+      "type": "array"
+    }
+  },
+  "required": [
+    "title",
+    "elements"
+  ],
+  "title": "PaperMap",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://r2c.local/schemas/paper_map/v1.0.0"
+}

@@ -1,0 +1,18 @@
+{
+ "case_id": "rfc10008-get-post-strengthening",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "In this variation, however, it is not readily apparent -- without specific knowledge of the resource and server to which the request is being sent -- that a safe, idempotent query is being performed.",
+   "span": {
+    "end": 5933,
+    "start": 5734
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "GET requests have no request-body semantics at all, and POST is categorically unsafe and non-idempotent."
+}

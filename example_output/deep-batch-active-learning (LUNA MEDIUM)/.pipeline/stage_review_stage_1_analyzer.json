@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_1_analyzer",
+  "review_status": "issues_found",
+  "summary": "The core BADGE mechanism, essential architecture requirement, and scale-dependent hyperparameter accounting are well represented. The training optimizer is recorded as generic SGD even though the paper specifies Adam, so the analyzer's paper-truth training field should be corrected.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "methodology_contract_baseline",
+      "severity": "important",
+      "target_agent": "analyzer",
+      "issue_type": "provenance_reasoning_inaccurate",
+      "file": ".pipeline/method_spec.json",
+      "location": "critical_requirements.training.optimizer, lines 112-120",
+      "description": "The paper specifies training with the Adam variant of SGD (paper Section 4, line 138 and paper-map element hyp-training-optimizer), but method_spec.json records the optimizer as plain SGD. This paper-truth field is too generic and can cause downstream training to diverge from the stated protocol.",
+      "proposed_fix": "Set critical_requirements.training.optimizer to Adam, or explicitly record Adam as the optimizer while noting that it is an SGD variant. Preserve the paper's optimizer rather than a broader family label."
+    }
+  ],
+  "checks_summary": [
+    {
+      "check_id": "core_method_summary_matches_paper",
+      "status": "pass",
+      "note": "The summary names uncertainty-aware gradient embeddings and k-means++ batch selection, matching BADGE's contribution."
+    },
+    {
+      "check_id": "critical_requirements_essential_features",
+      "status": "pass",
+      "note": "The final-layer gradient-embedding access requirement is appropriately marked essential; no unrelated features are over-tagged."
+    },
+    {
+      "check_id": "AL-analyzer-scale-hyperparams",
+      "status": "pass",
+      "note": "The paper does not introduce a distance threshold, radius, or kernel bandwidth requiring the scale-dependent hyperparameter lane."
+    },
+    {
+      "check_id": "methodology_contract_baseline",
+      "status": "fail",
+      "note": "The core gradient-embedding acquisition contract is present and feasible, but the structured training optimizer field loses the paper's Adam specification."
+    }
+  ],
+  "caveats": []
+}

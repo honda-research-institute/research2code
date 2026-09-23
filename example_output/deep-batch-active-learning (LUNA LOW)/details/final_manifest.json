@@ -1,0 +1,896 @@
+{
+  "schema_version": "1.9.0",
+  "run_id": "deep-batch-active-learning",
+  "paper_slug": "deep-batch-active-learning",
+  "generated_at": "2026-09-04T14:40:11Z",
+  "git_commit": "671c72c67678a4faf5e45b251d950ce0bdea66d2",
+  "config_hash": "f950fa44aed10a1d84ad50d5b2fb408e1c35da9f91e3d95fb6645719029a2a45",
+  "run_status": "passed",
+  "stage_summary": [
+    {
+      "stage_id": "stage_0",
+      "stage_label": "Stage 0 - Setup & Paper Ingestion",
+      "stage_category": "setup_analysis",
+      "status": "completed",
+      "notes": "paper.md present at <repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper.md",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "stage_category": "setup_analysis",
+      "status": "completed",
+      "notes": "analyzer + paper_map + feasibility + review clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_1x",
+      "stage_label": "Stage 1.x - Method Explanation (METHOD.md)",
+      "stage_category": "setup_analysis",
+      "status": "completed",
+      "notes": "METHOD.md generated with 3 explanations",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_2a",
+      "stage_label": "Stage 2.a - Package Scaffold",
+      "stage_category": "package_generation",
+      "status": "completed",
+      "notes": "scaffolder + validator clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_2b",
+      "stage_label": "Stage 2.b - Architecture & Training",
+      "stage_category": "package_generation",
+      "status": "completed",
+      "notes": "architecture-coder + validator + review clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_2c",
+      "stage_label": "Stage 2.c - Method Implementation",
+      "stage_category": "package_generation",
+      "status": "completed",
+      "notes": "method-coder + validator + review clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "stage_category": "package_generation",
+      "status": "completed",
+      "notes": "init_finalizer + import validation + arch contract + dry-run clean + element tests",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_2x",
+      "stage_label": "Stage 2.x - Parameter Derivation",
+      "stage_category": "package_generation",
+      "status": "completed",
+      "notes": "derive_params + validator + review clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "stage_category": "notebook_smoke",
+      "status": "completed",
+      "notes": "notebook-generator + render + validator + review clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_3b",
+      "stage_label": "Stage 3.b - Notebook Rendering",
+      "stage_category": "notebook_smoke",
+      "status": "completed",
+      "notes": "render clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_3c",
+      "stage_label": "Stage 3.c - Smoke Execution",
+      "stage_category": "notebook_smoke",
+      "status": "completed",
+      "notes": "smoke gate clean (iteration 0)",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_4",
+      "stage_label": "Stage 4 - Paper-Fidelity Review",
+      "stage_category": "review_routing",
+      "status": "completed",
+      "notes": "paper-fidelity review + validator clean",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    },
+    {
+      "stage_id": "stage_5",
+      "stage_label": "Stage 5 - Findings Routing",
+      "stage_category": "review_routing",
+      "status": "completed",
+      "notes": "1 open stage-review important disclosed; 5 stage-review caveat(s) logged",
+      "started_at": null,
+      "completed_at": null,
+      "last_event_sequence": null
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "REPORT.md",
+      "kind": "report_md",
+      "display_name": "Run Report",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "3b4fce427fdc73274c716a5e774ed71197bbf1e559283dc0fb3410765bbd0954",
+      "byte_size": 11365
+    },
+    {
+      "path": ".pipeline/paper.md",
+      "kind": "paper_markdown",
+      "display_name": "Parsed Paper",
+      "producer_stage": "stage_0",
+      "producer_stage_label": "Stage 0 - Setup & Paper Ingestion",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "2aa2899ae9d8d682dd75ca1da861691ebc545a4c45bb005998dec400d47644dc",
+      "byte_size": 101646
+    },
+    {
+      "path": ".pipeline/paper_map.json",
+      "kind": "paper_map",
+      "display_name": "Paper Map",
+      "producer_stage": "stage_1",
+      "producer_stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "c05d7c0dc93a945a867c67c4b02822cb93dc5a75ff5968ab4449b64e0525a970",
+      "byte_size": 12643
+    },
+    {
+      "path": ".pipeline/method_spec.json",
+      "kind": "method_spec",
+      "display_name": "Method Spec",
+      "producer_stage": "stage_1",
+      "producer_stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "d94c9f6833fdfc778fe766ff6ea99b4c68a74038a4dd6088ecdc5387ed8c8540",
+      "byte_size": 8327
+    },
+    {
+      "path": ".pipeline/feasibility_gate.json",
+      "kind": "feasibility_gate",
+      "display_name": "Feasibility Gate",
+      "producer_stage": "stage_1",
+      "producer_stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "7a4dbd8d0444e8496d24daad8f635062bcece569f58c8935bab889a659845eda",
+      "byte_size": 765
+    },
+    {
+      "path": "METHOD.md",
+      "kind": "method_md",
+      "display_name": "Method Explanation",
+      "producer_stage": "stage_1x",
+      "producer_stage_label": "Stage 1.x - Method Explanation (METHOD.md)",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "585898f92ae7798bec820f23f17ad3edae68d0df11d82a47ea27bd620954cfc7",
+      "byte_size": 13846
+    },
+    {
+      "path": ".pipeline/method_explanations.json",
+      "kind": "method_explanations",
+      "display_name": "Explanation Sidecar",
+      "producer_stage": "stage_1x",
+      "producer_stage_label": "Stage 1.x - Method Explanation (METHOD.md)",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "a0541ea1a2c96aa7529b3e03e0e4f77cc44a843149c9f2551a2f3555aefb32c4",
+      "byte_size": 4298
+    },
+    {
+      "path": "method/README.md",
+      "kind": "researcher_readme",
+      "display_name": "Package README",
+      "producer_stage": "stage_2a",
+      "producer_stage_label": "Stage 2.a - Package Scaffold",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "bb04e54fc5c471f0aca3eabc56e8e77763aa91694ff2d6fee6aeaa288a78b7d8",
+      "byte_size": 2134
+    },
+    {
+      "path": "method/data.py",
+      "kind": "method_file",
+      "display_name": "Method Data Loader",
+      "producer_stage": "stage_2a",
+      "producer_stage_label": "Stage 2.a - Package Scaffold",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "c3993bdf0c66e24018c1b8ed8a849663f14a03f067b68520890c7bec062b47eb",
+      "byte_size": 8788
+    },
+    {
+      "path": "method/example_data/README.md",
+      "kind": "method_data_format",
+      "display_name": "Example Data README",
+      "producer_stage": "stage_2a",
+      "producer_stage_label": "Stage 2.a - Package Scaffold",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "2df54fdf1665254e7357e85ed2288c5d0b0c0a79c4960d54ababf57fe814d360",
+      "byte_size": 2314
+    },
+    {
+      "path": ".pipeline/arch_contract.json",
+      "kind": "arch_contract",
+      "display_name": "Architecture Contract",
+      "producer_stage": "stage_2b",
+      "producer_stage_label": "Stage 2.b - Architecture & Training",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "c605846e9199dfd40e5f2b467f8a64e28b9995e4bf609f16ecef41810da04c0f",
+      "byte_size": 4716
+    },
+    {
+      "path": "method/model.py",
+      "kind": "method_file",
+      "display_name": "Model Code",
+      "producer_stage": "stage_2b",
+      "producer_stage_label": "Stage 2.b - Architecture & Training",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "7a518ead8a43d39691eab8a64034771026c8a394430805ac61cdd027b06c526a",
+      "byte_size": 1775
+    },
+    {
+      "path": "method/training.py",
+      "kind": "method_file",
+      "display_name": "Training Code",
+      "producer_stage": "stage_2b",
+      "producer_stage_label": "Stage 2.b - Architecture & Training",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "a4ea459f71c4fa73c172ed05e9e18b1e4f9435d3379de72463bdb7bab1496bfa",
+      "byte_size": 1613
+    },
+    {
+      "path": "method/method.py",
+      "kind": "method_file",
+      "display_name": "Method Implementation",
+      "producer_stage": "stage_2c",
+      "producer_stage_label": "Stage 2.c - Method Implementation",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "82bc23c98ef79f32d47323458044f8ddfc7dbc4f7cc234ec3da0d18545ebd5bd",
+      "byte_size": 4109
+    },
+    {
+      "path": "method/__init__.py",
+      "kind": "method_file",
+      "display_name": "Method Package Init",
+      "producer_stage": "stage_2d",
+      "producer_stage_label": "Stage 2.d - Package Finalization",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "5bfaa4831c8743dfd706597e14ade656bc4f021ac7ba2d84dbf27f859a3528a3",
+      "byte_size": 779
+    },
+    {
+      "path": "requirements.txt",
+      "kind": "requirements",
+      "display_name": "Runtime Requirements",
+      "producer_stage": "stage_2d",
+      "producer_stage_label": "Stage 2.d - Package Finalization",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "d66c784e259fbb73e60b732873bab2ca24ebefaaa2d4589c80b42be9e04d9a04",
+      "byte_size": 64
+    },
+    {
+      "path": "method/tests/README.md",
+      "kind": "test_coverage_index",
+      "display_name": "Per-Element Test Coverage",
+      "producer_stage": "stage_2d",
+      "producer_stage_label": "Stage 2.d - Package Finalization",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "3f5142ffe870406a56f6843b3a57c4e1370d0faca492e8b8ca9134937ba72cd8",
+      "byte_size": 1914
+    },
+    {
+      "path": ".pipeline/element_tests.json",
+      "kind": "element_tests",
+      "display_name": "Per-Element Test Results",
+      "producer_stage": "stage_2d",
+      "producer_stage_label": "Stage 2.d - Package Finalization",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "8d6e6a687cd6028491f40c85bd5ea684420cd7a1bf78498fdfe2ca16744578ad",
+      "byte_size": 1275
+    },
+    {
+      "path": ".pipeline/params.json",
+      "kind": "params",
+      "display_name": "Runtime Parameters",
+      "producer_stage": "stage_2x",
+      "producer_stage_label": "Stage 2.x - Parameter Derivation",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "65f2ec6b398a4fedc3e4b5a38ac57bb3c42af9df914af542a341acd78e616154",
+      "byte_size": 3428
+    },
+    {
+      "path": ".pipeline/notebook_draft.py",
+      "kind": "notebook_source",
+      "display_name": "Notebook Source",
+      "producer_stage": "stage_3a",
+      "producer_stage_label": "Stage 3.a - Notebook Authoring",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "557e166ee46c95da05cc0ff48c6f787dbedb8ad7764a143d7cd2dc27254c552b",
+      "byte_size": 8006
+    },
+    {
+      "path": "notebook.ipynb",
+      "kind": "notebook",
+      "display_name": "Rendered Notebook",
+      "producer_stage": "stage_3b",
+      "producer_stage_label": "Stage 3.b - Notebook Rendering",
+      "required_for_delivery": true,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "1a66a8bc2b76b76d52220aaef74178223186e44a97302102045c54b019cedef9",
+      "byte_size": 101620
+    },
+    {
+      "path": ".pipeline/target_scaling_state.json",
+      "kind": "target_scaling_state",
+      "display_name": "Training-Only Target Scaling State",
+      "producer_stage": "stage_3c",
+      "producer_stage_label": "Stage 3.c - Smoke Execution",
+      "required_for_delivery": false,
+      "status": "missing",
+      "validation_status": "missing",
+      "sha256": null,
+      "byte_size": null
+    },
+    {
+      "path": ".pipeline/training_history.json",
+      "kind": "training_history",
+      "display_name": "Structured Training and Selection History",
+      "producer_stage": "stage_3c",
+      "producer_stage_label": "Stage 3.c - Smoke Execution",
+      "required_for_delivery": false,
+      "status": "missing",
+      "validation_status": "missing",
+      "sha256": null,
+      "byte_size": null
+    },
+    {
+      "path": ".pipeline/review_report.json",
+      "kind": "review_report",
+      "display_name": "Paper-Fidelity Review",
+      "producer_stage": "stage_4",
+      "producer_stage_label": "Stage 4 - Paper-Fidelity Review",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "2468b4e21b604c4e19a704b4e107db3f3878c50ecd32f834b512e0dce74daa7e",
+      "byte_size": 1366
+    },
+    {
+      "path": "details/deferred_findings.md",
+      "kind": "deferred_findings",
+      "display_name": "Deferred Findings",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "ef5bdef686f7f271815f0f8b2ec414d40306f41218e6a63d656270c99e5fa3f1",
+      "byte_size": 3189
+    },
+    {
+      "path": "details/assumptions.md",
+      "kind": "assumptions",
+      "display_name": "Assumptions Audit",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": "8062db3ff950b5bb22b444183c9739129ec0855dd78e75b1070d03b206a6ad10",
+      "byte_size": 2933
+    },
+    {
+      "path": "details/KNOWN_ISSUES.md",
+      "kind": "known_issues",
+      "display_name": "Known Issues",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": false,
+      "status": "missing",
+      "validation_status": "missing",
+      "sha256": null,
+      "byte_size": null
+    },
+    {
+      "path": ".pipeline/driver_state.json",
+      "kind": "driver_state",
+      "display_name": "Driver State",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": null,
+      "byte_size": null
+    },
+    {
+      "path": ".pipeline/run_events.jsonl",
+      "kind": "event_log",
+      "display_name": "Run Event Log",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": null,
+      "byte_size": null
+    },
+    {
+      "path": ".pipeline/progress.json",
+      "kind": "progress_state",
+      "display_name": "Progress State",
+      "producer_stage": "stage_5",
+      "producer_stage_label": "Stage 5 - Findings Routing",
+      "required_for_delivery": false,
+      "status": "present",
+      "validation_status": "passed",
+      "sha256": null,
+      "byte_size": null
+    }
+  ],
+  "validation_summary": [
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "validator": "validate_paper_map.py",
+      "status": "passed",
+      "summary": "validate_paper_map.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper_map.json"
+      ],
+      "event_sequence": 8
+    },
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "validator": "validate_method_spec.py --strict",
+      "status": "failed",
+      "summary": "validate_method_spec.py --strict failed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json"
+      ],
+      "event_sequence": 11
+    },
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "validator": "validate_method_spec.py --strict",
+      "status": "passed",
+      "summary": "validate_method_spec.py --strict passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json"
+      ],
+      "event_sequence": 17
+    },
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "validator": "check_feasibility.py",
+      "status": "passed",
+      "summary": "check_feasibility.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/feasibility_gate.json"
+      ],
+      "event_sequence": 18
+    },
+    {
+      "stage_id": "stage_2a",
+      "stage_label": "Stage 2.a - Package Scaffold",
+      "validator": "validate_scaffolder_output.py",
+      "status": "passed",
+      "summary": "validate_scaffolder_output.py passed",
+      "artifacts": [],
+      "event_sequence": 39
+    },
+    {
+      "stage_id": "stage_2b",
+      "stage_label": "Stage 2.b - Architecture & Training",
+      "validator": "validate_architecture_coder_output.py",
+      "status": "failed",
+      "summary": "validate_architecture_coder_output.py failed",
+      "artifacts": [],
+      "event_sequence": 44
+    },
+    {
+      "stage_id": "stage_2b",
+      "stage_label": "Stage 2.b - Architecture & Training",
+      "validator": "validate_architecture_coder_output.py",
+      "status": "passed",
+      "summary": "validate_architecture_coder_output.py passed",
+      "artifacts": [],
+      "event_sequence": 50
+    },
+    {
+      "stage_id": "stage_2c",
+      "stage_label": "Stage 2.c - Method Implementation",
+      "validator": "validate_method_coder_output.py",
+      "status": "passed",
+      "summary": "validate_method_coder_output.py passed",
+      "artifacts": [],
+      "event_sequence": 57
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "validator": "validate_package_imports.py",
+      "status": "passed",
+      "summary": "validate_package_imports.py passed",
+      "artifacts": [],
+      "event_sequence": 62
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "validator": "validate_arch_contract.py",
+      "status": "failed",
+      "summary": "validate_arch_contract.py failed",
+      "artifacts": [],
+      "event_sequence": 63
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "validator": "validate_arch_contract.py",
+      "status": "passed",
+      "summary": "validate_arch_contract.py passed",
+      "artifacts": [],
+      "event_sequence": 69
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "validator": "validate_arch_contract_runtime.py",
+      "status": "passed",
+      "summary": "validate_arch_contract_runtime.py passed",
+      "artifacts": [],
+      "event_sequence": 70
+    },
+    {
+      "stage_id": "stage_2x",
+      "stage_label": "Stage 2.x - Parameter Derivation",
+      "validator": "validate_params_output.py",
+      "status": "passed",
+      "summary": "validate_params_output.py passed",
+      "artifacts": [],
+      "event_sequence": 98
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "render_notebook.py",
+      "status": "passed",
+      "summary": "render_notebook.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/notebook.ipynb"
+      ],
+      "event_sequence": 105
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "validate_notebook_output.py",
+      "status": "failed",
+      "summary": "validate_notebook_output.py failed",
+      "artifacts": [],
+      "event_sequence": 106
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "render_notebook.py",
+      "status": "passed",
+      "summary": "render_notebook.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/notebook.ipynb"
+      ],
+      "event_sequence": 112
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "validate_notebook_output.py",
+      "status": "passed",
+      "summary": "validate_notebook_output.py passed",
+      "artifacts": [],
+      "event_sequence": 113
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "validate_package_imports.py",
+      "status": "passed",
+      "summary": "validate_package_imports.py passed",
+      "artifacts": [],
+      "event_sequence": 114
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "lint_generated_code.py",
+      "status": "passed",
+      "summary": "lint_generated_code.py passed",
+      "artifacts": [],
+      "event_sequence": 115
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "render_notebook.py",
+      "status": "passed",
+      "summary": "render_notebook.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/notebook.ipynb"
+      ],
+      "event_sequence": 120
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "validate_notebook_output.py",
+      "status": "passed",
+      "summary": "validate_notebook_output.py passed",
+      "artifacts": [],
+      "event_sequence": 121
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "validate_package_imports.py",
+      "status": "passed",
+      "summary": "validate_package_imports.py passed",
+      "artifacts": [],
+      "event_sequence": 122
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "lint_generated_code.py",
+      "status": "passed",
+      "summary": "lint_generated_code.py passed",
+      "artifacts": [],
+      "event_sequence": 123
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "validator": "render_notebook.py",
+      "status": "passed",
+      "summary": "render_notebook.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/notebook.ipynb"
+      ],
+      "event_sequence": 128
+    },
+    {
+      "stage_id": "stage_4",
+      "stage_label": "Stage 4 - Paper-Fidelity Review",
+      "validator": "validate_review_report.py",
+      "status": "passed",
+      "summary": "validate_review_report.py passed",
+      "artifacts": [
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/review_report.json"
+      ],
+      "event_sequence": 137
+    }
+  ],
+  "references": {
+    "report_md": "REPORT.md",
+    "method_spec": ".pipeline/method_spec.json",
+    "assumptions_md": "details/assumptions.md",
+    "deferred_findings_md": "details/deferred_findings.md",
+    "known_issues_md": null,
+    "probe_report": ".pipeline/probe_report.json",
+    "claims_ledger": ".pipeline/claims_ledger.json",
+    "review_report": ".pipeline/review_report.json",
+    "run_events": ".pipeline/run_events.jsonl",
+    "driver_state": ".pipeline/driver_state.json",
+    "final_manifest": "details/final_manifest.json"
+  },
+  "diagnostics": [],
+  "delivery": {
+    "partial": false,
+    "schema_version": "1.7.0",
+    "label": "draft",
+    "reasons": [
+      {
+        "source": "probe",
+        "id": "UB-6",
+        "message": "executed metric series 'test_accuracy' moves but is unvetted here (no class count for a chance comparison) \u2014 surfaced rather than passed silently",
+        "verdict": "flag_for_researcher",
+        "observed_verdict": null,
+        "severity": null,
+        "evidence": "notebook.ipynb: test_accuracy=['0.731', '0.821', '0.843', '0.852', '0.881', '0.887']"
+      },
+      {
+        "source": "fidelity_review",
+        "id": "F001",
+        "message": "The contract still references `AL-kmeanspp-incremental-distances`, but the matched batch_acquisition taxonomy declares no probe with that name. This leaves the core k-MEANS++ incremental-distance requirement unverifiable through the declared integration surface even though the generated implementati\u2026",
+        "verdict": null,
+        "observed_verdict": null,
+        "severity": "critical",
+        "evidence": null
+      }
+    ],
+    "disclosures": [
+      {
+        "source": "probe",
+        "id": "AL-1",
+        "message": "loop cell raised AttributeError: 'list' object has no attribute 'detach' \u2014 This finding carries known probe ref `al_loop.microharness`, but declares no callable or element anchor that could reach a methodology obligation. The result is unanchored coverage, not certification evidence.",
+        "verdict": "unprobeable",
+        "observed_verdict": null,
+        "severity": null,
+        "evidence": "notebook.ipynb:948e1d18"
+      },
+      {
+        "source": "probe",
+        "id": "AL-3",
+        "message": "in-loop training builds a fresh model each round (fresh-weights behavior is AL-4's complementary check) \u2014 This finding carries probe ref `al_loop.fresh_retrain`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "binding_gap",
+        "observed_verdict": "pass",
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "AL-7",
+        "message": "post-acquisition learning-curve points are retrained/evaluated after the label merge \u2014 This finding carries probe ref `al_loop.eval_label_alignment`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "binding_gap",
+        "observed_verdict": "pass",
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "AL-6",
+        "message": "the delivered demo config exercises the acquisition loop (initial_labeled=100 < pool_size=12000; budget 500 fits the remaining 11900) \u2014 This finding carries probe ref `al_loop.demo_config_reachability`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "binding_gap",
+        "observed_verdict": "pass",
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "CT-1",
+        "message": "selection differs from the degenerate nulls (first-k, seeded-random idioms) across 3 trial pools \u2014 This finding carries probe ref `claims.contribution_floor`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "binding_gap",
+        "observed_verdict": "pass",
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "AL-5",
+        "message": "contract holds (4 unique in-range indices) and the selection responds to model weights \u2014 This finding carries probe ref `al_loop.acquisition_contract`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "binding_gap",
+        "observed_verdict": "pass",
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "AL-S1-1",
+        "message": "no module-level callable matches the core-set naming convention (name containing 'core_set'/'coreset') \u2014 the Stage-1 probes cannot bind \u2014 This finding carries probe ref `al_stage1.coreset_construction`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "unprobeable",
+        "observed_verdict": null,
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "AL-S1-2",
+        "message": "no module-level callable matches the core-set naming convention (name containing 'core_set'/'coreset') \u2014 the Stage-1 probes cannot bind \u2014 This finding carries probe ref `al_stage1.coreset_construction`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "unprobeable",
+        "observed_verdict": null,
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "probe",
+        "id": "AL-S1-3",
+        "message": "no module-level callable matches the core-set naming convention (name containing 'core_set'/'coreset') \u2014 the Stage-1 probes cannot bind \u2014 This finding carries probe ref `al_stage1.coreset_construction`, but the methodology contract declares no such verification ref. The finding remains unbound; this is a probe-side or analyzer-side coverage gap, not evidence about the paper.",
+        "verdict": "unprobeable",
+        "observed_verdict": null,
+        "severity": null,
+        "evidence": null
+      },
+      {
+        "source": "demo_verdict",
+        "id": "demo_not_checked",
+        "message": "the headline demo outcome was not machine-checked: markers are declared for this family but none matched the headline demo section's executed outputs",
+        "verdict": null,
+        "observed_verdict": null,
+        "severity": null,
+        "evidence": null
+      }
+    ],
+    "probe_counts": {
+      "pass": 11,
+      "flag_for_researcher": 1,
+      "unprobeable": 4
+    },
+    "stubbed_elements": [],
+    "graph_evidence_applicability": "not_applicable",
+    "missing_probe_family": null,
+    "demo_verdict": {
+      "schema_version": null,
+      "verdict": "undetermined",
+      "evidence_line": null,
+      "evidence_cell": null,
+      "decided_by": null,
+      "reason": "markers are declared for this family but none matched the headline demo section's executed outputs",
+      "evidence_status": null
+    }
+  }
+}

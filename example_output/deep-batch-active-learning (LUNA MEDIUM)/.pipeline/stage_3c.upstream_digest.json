@@ -1,0 +1,13 @@
+{
+  ".pipeline/notebook_draft.py": "sha256:6f93f69259b8570c238860407b6578fc6bb1a2e734606c8358785979ae58a6a6",
+  ".pipeline/params.json": "sha256:6ba52631b8d670b74404d9da519eb4219369a430999fde020add5654862d8d48",
+  "method/__init__.py": "sha256:20c2eee4f142c361ff0d4722b02a0a3ba6b70407f26c4b08ec21509fa47b2308",
+  "method/data.py": "sha256:c3993bdf0c66e24018c1b8ed8a849663f14a03f067b68520890c7bec062b47eb",
+  "method/method.py": "sha256:d540759d45330f5f3cedb0ae90bcfabb67f070c113bdee78538473094776ffec",
+  "method/model.py": "sha256:668cbf8e92d2eca9dc2bb1add457b155b24d3c70dbe1ad44fbe30637a77f2f4d",
+  "method/tests/test_alg_badge.py": "sha256:1b59f91ceea540ef1b1b8f703fa3fd8544d30766d2082be2a7f86f2630a1bf97",
+  "method/tests/test_alg_kmeans_plus_plus.py": "sha256:d61b209c1d7326192f958e962da5be9a1683698b17954785482363717666172f",
+  "method/training.py": "sha256:8f66609a6df6cda90c907d628a34bb90f1de9daade3a80d029ffdaacf4fb4c01",
+  "notebook.ipynb": "sha256:5fb6416d3658c30d7ab2409f46c4d45b442adbdebe6649c8329f94459e577a66",
+  "requirements.txt": "sha256:d66c784e259fbb73e60b732873bab2ca24ebefaaa2d4589c80b42be9e04d9a04"
+}

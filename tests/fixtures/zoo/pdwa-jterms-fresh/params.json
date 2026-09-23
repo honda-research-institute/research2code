@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "params": {
+    "dt": {
+      "value": 0.1,
+      "source": "system_inferred",
+      "reasoning": "Standard robotics time step. The paper uses \u0394t symbolically throughout Eq. 1, 3, 9, 10, 14 and Section 3 without stating a numerical value. 0.1 s is the signature default appropriate for motion planning."
+    },
+    "d_safe": {
+      "value": null,
+      "source": "system_default",
+      "paper_value": 0.1,
+      "reasoning": "Paper states d_safe=0.1, but the generated method signature default is None. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    },
+    "beta_1": {
+      "value": 1.0,
+      "source": "system_default",
+      "paper_value": 0.1,
+      "reasoning": "Paper states beta_1=0.1, but the generated method signature default is 1.0. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    },
+    "beta_2": {
+      "value": 2.0,
+      "source": "system_default",
+      "paper_value": 0.1,
+      "reasoning": "Paper states beta_2=0.1, but the generated method signature default is 2.0. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    },
+    "beta_3": {
+      "value": 3.0,
+      "source": "system_default",
+      "paper_value": 0.1,
+      "reasoning": "Paper states beta_3=0.1, but the generated method signature default is 3.0. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    },
+    "beta_4": {
+      "value": 4.0,
+      "source": "system_default",
+      "paper_value": 0.1,
+      "reasoning": "Paper states beta_4=0.1, but the generated method signature default is 4.0. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    },
+    "beta_5": {
+      "value": 5.0,
+      "source": "system_default",
+      "paper_value": 0.1,
+      "reasoning": "Paper states beta_5=0.1, but the generated method signature default is 5.0. Treating the signature default as the smoke/runtime value while preserving the paper value for audit."
+    }
+  }
+}

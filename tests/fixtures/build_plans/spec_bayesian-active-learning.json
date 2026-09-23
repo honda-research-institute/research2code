@@ -1,0 +1,386 @@
+{
+  "schema_version": "1.6.0",
+  "paper": {
+    "title": "Bayesian Active Learning by Disagreements: A Geometric Perspective",
+    "authors": "Xiaofeng Cao and Ivor W. Tsang (Australian Artificial Intelligence Council under Grant DP180100106 and DP200101328, Institute, University of Technology Sydney, NSW 2008, Australia)",
+    "repo_url": null
+  },
+  "core_method": {
+    "name": "GBALD",
+    "summary": "A two-stage active learning acquisition framework that integrates elliptical core-set construction with Bayesian model uncertainty estimation (BALD) to select informative and geometrically representative data.",
+    "type": "algorithm",
+    "paper_sections": [
+      "Section 4",
+      "Section 5",
+      "Algorithm 1"
+    ],
+    "key_elements": [
+      "concept-gbald-framework",
+      "concept-ellipsoid-core-set",
+      "eq-bald-criterion",
+      "eq-geometric-probability",
+      "eq-ellipsoid-geodesic",
+      "eq-batch-bald",
+      "eq-ranking-criterion",
+      "eq-batch-output",
+      "alg-gbald-two-stage"
+    ]
+  },
+  "paper_claims": {
+    "method_description": "GBALD is a two-stage active learning framework. Stage 1 initializes the labeled set by constructing a core-set on an ellipsoid rather than a sphere, using a geometric probability model and ellipsoid geodesic rescaling to avoid boundary bias. Stage 2 performs model uncertainty estimation via BALD scoring with MC dropout, then ranks the top-b candidates by geometric representativeness (max-min distance to existing labeled samples) and selects the top-b' for annotation.",
+    "claimed_results": "GBALD outperforms BALD, BatchBALD, random sampling, entropy, variation ratio, k-medoids, and k-centers on MNIST, SVHN, and CIFAR-10. It converges faster, reaches 70%/80%/90% accuracy with fewer acquisitions, and is more robust to repeated and noisy samples.",
+    "benchmark_scale": "MNIST: budget 600, batch size 3; SVHN: budget ~10,000, batch size 100; CIFAR-10: budget ~20,000, batch size 100. Initial labeled: 20 (MNIST), 1000 (SVHN/CIFAR-10). GBALD ranks b=300 candidates, selects b'=batch_size per round."
+  },
+  "try_it_out": {
+    "definition": "Trying out GBALD means running a two-stage active learning loop on an image classification task. The researcher supplies their model and data; we implement the elliptical core-set bootstrap and the BALD+geometric-ranking acquisition function.",
+    "user_provides": [
+      {
+        "name": "image classification model",
+        "description": "A CNN or MLP with dropout layers. The model is retrained from scratch at each AL round.",
+        "type": "code"
+      },
+      {
+        "name": "image dataset with labels",
+        "description": "Standard image classification dataset (MNIST, SVHN, CIFAR-10) or user data. MNIST is the default for demo.",
+        "type": "data"
+      }
+    ],
+    "system_provides": [
+      {
+        "name": "elliptical core-set construction (Stage 1)",
+        "description": "The geometric prior initialization and ellipsoid geodesic core-set construction that bootstraps the labeled pool.",
+        "type": "code"
+      },
+      {
+        "name": "BALD scoring with geometric ranking (Stage 2)",
+        "description": "The select_batch acquisition function that combines MC-dropout BALD uncertainty scoring with k-centers geometric representativeness ranking.",
+        "type": "code"
+      },
+      {
+        "name": "active learning loop with retraining",
+        "description": "The notebook integration that runs the AL rounds with model retraining from scratch each round.",
+        "type": "code"
+      }
+    ]
+  },
+  "data_requirements": {
+    "format": "Standard image classification data: tensor of shape (N, C, H, W) with class labels as integers in [0, num_classes-1]. MNIST is single-channel (1, 28, 28), CIFAR-10 is (3, 32, 32).",
+    "example_datasets": [
+      "MNIST",
+      "SVHN",
+      "CIFAR-10"
+    ],
+    "auto_download_feasible": true,
+    "auto_download_details": "MNIST auto-downloadable via torchvision.datasets.MNIST. CIFAR-10 auto-downloadable via torchvision.datasets.CIFAR10. SVHN requires manual download.",
+    "synthetic_feasible": true,
+    "synthetic_description": "Synthetic toy datasets with clustered 2D or 3D image-like distributions can demonstrate the core-set and ranking mechanisms at reduced scale."
+  },
+  "dependencies": {
+    "frameworks": [
+      "pytorch",
+      "numpy",
+      "scikit-learn"
+    ],
+    "pretrained_models": [],
+    "compute": "CPU sufficient",
+    "estimated_time": "~10-30 minutes on CPU for MNIST smoke demo (~60 rounds); ~15 min per round on SVHN at paper scale; single GPU recommended for faster runtime"
+  },
+  "repo": {
+    "url": null,
+    "cloned": false,
+    "clone_path": null,
+    "key_files": []
+  },
+  "comparison": {
+    "classification": {
+      "id": "active_learning/bayesian",
+      "detection_reasoning": "GBALD is a Bayesian active learning method that uses MC dropout for posterior approximation (positive signal: mutual information / BALD acquisition over posterior samples, T stochastic forward passes per example). It is explicitly listed as a worked example (GBALD, Cao & Tsang 2022) in the bayesian sub-variant fingerprint. The method is the most specific match: it is both bayesian (BALD + MC dropout) and batch-acquisition, but the bayesian node takes precedence because the core innovation (elliptical geometric prior + BALD scoring) centers on Bayesian uncertainty estimation, not just batch diversity. The route_elsewhere signals for batch_acquisition (spherical core-set only) do not apply because GBALD uses ellipsoid geometry and Bayesian scoring."
+    },
+    "description": "A fair comparison holds the model architecture (CNN with dropout), training protocol (Adam, retrain from scratch), label budget, initial labeled set, and unlabeled pool constant. The independent variable is the acquisition function (GBALD vs. BALD, BatchBALD, random, entropy, etc.).",
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, mc_samples: int = 100, batch_returns: int = 300, R_0: float = 2000.0) -> List[int]",
+      "seed_param": "seed",
+      "description": "Per-round Stage 2 acquisition: ranks x_unlabeled by BALD uncertainty (mc_samples MC dropout passes), preselects top batch_returns candidates, then selects top batch_size by geometric representativeness (k-centers max-min distance to x_labeled). The geometric probability model (Eq 5) uses R_0 as the distance threshold. mc_samples is a demo-reduced default; paper uses 2000. batch_returns is the paper's first-stage preselection count b=300."
+    },
+    "controlled_variables": {
+      "model_architecture": "Same CNN/MLP with dropout layers used across all methods",
+      "training_protocol": "Adam optimizer, retrain from scratch at each AL round, same number of epochs",
+      "label_budget": "Same total budget and initial labeled set size across methods",
+      "unlabeled_pool": "Same unlabeled data pool used for all acquisition methods",
+      "dropout_rate": "Same dropout rate (0.5) across all methods"
+    },
+    "independent_variable": "The acquisition function (GBALD vs. BALD vs. BatchBALD vs. random vs. entropy vs. variation ratio vs. k-medoids vs. k-centers)",
+    "evaluation_checkpoints": "Test accuracy evaluated after each acquisition round; learning curves plotted as accuracy vs. cumulative number of labeled samples",
+    "primary_metric": "Test accuracy (classification accuracy)",
+    "visualization": "Learning curves (accuracy vs. acquisition count), pairwise penalty matrices from t-test analysis",
+    "standard_baselines": []
+  },
+  "critical_requirements": {
+    "model": {
+      "architecture": "CNN (one block: [convolution, dropout, max-pooling, relu] with 32 filters, 3x3 conv, 5x5 pooling) or three-layer variant [conv-dropout-maxpool-relu] x 3 with 32/64/128 filters. For demo, a smaller MLP or single-block CNN is acceptable.",
+      "paper_section": "Section 7.2 (CNN), Section 7.4 (three-layer MLP)",
+      "specific_features": [
+        {
+          "feature": "Dropout layers active at inference",
+          "why_essential": "MC dropout requires stochastic forward passes at inference to approximate the Bayesian posterior. Without active dropout, all T samples are identical and BALD scores collapse to zero, degenerating to random sampling.",
+          "severity": "essential",
+          "paper_section": "Section 7.2, Section 7.4"
+        },
+        {
+          "feature": "Dropout rate 0.5",
+          "why_essential": "The paper uses dropout rate 0.5 consistently. This controls the variance of the MC dropout approximation and affects BALD score calibration.",
+          "severity": "important",
+          "paper_section": "Section 7.2"
+        }
+      ]
+    },
+    "training": {
+      "optimizer": "Adam",
+      "learning_rate": "0.001 (default for image datasets; paper follows Gal et al. 2017 conventions)",
+      "protocol": "retrain from scratch",
+      "mc_samples": 2000,
+      "num_epochs": null,
+      "seed": null,
+      "paper_section": "Section 7.2, Section 7.4"
+    },
+    "data_setup": {
+      "initial_labeled": 20,
+      "batch_size": 100,
+      "total_budget": 600,
+      "num_rounds": 6,
+      "batch_returns": 300,
+      "benchmark_name": "MNIST main benchmark (GBALD ranks 300, selects 100)",
+      "per_dataset_values": {
+        "initial_labeled": {
+          "MNIST": 20,
+          "SVHN": 1000,
+          "CIFAR-10": 1000
+        },
+        "batch_size": {
+          "MNIST": 3,
+          "SVHN": 100,
+          "CIFAR-10": 100
+        },
+        "total_budget": {
+          "MNIST": 600,
+          "SVHN": 10000,
+          "CIFAR-10": 20000
+        }
+      },
+      "special_protocol": "Two-stage acquisition: rank b=300 candidates by BALD score, then select b'=batch_size by geometric representativeness (k-centers max-min to labeled pool). GBALD's Stage 1 constructs a core-set (size N_M, typically 1000-5000) on ellipsoid before Stage 2 begins.",
+      "paper_section": "Section 7.4 (main benchmark), Algorithm 1"
+    },
+    "blockers": [
+      {
+        "requirement": "MC dropout with dropout active during inference",
+        "status": "must_implement",
+        "reason": "The paper uses MC dropout to approximate Bayesian inference. Dropout must be active during inference (model.train() before scoring) to produce T different predictions.",
+        "resolution": "Implement MC sampling in the BALD scoring function with dropout enabled."
+      },
+      {
+        "requirement": "Two-stage pipeline (elliptical core-set + BALD ranking)",
+        "status": "must_implement",
+        "reason": "GBALD's contribution is the two-stage framework. Stage 1 (core-set) and Stage 2 (BALD + geometric ranking) must both be implemented.",
+        "resolution": "Implement construct_ellipsoid_core_set as a Stage 1 bootstrap helper, and select_batch as the Stage 2 per-round acquisition."
+      },
+      {
+        "requirement": "Geometric probability model (Eq 5)",
+        "status": "must_implement",
+        "reason": "The geometric prior is the key innovation: p(y|x,theta) = 1 if ||x-D_j|| <= R_0, else R_0/||x-D_j||. This replaces the need for a DNN in Stage 1.",
+        "resolution": "Implement geometric_probability() helper that assigns probabilities based on distance to nearest labeled center."
+      },
+      {
+        "requirement": "Ellipsoid geodesic rescaling (Eq 11)",
+        "status": "must_implement",
+        "reason": "The ellipsoid geodesic rescales selection: x_e = x_i + eta*(x* - x_i). This prevents boundary acquisition and is the geometric innovation distinguishing GBALD from spherical core-set.",
+        "resolution": "Implement ellipsoid_geodesic() helper with eta=0.9."
+      },
+      {
+        "requirement": "R_0 calibrated for unnormalized pixel data",
+        "status": "can_approximate",
+        "reason": "R_0 = 2000 is calibrated for raw [0, 255] MNIST pixel distances. Normalized [0,1] data needs R_0 rescaled by a factor of ~255.",
+        "resolution": "Structured scale-dependent hyperparameter entry informs the generator to rescale R_0 based on data preprocessing. Demo default signature may use a rescaled value."
+      }
+    ],
+    "scale_dependent_hyperparameters": [
+      {
+        "name": "R_0",
+        "paper_value": 2000.0,
+        "formula": null,
+        "assumes_data_scale": "raw_pixel_unnormalized",
+        "description": "Distance threshold for the geometric probability model p(y|x, theta). If ||x - D_j|| <= R_0, probability is 1; otherwise max_j(R_0 / ||x - D_j||). Calibrated for raw unnormalized [0, 255] pixel distances across all 784 MNIST channels. Needs proportional rescaling for normalized preprocessing.",
+        "paper_section": "Section 4.2, Eq (5), Section 7.1"
+      }
+    ],
+    "required_model_methods": []
+  },
+  "methodology_replication_contract": {
+    "schema_version": "1.0",
+    "elements": [
+      {
+        "element_id": "elliptical-core-set-construction",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 4.2, Algorithm 1 Lines 3-13",
+        "paper_evidence": "Stage 1 initializes the labeled set using a geometric probability model on an ellipsoid, with ellipsoid geodesic rescaling (Eq 11) and combined max-min acquisition criterion (Eq 10). This is the geometric innovation that prevents core-set construction from falling into boundary regions.",
+        "technical_concept": "Elliptical core-set construction with geometric prior",
+        "required_behavior": "Construct initial labeled set by: (1) k-means initialization of centers U, (2) geometric probability model p(y|x,theta)=R_0/||x-D_j||, (3) max-min acquisition by combined ||L_0-L||^2 + log p(y|x,theta), (4) ellipsoid geodesic rescaling x_e = x_i + eta*(x* - x_i) with eta=0.9.",
+        "demo_scale_implementation": "Run the same Stage 1 core-set construction on a smaller pool with reduced core-set size N_M (e.g., 50-200 instead of paper's 1000-5000). Use MNIST raw pixel distances with R_0=2000 or a rescaled value.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not replace elliptical core-set with spherical core-set (k-centers without ellipsoid geodesic rescaling). The sphere geodesic is the baseline GBALD improves over.",
+          "Do not use a random bootstrap instead of the geometric core-set. The geometric prior is essential to GBALD's robustness to uninformative priors.",
+          "Do not use a DNN forward pass for Stage 1 distances. Stage 1 operates in input space using raw pixel L2 distances, not feature embeddings."
+        ],
+        "required_controls": [
+          "Use the same geometric probability model parameters (R_0, eta) across all demo runs so Stage 1 is deterministic given the seed and data."
+        ],
+        "fairness_checks": [
+          "The Stage 1 core-set serves as an initialization only; Stage 2 acquisition is the ongoing process. Do not attribute ongoing improvements solely to Stage 1."
+        ],
+        "feasibility_rationale": "The Stage 1 algorithm is fully specified in Algorithm 1 and the referenced equations. It can run at demo scale with a smaller pool and fewer iterations.",
+        "verification_expectations": [
+          "construct_ellipsoid_core_set implements the geometric probability model (Eq 5) and ellipsoid geodesic rescaling (Eq 11).",
+          "Stage 1 uses raw pixel L2 distances, not model embeddings.",
+          "Eta=0.9 is used as the default affine factor for ellipsoid rescaling."
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "bald-geometric-ranking",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Section 4.3, Algorithm 1 Lines 16-18",
+        "paper_evidence": "Stage 2 combines BALD uncertainty scoring (Eq 12) with geometric representativeness ranking (Eq 13-14). The method ranks b informative samples by BALD score, then selects the b' most geometrically representative using max-min distance to the existing labeled pool.",
+        "technical_concept": "Two-stage BALD scoring with geometric representativeness ranking",
+        "required_behavior": "For each AL round: (1) score all unlabeled candidates by BALD mutual information using MC dropout, (2) select top-b candidates by BALD score, (3) rank those b candidates by min distance to existing labeled pool, (4) select top-b'=batch_size candidates. Model dropout must be active during inference for MC sampling.",
+        "demo_scale_implementation": "Run Stage 2 with fewer MC samples (e.g., 20-100 instead of 2000) and smaller preselection pool. The algorithm structure is identical: BALD scoring -> top-b -> geometric ranking -> top-b'.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not use pure BALD (top-k by BALD score only) without the geometric representativeness ranking. The ranking is GBALD's Stage 2 contribution.",
+          "Do not use entropy or margin scoring in place of BALD. BALD mutual information is the Bayesian uncertainty measure GBALD operates on.",
+          "Do not use feature-embedding distances for geometric ranking. The geometric representativeness uses raw input-space distances (Eq 13: ||x_i* - D_j|| in input space)."
+        ],
+        "required_controls": [
+          "MC dropout forward passes must use model.train() (not model.eval()) so dropout is active during inference.",
+          "The same random seed must be used for MC sampling across all candidates in a round for reproducibility.",
+          "batch_returns controls the preselection pool size; batch_size controls the final output. The harness must pass these correctly."
+        ],
+        "fairness_checks": [
+          "Only the acquisition function differs from baselines. Model architecture, training protocol, and data must be identical.",
+          "GBALD's advantage should not come from a larger batch size alone; the preselection+ranking protocol must be compared to pure BALD with the same batch output."
+        ],
+        "feasibility_rationale": "The Stage 2 algorithm is fully specified and can run at demo scale with reduced MC samples and smaller preselection pools. No proprietary dependencies.",
+        "verification_expectations": [
+          "select_batch implements BALD scoring using MC dropout with model.train().",
+          "Geometric representativeness ranking uses input-space L2 distances, not model embeddings.",
+          "The function returns exactly batch_size indices into x_unlabeled.",
+          "Model.train() is called before MC sampling, not model.eval()."
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "two-stage-pipeline-integration",
+        "role": "core_methodology",
+        "replication_status": "must_replicate",
+        "paper_section": "Algorithm 1, Section 5",
+        "paper_evidence": "The complete GBALD algorithm is a two-stage pipeline: Stage 1 constructs an elliptical core-set to bootstrap D_0, Stage 2 iteratively acquires batches via BALD+geometric ranking. The budget A = (Q - N_M) / b' controls the number of Stage 2 rounds after Stage 1 produces N_M core-set samples.",
+        "technical_concept": "Two-stage GBALD pipeline integration",
+        "required_behavior": "The notebook/integration must: (1) call construct_ellipsoid_core_set once at bootstrap to produce initial labeled set, (2) train warmup model, (3) run AL loop: select_batch -> add to labeled pool -> retrain model from scratch -> repeat.",
+        "demo_scale_implementation": "Implement the two-stage structure: bootstrap with core-set construction (small N_M), then per-round select_batch with retraining from scratch. Use MNIST pool with small parameters for demo.",
+        "acceptable_approximations": [],
+        "forbidden_substitutions": [
+          "Do not skip Stage 1 and use a random bootstrap. The core-set construction is integral to GBALD's performance.",
+          "Do not warm-start the model across rounds. The paper retrain from scratch at each round; warm-starting changes the algorithmic regime."
+        ],
+        "required_controls": [
+          "Model must be retrained from scratch at each AL round (fresh model instantiation, not carrying over weights from previous round).",
+          "The labeled pool grows monotonically: each round's acquisitions are added to D_0 and removed from D_u."
+        ],
+        "fairness_checks": [
+          "The two-stage structure must be preserved. Comparing only Stage 2 (BALD+ranking) against BALD without Stage 1 initialization does not faithfully represent GBALD.",
+          "Stage 1's core-set size N_M should be consistent across runs to avoid attributing improvements to different bootstrap sizes."
+        ],
+        "feasibility_rationale": "The two-stage integration is the algorithm's structural identity. It can be implemented at demo scale with reduced parameters.",
+        "verification_expectations": [
+          "Notebook §3.4 calls construct_ellipsoid_core_set before the AL loop.",
+          "Notebook §5.1 retrain from scratch at each round (build_model inside loop).",
+          "select_batch is called each round with the current DNN model and the full unlabeled pool.",
+          "Labeled/unlabeled index bookkeeping: indices disjoint, positions mapped to globals."
+        ],
+        "blockers": []
+      },
+      {
+        "element_id": "mc-dropout-count",
+        "role": "paper_scale_detail",
+        "replication_status": "faithful_approximation_allowed",
+        "paper_section": "Section 7.2, Section 7.4",
+        "paper_evidence": "Paper uses 2000 MC dropout samples per scoring pass. The bayesian-AL taxonomy sets a minimum floor of 20 meaningful samples for BALD.",
+        "technical_concept": "MC dropout sample count T",
+        "required_behavior": "MC dropout sampling with T forward passes per candidate. Paper uses T=2000.",
+        "demo_scale_implementation": "Reduce T to 20-100 for smoke/demo scale. The BALD scoring mechanism is structurally identical; only the number of samples changes.",
+        "acceptable_approximations": [
+          "Reduce mc_samples from 2000 to 20-100 for demo scale. The posterior estimate is less precise but the BALD mechanism is still functional.",
+          "Reduce batch_returns from 300 to 50-100 for demo scale."
+        ],
+        "forbidden_substitutions": [],
+        "required_controls": [],
+        "fairness_checks": [],
+        "feasibility_rationale": "The MC sample count affects precision of posterior estimate but not the algorithm structure. Paper scale is computationally expensive (2000 passes per candidate per round).",
+        "verification_expectations": [
+          "mc_samples in params.json should differ between demo and paper-scale configs.",
+          "BALD scoring must still use model.train() even with reduced mc_samples."
+        ],
+        "blockers": []
+      }
+    ]
+  },
+  "methodology_contract_pack": {
+    "schema_version": "1.0",
+    "summary": "The demo must preserve GBALD's two-stage pipeline: elliptical core-set construction (Stage 1) + BALD with geometric representativeness ranking (Stage 2), with MC dropout active at inference.",
+    "core_methodology_element_ids": [
+      "elliptical-core-set-construction",
+      "bald-geometric-ranking",
+      "two-stage-pipeline-integration"
+    ],
+    "implementation_obligations": [
+      "Construct initial labeled set via elliptical core-set (geometric prior + ellipsoid geodesic), not random bootstrap or spherical k-centers.",
+      "Score candidates with BALD using MC dropout (model.train() at inference), then rank by geometric representativeness in input space.",
+      "Maintain two-stage structure: Stage 1 bootstrap -> Stage 2 iterative AL loop with retrain from scratch."
+    ],
+    "approved_approximations": [
+      "MC dropout sample count may be reduced from 2000 to 20-100 for demo scale.",
+      "Preselection pool size batch_returns may be reduced from 300 for demo scale."
+    ],
+    "forbidden_substitutions": [
+      "Do not replace elliptical core-set with spherical core-set or random bootstrap.",
+      "Do not use pure BALD, entropy, or margin scoring without geometric ranking.",
+      "Do not use feature-embedding distances; geometric ranking operates in input space.",
+      "Do not warm-start the model; retrain from scratch each round."
+    ],
+    "required_controls": [
+      "Model.train() before MC sampling; not model.eval().",
+      "Same model architecture, training protocol, and data across acquisition methods.",
+      "Labeled/unlabeled pool bookkeeping: disjoint sets, positions to global indices."
+    ],
+    "verification_expectations": [
+      "construct_ellipsoid_core_set implements Eq 5 and Eq 11.",
+      "select_batch implements BALD scoring + geometric ranking, returns exactly batch_size indices.",
+      "Notebook §3.4 calls core-set construction; §5.1 retrain from scratch each round."
+    ]
+  },
+  "replication_feasibility": {
+    "schema_version": "1.0",
+    "verdict": "feasible_with_approved_approximations",
+    "blockers": [],
+    "approved_approximations": [
+      {
+        "element_id": "mc-dropout-count",
+        "technical_concept": "MC dropout sample count T",
+        "rationale": "Paper uses 2000 MC samples per round. Demo can reduce to 20-100. The BALD mechanism is structurally identical; only posterior estimate precision changes."
+      }
+    ]
+  },
+  "feasibility": "reproducible"
+}

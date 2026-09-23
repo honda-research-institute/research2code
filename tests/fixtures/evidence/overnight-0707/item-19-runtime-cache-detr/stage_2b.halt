@@ -1,0 +1,6 @@
+{
+  "status": "halted",
+  "stage": "stage_2b",
+  "reason": "architecture-coder dispatch failed: r2c-architecture-coder modified or created files outside its allowlist. Out-of-scope writes: ['_cache/synthetic_detection.pt']. Allowed: ['method/model.py', 'method/training.py', '.pipeline/arch_contract.json'].",
+  "retry_count": 0
+}

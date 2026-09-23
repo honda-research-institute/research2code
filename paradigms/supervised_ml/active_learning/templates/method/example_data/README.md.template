@@ -1,0 +1,74 @@
+# example_data/
+
+This directory is where the notebook reads data from. On first run, the
+notebook's `load_data("example_data/")` call will download a subset of MNIST
+into this directory and save it as `mnist_subset.pt`. Subsequent runs reload
+that file directly.
+
+## Use your own data
+
+Drop a file (or pair of files) into this directory matching one of three
+conventions. `load_data` checks formats in this priority order: `.pt` → `.json`
+→ `.csv` → fall back to MNIST.
+
+### Option 1 — `.pt` (fastest)
+
+A single `.pt` file (any name) containing a dict:
+
+```python
+torch.save({
+    "x_pool":  ...,  # (N_pool, input_dim) float tensor
+    "y_pool":  ...,  # (N_pool,) long tensor of labels in [0, n_classes)
+    "x_test":  ...,  # (N_test, input_dim) float tensor
+    "y_test":  ...,  # (N_test,) long tensor
+}, "example_data/my_dataset.pt")
+```
+
+If you want to override the bundled `mnist_subset.pt`, either delete it or name
+your file so it sorts first alphabetically.
+
+### Option 2 — `.json`
+
+A single `.json` file (any name) with the same four keys, values as nested lists:
+
+```json
+{
+  "x_pool": [[0.1, 0.5, ...], [0.3, 0.2, ...], ...],
+  "y_pool": [3, 7, 1, ...],
+  "x_test": [[0.4, 0.1, ...], ...],
+  "y_test": [5, 0, ...]
+}
+```
+
+Slower to parse than `.pt` but human-readable and language-agnostic.
+
+### Option 3 — `.csv` (two files)
+
+Two CSV files in this directory:
+
+- **`pool.csv`** (or **`train.csv`**) — the unlabeled pool plus its true labels.
+- **`test.csv`** — the held-out test set.
+
+Each file must have:
+- a header row (any column names — they're skipped on read);
+- one example per row;
+- the **last column** as the integer class label;
+- all other columns as float features.
+
+```
+# pool.csv
+feat_0,feat_1,feat_2,...,feat_783,label
+0.0,0.0,0.13,...,0.42,3
+0.0,0.05,0.0,...,0.18,7
+...
+```
+
+## Format requirements (all options)
+
+- `x_pool` and `x_test` must be 2D `(N, input_dim)`. Flatten image-shaped data
+  before saving, OR swap in a CNN architecture in `method/model.py` and remove
+  the flatten step in `method/data.py`.
+- `y_pool` and `y_test` must be 1D long tensors with values in `[0, n_classes)`.
+- The model architecture in `method/model.py` infers `input_dim` from
+  `x_pool.shape[1]` and `n_classes` from `len(torch.unique(y_pool))`, so any
+  consistent choice works.

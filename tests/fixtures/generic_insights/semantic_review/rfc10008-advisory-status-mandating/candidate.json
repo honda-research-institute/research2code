@@ -1,0 +1,26 @@
+{
+ "case_id": "rfc10008-advisory-status-mandating",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "If a media type is specified but is not supported by the resource, a 415 (Unsupported Media Type) is appropriate.",
+   "span": {
+    "end": 11236,
+    "start": 11123
+   }
+  },
+  {
+   "id": "c02",
+   "quote": "the status 422 (Unprocessable Content) can be used.",
+   "span": {
+    "end": 12020,
+    "start": 11969
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "On an unsupported media type the server MUST return 415, and on unprocessable query content it MUST return 422."
+}

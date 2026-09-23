@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2c_method",
+  "review_status": "issues_found",
+  "summary": "The implementation correctly captures the two-stage GBALD algorithm with all equations implemented. The critical ||L_0 - L||^2 regularization term is present, MC dropout uses train mode correctly, and R_0 scale assumptions are documented. One important finding: kmeans_centers is parameterized in construct_ellipsoid_core_set but select_batch hard-codes the value 10, making it inaccessible from the pluggable function.",
+  "findings": [
+    {
+      "id": "F001",
+      "check_id": "paper_scale_faithful_implementation",
+      "severity": "important",
+      "target_agent": "method-coder",
+      "issue_type": "simplification_unflagged",
+      "file": "method/method.py",
+      "location": "select_batch, line 385",
+      "description": "The kmeans_centers parameter is declared in construct_ellipsoid_core_set (line 215-216, default=10) but select_batch hard-codes kmeans_centers=10 at line 385, making this parameter inaccessible from the pluggable function's API. The paper doesn't specify the number of k-means centers, so this is not a paper-fidelity issue. However, a user who wants to tune the granularity of the L_0 baseline cannot do so via select_batch. This should either be a parameter of select_batch or documented as a deliberate design choice.",
+      "proposed_fix": "Add kmeans_centers: int = 10 to select_batch's signature and forward it to construct_ellipsoid_core_set, or add a # paper-fidelity comment explaining why it's intentionally internal.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    },
+    {
+      "id": "F002",
+      "check_id": "simplifications_flagged",
+      "severity": "nice-to-have",
+      "target_agent": "method-coder",
+      "issue_type": "other",
+      "file": "method/method.py",
+      "location": "construct_ellipsoid_core_set, line 243",
+      "description": "Line 243 creates `rng = np.random.default_rng(seed)` but rng is never used anywhere in construct_ellipsoid_core_set. The only stochastic call in this function is KMeans(random_state=seed, ...) at line 254, which uses seed directly. The rng variable is dead code.",
+      "proposed_fix": "Remove the unused rng variable from line 243.",
+      "proposed_resolution": null,
+      "resolution_status": "pending"
+    }
+  ],
+  "checks_summary": [
+    {"check_id": "paper_element_implementations_match_paper", "status": "pass", "note": "All paper-element annotations verified against paper_map.json. The core-set acquisition implements Eq. 10 with both ||L_0 - L||^2 and log p(y|x,theta) terms. The min_{Dj} in Eq. 10 is realized through the geometric prior's min-distance computation. The ellipsoid geodesic (Eq. 11) correctly rescales then snaps to nearest neighbor."},
+    {"check_id": "paper_scale_faithful_implementation", "status": "fail", "note": "The ||L_0 - L||^2 regularization is implemented and kmeans_centers is parameterized in construct_ellipsoid_core_set. However, select_batch hard-codes kmeans_centers=10, making it inaccessible at paper scale. See F001."},
+    {"check_id": "simplifications_flagged", "status": "fail", "note": "All smoke-scale accommodations (clamps on n_core, n_select, n_candidates) are either reasonable bounds or documented via # paper-fidelity comments. R_0 scale assumptions are documented in docstrings and paper-fidelity annotations throughout. See F002 for dead-code cleanup."},
+    {"check_id": "pluggable_function_actually_does_the_method", "status": "pass", "note": "select_batch implements the full two-stage GBALD: Stage 1 constructs ellipsoid core-set (k-means + Eq.10 + Eq.11), Stage 2 does MC-dropout BALD scoring + geometric representativeness ranking. Not a degenerate version."},
+    {"check_id": "ranking_formula_prose_monotonicity", "status": "pass", "note": "geometric_ranking uses compute_geometric_prior which computes R_0 / min_distance. Higher inverse-distance = higher probability. Selects top-k by representativeness (descending). Docstring says 'highest representativeness'. Prose and code monotonicity agree."},
+    {"check_id": "mc_sampling_uses_train_mode", "status": "pass", "note": "compute_bald_scores calls model.train() at line 125, runs MC loop, restores original mode in finally block (lines 162-167). The # essential annotation is present at line 112. Dropout is active during MC sampling."},
+    {"check_id": "scale_dependent_hyperparameter_handling", "status": "pass", "note": "R_0 scale assumption is documented in select_batch's docstring (lines 355-357 with # paper-fidelity comment) and in compute_geometric_prior (lines 56-62), geometric_ranking (lines 185-191), construct_ellipsoid_core_set (lines 229-235). All note the assumed [0, 255] pixel scale and provide calibrated alternatives for normalized data."},
+    {"check_id": "equation_matches_paper:eq-geometric-prior", "status": "pass", "note": "Eq. 5 two-branch: prob=1 inside R_0 ball, R_0/min_dist outside. Code at lines 86-89 matches exactly."},
+    {"check_id": "equation_matches_paper:eq-bald-score", "status": "pass", "note": "BALD = H[p_mean] - E_theta[H[p_theta]]. Code computes prior_entropy = -sum(p_mean * log(p_mean)) and subtracts mean of per-sample posterior entropies. Matches Eq. 1."},
+    {"check_id": "equation_matches_paper:eq-batch-returns", "status": "pass", "note": "Top-k selection by BALD score corresponds to returning b ranked acquisitions. Code at lines 405-408 selects top batch_returns by BALD score. Matches Eq. 12."},
+    {"check_id": "equation_matches_paper:eq-ranking-criterion", "status": "pass", "note": "Eq. 13: argmax over candidates of max_{Dj in D_0} R_0/||x*-Dj||. Code calls compute_geometric_prior (which uses min-distance = max inverse-distance) then topk on representativeness. Matches."},
+    {"check_id": "equation_matches_paper:eq-batch-output", "status": "pass", "note": "Eq. 14: select b' candidates with highest geometric representativeness. Code at line 204 selects top n_select by rep_probs. Matches."},
+    {"check_id": "equation_matches_paper:eq-coreset-acquisition", "status": "pass", "note": "Eq. 10: x* = argmax_{xj in Du} { ||L_0 - L||^2 + log p(yj|xj,theta) }. Code computes L_0 (sum log_probs over k-means centers) at line 290, L (sum log_probs over labeled set) at line 293, likelihood_reg = (L_0 - L)^2 at line 298, scores = likelihood_reg + log_probs at line 305, then argmax. The ||L_0 - L||^2 is a global scalar; log_probs is per-candidate. This matches the paper's formulation where the two terms have different scoping."},
+    {"check_id": "equation_matches_paper:eq-ellipsoid-geodesic", "status": "pass", "note": "Eq. 11: x*_e = xi + eta(x* - xi), then argmin ||xj - x*_e||. Code at lines 313-321 computes x_e from previous acquisition + eta * delta, then snaps to nearest neighbor. Matches."}
+  ],
+  "caveats": [
+    "The ||L_0 - L||^2 term in construct_ellipsoid_core_set aggregates over all remaining candidates (scalar), rather than being per-candidate. This is consistent with the paper's formulation where L_0 and L are full log-likelihoods over the dataset. The differentiation across candidates comes solely from log p(y|x,theta). There are alternative interpretations but this reading is the natural one.",
+    "The kmeans_centers value (default 10) is not specified by the paper. The field guide notes the paper uses k-means to initialize U, but doesn't state how many centers. The parameterization in construct_ellipsoid_core_set is good engineering practice; the hard-coding in select_batch is a minor API gap (F001)."
+  ]
+}

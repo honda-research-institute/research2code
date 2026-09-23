@@ -1,0 +1,18 @@
+{
+ "candidate_sha256": "41aba8ff6a0dab896e8785b8a0b68720d1bee3b6ef407c3919a3b075a5f99163",
+ "case_id": "rfc10008-pagination-invented-rule",
+ "prohibited_interpretations": [
+  "SHOULD be used instead"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "Invented BCP 14 rule. The source's wording is the non-normative expectation 'It is expected that these built-in features will be used instead'; strengthening it into a SHOULD fabricates a normative occurrence (deterministic occurrence validation also rejects an invented uppercase token, per the contract's owning-gate table).",
+ "required_disclosures": [],
+ "required_facts": [],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "rejected"
+}

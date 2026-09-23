@@ -1,0 +1,20 @@
+{
+  "claims": [
+    {
+      "claim_type": "monotonicity",
+      "quote": "The loss is small when the network assigns high probability to the observed class y and large when it is wrong or doubtful about y.",
+      "formulas": ["Neural classifier and cross-entropy training objective"],
+      "formal": {
+        "lhs": "log(1/p_y)",
+        "relation": "monotone_decreasing",
+        "variables": [
+          {
+            "name": "p_y",
+            "domain": [0.001, 1.0],
+            "role": "variable"
+          }
+        ]
+      }
+    }
+  ]
+}

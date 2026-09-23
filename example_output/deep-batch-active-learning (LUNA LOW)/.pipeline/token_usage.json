@@ -1,0 +1,95 @@
+{
+  "dispatches_counted": 38,
+  "per_agent": {
+    "r2c-architecture-coder": {
+      "cache_read": 806470,
+      "cache_write": 93663,
+      "input": 90,
+      "output": 5892,
+      "prompt": 806560,
+      "reasoning": 1032
+    },
+    "r2c-decomposer": {
+      "cache_read": 142686,
+      "cache_write": 46782,
+      "input": 18,
+      "output": 4321,
+      "prompt": 142704,
+      "reasoning": 274
+    },
+    "r2c-halt-judge": {
+      "cache_read": 736853,
+      "cache_write": 208180,
+      "input": 105,
+      "output": 6298,
+      "prompt": 736958,
+      "reasoning": 1429
+    },
+    "r2c-method-analyzer": {
+      "cache_read": 719653,
+      "cache_write": 209811,
+      "input": 63,
+      "output": 9792,
+      "prompt": 719716,
+      "reasoning": 2540
+    },
+    "r2c-method-coder": {
+      "cache_read": 144015,
+      "cache_write": 26041,
+      "input": 21,
+      "output": 2189,
+      "prompt": 144036,
+      "reasoning": 517
+    },
+    "r2c-method-explainer": {
+      "cache_read": 42709,
+      "cache_write": 33375,
+      "input": 21,
+      "output": 1484,
+      "prompt": 42730,
+      "reasoning": 153
+    },
+    "r2c-notebook-generator": {
+      "cache_read": 433213,
+      "cache_write": 89387,
+      "input": 60,
+      "output": 5280,
+      "prompt": 433273,
+      "reasoning": 884
+    },
+    "r2c-paper-fidelity-reviewer": {
+      "cache_read": 185326,
+      "cache_write": 61067,
+      "input": 15,
+      "output": 1252,
+      "prompt": 185341,
+      "reasoning": 326
+    },
+    "r2c-stage-reviewer": {
+      "cache_read": 1130936,
+      "cache_write": 243295,
+      "input": 132,
+      "output": 7061,
+      "prompt": 1131068,
+      "reasoning": 1573
+    },
+    "r2c-test-generator": {
+      "cache_read": 354097,
+      "cache_write": 122639,
+      "input": 108,
+      "output": 5912,
+      "prompt": 354205,
+      "reasoning": 2930
+    }
+  },
+  "schema_version": "1.0",
+  "totals": {
+    "cache_read": 4695958,
+    "cache_write": 1134240,
+    "input": 633,
+    "output": 49481,
+    "prompt": 4696591,
+    "reasoning": 11658
+  },
+  "updated_at": "2026-09-04T14:40:07Z"
+}

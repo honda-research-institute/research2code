@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "target_agent": "r2c-notebook-generator",
+  "target_file": ".pipeline/notebook_draft.py",
+  "bug_shape": "uncatalogued",
+  "root_cause": "When select_batch returns an empty list (because the unlabeled pool is exhausted during demo-scale acquisition), the notebook converts it to a numpy array with np.asarray([]) which defaults to dtype=float64. Using a float64 array to index another numpy array raises 'arrays used as indices must be of integer (or boolean) type'. The demo params (pool_size=800, initial_labeled=1000 clamped to effective 800, batch_outputs=100 per round) quickly exhaust the unlabeled pool, triggering this path.",
+  "proposed_fix": "In the notebook acquisition loop (cell 30), change 'chosen = unlabeled_idx[np.asarray(pos)]' to 'chosen = unlabeled_idx[np.asarray(pos, dtype=int)]' and add a guard 'if not pos: break' before the indexing line to handle pool exhaustion gracefully.",
+  "reasoning": "The traceback shows 'IndexError: arrays used as indices must be of integer (or boolean) type' at 'chosen = unlabeled_idx[np.asarray(pos)]'. The variable pos comes from select_batch() which returns List[int]. When the pool is exhausted, select_batch returns [] (its early return at method.py:386). The bug is in the notebook's np.asarray(pos) call: np.asarray([]) creates array([], dtype=float64), not an integer array. At paper scale (pool_size=73k, budget=10k), the pool never exhaustes, so this path is never hit. At demo scale (pool=800, initial_labeled effectively clamps to 800), the pool is either empty from the start or exhausts after a few rounds. The select_batch function (method.py) correctly returns [] when n_pool==0, but the notebook consumer doesn't handle this case. The fix is two-part: (1) explicit dtype=int ensures even empty selections produce integer-indexable arrays, and (2) an early break prevents unnecessary work when the pool is exhausted. The select_batch implementation (method.py) is correct — it returns List[int] with proper int() wrapping.",
+  "value_origin_trace": [
+    "notebook cell 30 line 65: chosen = unlabeled_idx[np.asarray(pos)] — IndexError: arrays used as indices must be of integer type",
+    "notebook cell 30 line 54-60: pos = select_batch(model, x_pool[unlabeled_idx], ...) — call site that may return empty list",
+    "method/method.py:386-387: if batch_size == 0: return [] — early return when pool exhausted (n_pool == 0 after clamping)",
+    "method/method.py:412: selected_pool_indices = [int(top_b_indices[i]) for i in top_rep_indices] — normal return path (correct List[int])"
+  ],
+  "paper_fidelity_check": "This is a pure runtime interoperability issue (NumPy defaulting empty lists to float64). The fix adds explicit dtype to handle the demo-scale edge case of pool exhaustion. At paper scale (73k pool, 10k budget), this code path is never reached. The algorithm's logic — BALD scoring + geometric ranking — is unchanged."
+}

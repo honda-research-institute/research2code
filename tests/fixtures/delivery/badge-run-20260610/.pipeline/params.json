@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "params": {
+    "batch_size": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Section 4 (Experiments)",
+      "note": "Paper uses batch_size=100 per data_setup."
+    },
+    "num_rounds": {
+      "value": 5,
+      "source": "system_default",
+      "paper_value": 499,
+      "reasoning": "Paper runs 499 rounds (~49,900 labels at batch_size=100). At smoke scale we run 5 rounds (~500 labels) \u2014 enough to see a learning curve emerge while keeping the acquisition loop (which re-trains and re-scores the pool every round) cheap to run on a laptop CPU at smoke scale."
+    },
+    "initial_labeled": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Section 4 (Experiments)",
+      "note": "Paper bootstraps with 100 uniformly-random labeled examples."
+    },
+    "pool_size": {
+      "value": 800,
+      "source": "system_default",
+      "paper_value": "full training set",
+      "reasoning": "Paper uses the full training set (typically 60k\u201373k samples) as the unlabeled pool. We subsample to 800 to keep each round's gradient-embedding pass over the whole pool cheap (the pool is re-scored every round, so this is the dominant cost of the acquisition loop). Note: this is a smoke-scale default, not a runtime estimate \u2014 the smoke gate is what actually verifies the notebook fits its per-cell time budget. Pool ratio (total_budget / pool_size) \u2248 0.75. This exceeds the paradigm field guide's `demo_scale.max_budget_to_pool_ratio` of 0.05 \u2014 methods may converge before diversity is meaningfully tested. Increase pool_size (or reduce num_rounds \u00d7 batch_size) for cleaner diversity-baseline comparisons."
+    },
+    "learning_rate": {
+      "value": 0.001,
+      "source": "paper",
+      "paper_section": "Section 4 (Experiments)",
+      "note": "Adam optimizer at 0.001. Paper: '0.001 for image data (MNIST, CIFAR-10, SVHN), 0.0001 for non-image (OpenML) data'. Selected image-data value."
+    },
+    "max_epochs": {
+      "value": 8,
+      "source": "system_inferred",
+      "reasoning": "Paper trains to an explicit training-accuracy threshold with no stated epoch cap. At smoke scale the labeled sets are tiny (\u2264 ~500 examples) and `train_until_accuracy` usually stops well before the cap; 8 is a low safety bound that keeps per-round training fast at smoke scale. Increase it for full-scale training."
+    },
+    "train_until_accuracy": {
+      "value": 0.99,
+      "source": "paper",
+      "paper_section": "Section 4 EXPERIMENTS",
+      "note": "Paper-stated training threshold: 'models using cross-entropy loss and the Adam variant of SGD until training accuracy exceeds 99%'."
+    },
+    "hidden_dim": {
+      "value": 256,
+      "source": "paper",
+      "paper_section": "Section 4 (Experiments)",
+      "note": "Paper-stated MLP hidden dim for image data (critical_requirements.model.architecture)."
+    }
+  }
+}

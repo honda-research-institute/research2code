@@ -1,0 +1,119 @@
+{
+  "session_id": "ses_f92b7c2eaffel49nBH029cKMJA",
+  "port": 4096,
+  "slug": "deep-batch-active-learning",
+  "stages": [
+    {
+      "stage_id": "stage_0",
+      "stage_label": "Stage 0 - Setup & Paper Ingestion",
+      "status": "completed",
+      "notes": "paper.md present at <repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper.md",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_1",
+      "stage_label": "Stage 1 - Paper Decomposition & Method Analysis",
+      "status": "completed",
+      "notes": "analyzer + paper_map + feasibility + review clean",
+      "paths_written": [
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/paper_map.json",
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/feasibility_gate.json",
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/stage_review_stage_1_analyzer.json"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_1x",
+      "stage_label": "Stage 1.x - Method Explanation (METHOD.md)",
+      "status": "completed",
+      "notes": "METHOD.md generated with 8 explanations",
+      "paths_written": [
+        "<repo>/r2c_runs/deep-batch-active-learning/METHOD.md",
+        "<repo>/r2c_runs/deep-batch-active-learning/.pipeline/method_explanations.json"
+      ],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2a",
+      "stage_label": "Stage 2.a - Package Scaffold",
+      "status": "completed",
+      "notes": "scaffolder + validator clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2b",
+      "stage_label": "Stage 2.b - Architecture & Training",
+      "status": "completed",
+      "notes": "architecture-coder + validator + review clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2c",
+      "stage_label": "Stage 2.c - Method Implementation",
+      "status": "completed",
+      "notes": "method-coder + validator + review clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2d",
+      "stage_label": "Stage 2.d - Package Finalization",
+      "status": "completed",
+      "notes": "init_finalizer + import validation + arch contract + dry-run clean + element tests",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_2x",
+      "stage_label": "Stage 2.x - Parameter Derivation",
+      "status": "completed",
+      "notes": "derive_params + validator + review clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_3a",
+      "stage_label": "Stage 3.a - Notebook Authoring",
+      "status": "completed",
+      "notes": "notebook-generator + render + validator + review clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_3b",
+      "stage_label": "Stage 3.b - Notebook Rendering",
+      "status": "completed",
+      "notes": "render clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_3c",
+      "stage_label": "Stage 3.c - Smoke Execution",
+      "status": "completed",
+      "notes": "smoke gate clean (iteration 0)",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_4",
+      "stage_label": "Stage 4 - Paper-Fidelity Review",
+      "status": "completed",
+      "notes": "paper-fidelity review + validator clean",
+      "paths_written": [],
+      "halt_artifact": null
+    },
+    {
+      "stage_id": "stage_5",
+      "stage_label": "Stage 5 - Findings Routing",
+      "status": "completed",
+      "notes": "1 nice-to-have logged; 2 stage-review caveat(s) logged",
+      "paths_written": [],
+      "halt_artifact": null
+    }
+  ]
+}

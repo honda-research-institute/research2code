@@ -1,0 +1,18 @@
+{
+ "candidate_sha256": "7f38c6efd7d7788ad34059855dcac82fbc0b012a4d4c626afbc5f336e0315897",
+ "case_id": "rfc10008-safety-cache-conflation",
+ "prohibited_interpretations": [
+  "exactly like a GET request"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "Safety/cache conflation. Safety in the source is scoped to the target resource and preserves the additional-resources exception; caching is a separate behavior with its own rules (a cache MAY reuse a QUERY response, with a content-aware cache key), not GET equivalence.",
+ "required_disclosures": [],
+ "required_facts": [],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "rejected"
+}

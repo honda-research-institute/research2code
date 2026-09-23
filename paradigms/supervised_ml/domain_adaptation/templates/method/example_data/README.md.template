@@ -1,0 +1,49 @@
+# Example data — {{ method_name }}
+
+This directory holds the target-domain data the method adapts to. Domain
+adaptation is an **unlabeled** setting: there are no ground-truth labels here.
+The method generates *pseudo-labels* from the source-detector ensemble and
+retrains on those.
+
+## Default (smoke) target sequence
+
+`load_target_data()` with no arguments returns a synthetic in-memory
+point-cloud sequence (`name="smoke_target"`, ~50 frames at 10 Hz). Each frame
+is a noisy ground plane plus a few object clusters; the sensor pose translates
+forward 1 m/frame. This is enough to exercise the pseudo-label → retrain loop;
+it is **not** a benchmark.
+
+## Use your own target data
+
+Drop a `<name>.py` file into this directory exposing a module-level:
+
+```python
+def build_target(n_frames: int, seed: int) -> TargetDataset:
+    ...
+```
+
+where `TargetDataset` (defined in `method/data.py`) has:
+
+- `frames`: list of point-cloud tensors, each `(N_i, C)` — per-point
+  `(x, y, z, intensity, ...)`
+- `poses`: list of `(4, 4)` sensor→world transforms
+- `timestamps`: list of float seconds
+
+Then call `load_target_data("<name>")`. Real target datasets to wire up this
+way: **nuScenes, Waymo Open, Lyft Level 5, KITTI**.
+
+## Source detectors
+
+`load_source_detectors()` returns the pre-trained detector ensemble whose
+predictions are fused (KBF) into pseudo-labels. For smoke runs these are
+deterministic *mock* detectors. For paper-faithful runs, replace them with
+wrappers around real checkpoints — keep the `.predict(frame) -> List[BoundingBox3D]`
+and `.source_domain: str` interface.
+
+Per-paper default ensembles (source → target), e.g. for MS3D++:
+
+- **Waymo → nuScenes**: PV-RCNN++, VoxelRCNN, CenterPoint — all pre-trained on Waymo.
+- **nuScenes → Waymo**: the same architectures pre-trained on nuScenes.
+
+The `source_domain` string on each detector is consulted by the box-fusion
+step to weight detectors by source-target similarity (MS3D++ Section 4.3.2).

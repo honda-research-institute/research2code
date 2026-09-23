@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2b_architecture",
+  "review_status": "passed",
+  "summary": "All stage 2.b architecture checks passed. The classifier exposes a genuine penultimate activation through forward_with_embedding and a differentiable final linear output layer, consistent with BADGE's gradient-embedding requirement.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "AL-batch-forward-embedding",
+      "status": "pass",
+      "note": "forward_with_embedding computes z via the encoder and returns classifier(z), z; the embedding is the real penultimate activation rather than logits."
+    }
+  ],
+  "caveats": [
+    "The compact MLP is a demonstration architecture rather than the paper's larger image backbones; this is compatible with the pluggable classifier contract, provided downstream selection consumes its embedding output."
+  ]
+}

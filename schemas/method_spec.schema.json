@@ -1,0 +1,2824 @@
+{
+  "$defs": {
+    "Baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "family": {
+          "$ref": "#/$defs/BaselineFamily",
+          "description": "Used to cross-check against field-guide `required_baselines`. Match is by family, not by name."
+        },
+        "source": {
+          "$ref": "#/$defs/BaselineSource",
+          "description": "Where this baseline came from: paper-mentioned, field-guide-required, or field-guide-recommended."
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "implementation": {
+          "description": "Short prose or snippet describing how to implement the baseline.",
+          "title": "Implementation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "family",
+        "source",
+        "description",
+        "implementation"
+      ],
+      "title": "Baseline",
+      "type": "object"
+    },
+    "BaselineFamily": {
+      "description": "Standard families used to cross-check field-guide `required_baselines`.\n\nMatch between field guide and spec is by family, not by name \u2014 a paper\nthat compares against \"Entropy Sampling\" (family=uncertainty) satisfies\na field guide requiring `uncertainty_family: at_least_one_of [...]`.",
+      "enum": [
+        "random",
+        "uncertainty",
+        "diversity",
+        "bayesian",
+        "other"
+      ],
+      "title": "BaselineFamily",
+      "type": "string"
+    },
+    "BaselineSource": {
+      "description": "Provenance of an entry in `comparison.standard_baselines`.\n\nUsed by the validator to confirm that field-guide-required baselines were\nnot silently dropped \u2014 every required family must have at least one\nbaseline whose source is `field_guide_required` (or `paper`, since a\npaper-mentioned baseline that happens to satisfy the family also counts).",
+      "enum": [
+        "paper",
+        "field_guide_required",
+        "field_guide_recommended"
+      ],
+      "title": "BaselineSource",
+      "type": "string"
+    },
+    "Blocker": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "title": "Requirement",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/BlockerStatus"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "resolution": {
+          "title": "Resolution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement",
+        "status",
+        "reason",
+        "resolution"
+      ],
+      "title": "Blocker",
+      "type": "object"
+    },
+    "BlockerStatus": {
+      "enum": [
+        "must_implement",
+        "can_approximate",
+        "cannot_implement"
+      ],
+      "title": "BlockerStatus",
+      "type": "string"
+    },
+    "CallableContributionAblation": {
+      "additionalProperties": false,
+      "description": "A paper-justified removed-message or non-graph callable control.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "removed_message_passing",
+            "non_graph_decoder"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "element_id": {
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "callable": {
+          "$ref": "#/$defs/GraphCallableReference"
+        },
+        "graph_parameter": {
+          "description": "Exact keyword on the null callable receiving the same graph intervention as the real message-passing arm.",
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Graph Parameter",
+          "type": "string"
+        },
+        "neighbor_signal_parameter": {
+          "description": "Exact keyword on the null callable receiving the same neighbor signal fixture as the real arm.",
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Neighbor Signal Parameter",
+          "type": "string"
+        },
+        "output_root": {
+          "description": "Exact R2C-084 coindexed output root returned by the null arm; it must equal the real message helper output root.",
+          "minLength": 1,
+          "title": "Output Root",
+          "type": "string"
+        },
+        "discriminating_probe_ref": {
+          "enum": [
+            "graph_mechanism.topology_sensitivity",
+            "graph_mechanism.neighbor_sensitivity"
+          ],
+          "title": "Discriminating Probe Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "element_id",
+        "callable",
+        "graph_parameter",
+        "neighbor_signal_parameter",
+        "output_root",
+        "discriminating_probe_ref"
+      ],
+      "title": "CallableContributionAblation",
+      "type": "object"
+    },
+    "Comparison": {
+      "additionalProperties": false,
+      "properties": {
+        "classification": {
+          "$ref": "#/$defs/Paradigm"
+        },
+        "description": {
+          "description": "Plain-English: what a fair comparison looks like for this method.",
+          "title": "Description",
+          "type": "string"
+        },
+        "pluggable_component": {
+          "$ref": "#/$defs/PluggableComponent"
+        },
+        "controlled_variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Variables held constant across methods. Key = variable name; value = why it must be held constant.",
+          "title": "Controlled Variables",
+          "type": "object"
+        },
+        "independent_variable": {
+          "title": "Independent Variable",
+          "type": "string"
+        },
+        "evaluation_checkpoints": {
+          "title": "Evaluation Checkpoints",
+          "type": "string"
+        },
+        "evaluation_protocol": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluationProtocol"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Role-typed temporal evaluation facts. Required by strict validation for time_series_forecasting; omitted for families without a temporal forecast/evaluation axis. This is the authority for context, one-call horizon, validation span, test span, units, and whether the paper actually pins each value."
+        },
+        "primary_metric": {
+          "title": "Primary Metric",
+          "type": "string"
+        },
+        "visualization": {
+          "title": "Visualization",
+          "type": "string"
+        },
+        "standard_baselines": {
+          "items": {
+            "$ref": "#/$defs/Baseline"
+          },
+          "title": "Standard Baselines",
+          "type": "array"
+        }
+      },
+      "required": [
+        "classification",
+        "description",
+        "pluggable_component",
+        "controlled_variables",
+        "independent_variable",
+        "evaluation_checkpoints",
+        "primary_metric",
+        "visualization"
+      ],
+      "title": "Comparison",
+      "type": "object"
+    },
+    "ComputeRequirement": {
+      "enum": [
+        "CPU sufficient",
+        "Single GPU required",
+        "Multi-GPU required"
+      ],
+      "title": "ComputeRequirement",
+      "type": "string"
+    },
+    "CoreMethod": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "summary": {
+          "description": "One-sentence description of what the method does.",
+          "title": "Summary",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/MethodType"
+        },
+        "paper_sections": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paper Sections",
+          "type": "array"
+        },
+        "key_elements": {
+          "description": "paper_map element IDs that describe the core method.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Key Elements",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "summary",
+        "type",
+        "paper_sections",
+        "key_elements"
+      ],
+      "title": "CoreMethod",
+      "type": "object"
+    },
+    "CriticalRequirements": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/ModelRequirements"
+        },
+        "training": {
+          "$ref": "#/$defs/TrainingRequirements"
+        },
+        "data_setup": {
+          "$ref": "#/$defs/DataSetup"
+        },
+        "blockers": {
+          "items": {
+            "$ref": "#/$defs/Blocker"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "param_glossary": {
+          "description": "The paper's own per-parameter definitions, capped at 12 entries (the analyzer-reliability guard). Populated by the analyzer while reading the sections it already reads; consumed deterministically by derive_params to stamp `paper_says` onto matching derived parameters. Empty when the paper explains no parameters explicitly.",
+          "items": {
+            "$ref": "#/$defs/ParamGlossaryEntry"
+          },
+          "maxItems": 12,
+          "title": "Param Glossary",
+          "type": "array"
+        },
+        "scale_dependent_hyperparameters": {
+          "description": "Method-specific hyperparameters whose value depends on a typed calibration context: feature magnitude, the supported target-box grid representation, or preserved unsupported physical/mixed/unknown evidence. Empty list when the method has no such hyperparameters. Populated by the analyzer; consumed by Stage 2.x and the fidelity reviewer through the same observer-routing contract.",
+          "items": {
+            "$ref": "#/$defs/ScaleDependentHyperparam"
+          },
+          "title": "Scale Dependent Hyperparameters",
+          "type": "array"
+        },
+        "required_model_methods": {
+          "description": "Methods (in the Python class sense) the architecture must expose beyond `forward()`, because the algorithm body in method.py explicitly calls them. Empty list when the method only needs `forward()` (e.g., entropy / margin / random acquisition in active learning). Populated by the analyzer; iterated by the Stage 4 fidelity reviewer as an explicit per-entry checklist (does the method exist, does its body match `returns_description`, does method.py actually call it). Exists to catch the failure mode where an interface is satisfied but the body silently returns the wrong thing.",
+          "items": {
+            "$ref": "#/$defs/RequiredModelMethod"
+          },
+          "title": "Required Model Methods",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "training",
+        "data_setup",
+        "blockers"
+      ],
+      "title": "CriticalRequirements",
+      "type": "object"
+    },
+    "DataRequirements": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "title": "Format",
+          "type": "string"
+        },
+        "example_datasets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Example Datasets",
+          "type": "array"
+        },
+        "auto_download_feasible": {
+          "title": "Auto Download Feasible",
+          "type": "boolean"
+        },
+        "auto_download_details": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auto Download Details"
+        },
+        "synthetic_feasible": {
+          "title": "Synthetic Feasible",
+          "type": "boolean"
+        },
+        "synthetic_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synthetic Description"
+        }
+      },
+      "required": [
+        "format",
+        "example_datasets",
+        "auto_download_feasible",
+        "synthetic_feasible"
+      ],
+      "title": "DataRequirements",
+      "type": "object"
+    },
+    "DataSetup": {
+      "additionalProperties": false,
+      "description": "Values from the paper's MAIN benchmark \u2014 not toy demos or ablations.\n\nThe four numeric fields (`initial_labeled`, `batch_size`, `total_budget`,\n`num_rounds`) are active-learning paradigm concepts: an iterative\nlabel-acquisition loop where each round draws `batch_size` labels from a\npool until `total_budget` is exhausted, starting from `initial_labeled`\nbootstrap labels over `num_rounds` total. Paradigms that don't have this\nstructure (motion_planning, optimization, RL, etc.) genuinely have no\nvalues here \u2014 for those paradigms, all four fields MUST be null.\n\n`batch_returns` is an optional fifth field: the two-stage preselection\ncount b for selectors that prefilter a candidate pool before ranking down\nto `batch_size` (b'). It is null for single-stage selectors and non-AL\nparadigms, so it is not part of the four-field non-null requirement.\n\nFor AL paradigms, the four fields MUST come from a single benchmark\nconfiguration. Mixing values across benchmarks (e.g., initial_labeled\nfrom MNIST + total_budget from CIFAR-10) is forbidden \u2014 it produces\ninternally-incoherent specs that fail arithmetic sanity checks\n(total_budget should approximate initial_labeled + num_rounds * batch_size).\n\nThe cross-paradigm null/non-null requirement is enforced by a\n`MethodSpec`-level model validator (paradigm-aware) rather than here,\nbecause this model can't see `comparison.classification.id`.",
+      "properties": {
+        "initial_labeled": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Initial labeled pool size at AL bootstrap. Required (non-null) for active-learning paradigms; MUST be null for non-AL paradigms.",
+          "title": "Initial Labeled"
+        },
+        "batch_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Labels acquired per AL round. Required (non-null) for active-learning paradigms; MUST be null for non-AL paradigms.",
+          "title": "Batch Size"
+        },
+        "total_budget": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Total label budget across all AL rounds (\u2248 initial_labeled + num_rounds * batch_size). Required (non-null) for active-learning paradigms; MUST be null for non-AL paradigms.",
+          "title": "Total Budget"
+        },
+        "num_rounds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of AL acquisition rounds. Required (non-null) for active-learning paradigms; MUST be null for non-AL paradigms.",
+          "title": "Num Rounds"
+        },
+        "batch_returns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Two-stage selectors only: the paper's first-stage preselection count b \u2014 the candidate pool scored/ranked before the final batch is chosen (e.g. GBALD's 'rank b=300, select b'=100'). The paper invariant is b >= batch_size (b >= b'), so this must be >= batch_size when present. Null for single-stage selectors (e.g. BADGE) that return batch_size directly with no preselection, and for non-AL paradigms. This is the paper-truth value; the method signature's batch_returns default is a runtime convenience, not paper truth.",
+          "title": "Batch Returns"
+        },
+        "benchmark_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Identifier of the benchmark configuration these values came from (e.g., \"MNIST main benchmark\", \"SVHN, batch_size=100\"). Required when the paper reports multiple benchmarks; downstream stages use this to disambiguate which configuration was captured. May be a non-AL identifier for non-AL paradigms (e.g., \"Structured + randomized obstacle scenarios\" for motion planning).",
+          "title": "Benchmark Name"
+        },
+        "per_dataset_values": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When the paper states DIFFERENT literal values for the same data_setup parameter per dataset (GBALD \u00a77.4: initial labeled sets of \"20, 1000, 1000 random samples\" for MNIST/SVHN/CIFAR-10), map parameter name -> {dataset name -> value} instead of silently picking one. The scalar field keeps the PRIMARY evaluation dataset's entry so existing consumers work unchanged; the parameter deriver (stage 2.x) binds by the dataset the demo actually uses and records `bound_dataset` in params.json. Keys must be the data_setup field names (initial_labeled, batch_size, total_budget, num_rounds, batch_returns). A scalar that contradicts every entry in its map is a validation error. This models only paper-stated literals \u2014 dataset-conditional formulas and scale rules stay with the scale-calibration layer.",
+          "title": "Per Dataset Values"
+        },
+        "special_protocol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text \u2014 e.g., \"rank 300 candidates, select 100\".",
+          "title": "Special Protocol"
+        },
+        "paper_section": {
+          "title": "Paper Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paper_section"
+      ],
+      "title": "DataSetup",
+      "type": "object"
+    },
+    "Dependencies": {
+      "additionalProperties": false,
+      "properties": {
+        "frameworks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frameworks",
+          "type": "array"
+        },
+        "pretrained_models": {
+          "items": {
+            "$ref": "#/$defs/PretrainedModel"
+          },
+          "title": "Pretrained Models",
+          "type": "array"
+        },
+        "compute": {
+          "$ref": "#/$defs/ComputeRequirement"
+        },
+        "estimated_time": {
+          "title": "Estimated Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "frameworks",
+        "compute",
+        "estimated_time"
+      ],
+      "title": "Dependencies",
+      "type": "object"
+    },
+    "EvaluationProtocol": {
+      "additionalProperties": false,
+      "description": "Role-typed temporal evaluation facts, independent of demo choices.",
+      "properties": {
+        "scheme": {
+          "$ref": "#/$defs/EvaluationProtocolScheme"
+        },
+        "quantities": {
+          "description": "Exactly one fact for each role: context_length, forecast_call_horizon, validation_span, and test_span. Use paper_unspecified with null value rather than omitting a role.",
+          "items": {
+            "$ref": "#/$defs/EvaluationProtocolQuantity"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Quantities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scheme",
+        "quantities"
+      ],
+      "title": "EvaluationProtocol",
+      "type": "object"
+    },
+    "EvaluationProtocolQuantity": {
+      "additionalProperties": false,
+      "description": "One paper-grounded quantity with one scientific protocol role.",
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/EvaluationProtocolRole"
+        },
+        "parameter_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact params.json carrier name when this protocol fact has a runtime parameter. Strict validation checks the name against the matched taxonomy node's independent protocol_role declaration. Leave null when the fact is spec-only; validation and test spans do not gain invented runtime params.",
+          "title": "Parameter Name"
+        },
+        "paper_names": {
+          "description": "Exact paper-facing prose names for this quantity (for example ['forecast horizon'] or ['context length']). Symbols belong in paper_symbols. These names are an identity bridge for conflict detection and never authorize a numeric value by themselves.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paper Names",
+          "type": "array"
+        },
+        "paper_symbols": {
+          "description": "Every exact atomic paper symbol for this quantity (for example ['K'] or ['K_pred']). Keep empty only when the evidence uses no symbol. Symbols identify the typed fact but never supply its numeric value.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Paper Symbols",
+          "type": "array"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Positive paper-stated quantity for this role, or null when the paper defines the role but leaves its numeric value unspecified.",
+          "title": "Value"
+        },
+        "unit": {
+          "description": "Singular scientific unit for this quantity (for example week, day, time_step, sample). Unit compatibility is checked only within the same role; sharing a unit never merges roles.",
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "granularity": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "Positive size of one protocol step in the declared unit. For weekly observations use unit='week', granularity=1. Value, unit, and granularity travel together so a daily bundle cannot be silently treated as a weekly axis.",
+          "gt": 0,
+          "title": "Granularity"
+        },
+        "axis_evidence_quote": {
+          "description": "Verbatim paper passage grounding unit and granularity. This may equal evidence_quote when one passage states both, or point to a separate cadence passage when the role/value quote uses only abstract time steps.",
+          "minLength": 1,
+          "title": "Axis Evidence Quote",
+          "type": "string"
+        },
+        "axis_paper_section": {
+          "minLength": 1,
+          "title": "Axis Paper Section",
+          "type": "string"
+        },
+        "axis_paper_element_ids": {
+          "description": "Paper-map element IDs grounding unit and granularity. Kept separate from role/value IDs so non-contiguous evidence is not stitched into a fabricated quote. An empty list is the honest state when no paper-map element covers the quoted passage; it costs the record downstream adjudication, never invents a link.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Axis Paper Element Ids",
+          "type": "array"
+        },
+        "paper_value_status": {
+          "$ref": "#/$defs/PaperValueStatus"
+        },
+        "evidence_quote": {
+          "description": "Verbatim paper passage grounding the quantity's role and, when paper_value_status is paper_stated, its value. For an unspecified value, quote the definition of the symbolic quantity; do not use nearby notation as a numeric assertion. When the role wording, notation, and stated value live in different paper locations (e.g. prose notation plus an appendix table row), join the contiguous passages with the elision marker ' [...] '; each fragment is verbatim-checked against the paper on its own, and grammatical bindings never cross the marker.",
+          "minLength": 1,
+          "title": "Evidence Quote",
+          "type": "string"
+        },
+        "paper_section": {
+          "minLength": 1,
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "paper_element_ids": {
+          "description": "Paper-map element IDs grounding this role and value status. Unit/granularity IDs are carried separately so non-contiguous paper passages stay distinct. An empty list is the honest state when no paper-map element covers the quoted passage; it costs the record downstream adjudication, never invents a link.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Paper Element Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "role",
+        "paper_names",
+        "paper_symbols",
+        "unit",
+        "granularity",
+        "axis_evidence_quote",
+        "axis_paper_section",
+        "axis_paper_element_ids",
+        "paper_value_status",
+        "evidence_quote",
+        "paper_section",
+        "paper_element_ids"
+      ],
+      "title": "EvaluationProtocolQuantity",
+      "type": "object"
+    },
+    "EvaluationProtocolRole": {
+      "description": "Scientific role of one quantity on a temporal evaluation axis.",
+      "enum": [
+        "context_length",
+        "forecast_call_horizon",
+        "validation_span",
+        "test_span"
+      ],
+      "title": "EvaluationProtocolRole",
+      "type": "string"
+    },
+    "EvaluationProtocolScheme": {
+      "additionalProperties": false,
+      "description": "How forecast origins and held-out spans form the evaluation.",
+      "properties": {
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluationSchemeKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Paper-stated evaluation shape, or null when the paper does not specify how forecast origins are traversed."
+        },
+        "paper_value_status": {
+          "$ref": "#/$defs/PaperValueStatus"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_quote": {
+          "description": "Verbatim paper passage establishing the chronological evaluation shape (single holdout, rolling origin, expanding window, etc.).",
+          "minLength": 1,
+          "title": "Evidence Quote",
+          "type": "string"
+        },
+        "paper_section": {
+          "minLength": 1,
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "paper_element_ids": {
+          "description": "Paper-map element IDs grounding the scheme statement. An empty list is the honest state when no paper-map element covers the quoted passage.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Paper Element Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "paper_value_status",
+        "description",
+        "evidence_quote",
+        "paper_section",
+        "paper_element_ids"
+      ],
+      "title": "EvaluationProtocolScheme",
+      "type": "object"
+    },
+    "EvaluationSchemeKind": {
+      "description": "Chronological evaluation shapes whose span arithmetic differs.",
+      "enum": [
+        "single_holdout",
+        "rolling_origin",
+        "expanding_window",
+        "sliding_window",
+        "cross_validation"
+      ],
+      "title": "EvaluationSchemeKind",
+      "type": "string"
+    },
+    "Feasibility": {
+      "enum": [
+        "reproducible",
+        "approximate",
+        "infeasible"
+      ],
+      "title": "Feasibility",
+      "type": "string"
+    },
+    "FeatureMagnitudeCalibrationContext": {
+      "additionalProperties": false,
+      "description": "Numeric feature scale against which a paper value was calibrated.",
+      "properties": {
+        "kind": {
+          "const": "feature_magnitude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "scale": {
+          "enum": [
+            "raw_pixel_unnormalized",
+            "pixel_zero_one",
+            "pixel_centered",
+            "standardized",
+            "unit_norm"
+          ],
+          "title": "Scale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "scale"
+      ],
+      "title": "FeatureMagnitudeCalibrationContext",
+      "type": "object"
+    },
+    "GraphCallableReference": {
+      "additionalProperties": false,
+      "description": "Exact generated-package callable, without importing generated code.",
+      "properties": {
+        "module": {
+          "enum": [
+            "method.model",
+            "method.training",
+            "method.method"
+          ],
+          "title": "Module",
+          "type": "string"
+        },
+        "qualname": {
+          "description": "Exact public top-level helper function within the declared generated-package module. Dotted class or instance methods are outside v1 because the probe plan carries no model-construction authority.",
+          "minLength": 1,
+          "not": {
+            "enum": [
+              "False",
+              "None",
+              "True",
+              "and",
+              "as",
+              "assert",
+              "async",
+              "await",
+              "break",
+              "class",
+              "continue",
+              "def",
+              "del",
+              "elif",
+              "else",
+              "except",
+              "finally",
+              "for",
+              "from",
+              "global",
+              "if",
+              "import",
+              "in",
+              "is",
+              "lambda",
+              "nonlocal",
+              "not",
+              "or",
+              "pass",
+              "raise",
+              "return",
+              "try",
+              "while",
+              "with",
+              "yield"
+            ]
+          },
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+          "title": "Qualname",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module",
+        "qualname"
+      ],
+      "title": "GraphCallableReference",
+      "type": "object"
+    },
+    "GraphInputContributionAblation": {
+      "additionalProperties": false,
+      "description": "A paper-justified graph-input control executed by the real callable.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "empty_graph",
+            "identity_graph",
+            "permuted_graph"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "element_id": {
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "discriminating_probe_ref": {
+          "enum": [
+            "graph_mechanism.topology_sensitivity",
+            "graph_mechanism.neighbor_sensitivity"
+          ],
+          "title": "Discriminating Probe Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "element_id",
+        "discriminating_probe_ref"
+      ],
+      "title": "GraphInputContributionAblation",
+      "type": "object"
+    },
+    "GraphParameterBinding": {
+      "additionalProperties": false,
+      "description": "One exact params entry bound to one exact callable parameter.",
+      "properties": {
+        "params_name": {
+          "description": "Exact key in .pipeline/params.json.",
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Params Name",
+          "type": "string"
+        },
+        "callable_parameter": {
+          "description": "Exact keyword parameter on the graph-construction callable.",
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Callable Parameter",
+          "type": "string"
+        }
+      },
+      "required": [
+        "params_name",
+        "callable_parameter"
+      ],
+      "title": "GraphParameterBinding",
+      "type": "object"
+    },
+    "HomogeneousGraphConstructionContract": {
+      "additionalProperties": false,
+      "description": "Closed v1 construction grammar for a paper-grounded similarity graph.",
+      "properties": {
+        "element_id": {
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "callable": {
+          "$ref": "#/$defs/GraphCallableReference"
+        },
+        "feature_input_root": {
+          "description": "Exact R2C-084 coindexed logical root supplied to graph construction.",
+          "minLength": 1,
+          "title": "Feature Input Root",
+          "type": "string"
+        },
+        "feature_parameter": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Feature Parameter",
+          "type": "string"
+        },
+        "output_selector": {
+          "discriminator": {
+            "mapping": {
+              "mapping_item": "#/$defs/MappingItemGraphOutput",
+              "return_value": "#/$defs/ReturnValueGraphOutput",
+              "tuple_item": "#/$defs/TupleItemGraphOutput"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReturnValueGraphOutput"
+            },
+            {
+              "$ref": "#/$defs/TupleItemGraphOutput"
+            },
+            {
+              "$ref": "#/$defs/MappingItemGraphOutput"
+            }
+          ],
+          "title": "Output Selector"
+        },
+        "threshold": {
+          "$ref": "#/$defs/SimilarityThresholdContract"
+        },
+        "cap": {
+          "discriminator": {
+            "mapping": {
+              "none": "#/$defs/NoNeighborhoodCap",
+              "per_source_top_similarity": "#/$defs/PerSourceTopSimilarityCap"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NoNeighborhoodCap"
+            },
+            {
+              "$ref": "#/$defs/PerSourceTopSimilarityCap"
+            }
+          ],
+          "title": "Cap"
+        },
+        "self_loop_policy": {
+          "enum": [
+            "required",
+            "forbidden"
+          ],
+          "title": "Self Loop Policy",
+          "type": "string"
+        },
+        "direction_policy": {
+          "enum": [
+            "directed",
+            "undirected_bidirectional"
+          ],
+          "title": "Direction Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "element_id",
+        "callable",
+        "feature_input_root",
+        "feature_parameter",
+        "output_selector",
+        "threshold",
+        "cap",
+        "self_loop_policy",
+        "direction_policy"
+      ],
+      "title": "HomogeneousGraphConstructionContract",
+      "type": "object"
+    },
+    "HomogeneousGraphMechanismContract": {
+      "additionalProperties": false,
+      "description": "Paper-grounded mechanism semantics layered on R2C-084 identity.",
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "alignment_element_id": {
+          "description": "Exact methodology element grounding the reused R2C-084 relational alignment prerequisite.",
+          "minLength": 1,
+          "title": "Alignment Element Id",
+          "type": "string"
+        },
+        "construction": {
+          "$ref": "#/$defs/HomogeneousGraphConstructionContract"
+        },
+        "message_passing": {
+          "$ref": "#/$defs/HomogeneousGraphMessagePassingContract"
+        },
+        "permutation_applicability": {
+          "enum": [
+            "equivariant",
+            "not_applicable"
+          ],
+          "title": "Permutation Applicability",
+          "type": "string"
+        },
+        "contribution_ablation": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "empty_graph": "#/$defs/GraphInputContributionAblation",
+                  "identity_graph": "#/$defs/GraphInputContributionAblation",
+                  "non_graph_decoder": "#/$defs/CallableContributionAblation",
+                  "permuted_graph": "#/$defs/GraphInputContributionAblation",
+                  "removed_message_passing": "#/$defs/CallableContributionAblation"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/GraphInputContributionAblation"
+                },
+                {
+                  "$ref": "#/$defs/CallableContributionAblation"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contribution Ablation"
+        },
+        "probe_refs": {
+          "$ref": "#/$defs/HomogeneousGraphProbeRefs"
+        }
+      },
+      "required": [
+        "alignment_element_id",
+        "construction",
+        "message_passing",
+        "permutation_applicability",
+        "contribution_ablation",
+        "probe_refs"
+      ],
+      "title": "HomogeneousGraphMechanismContract",
+      "type": "object"
+    },
+    "HomogeneousGraphMessagePassingContract": {
+      "additionalProperties": false,
+      "description": "Exact graph-consuming callable and isolated neighbor-signal seam.",
+      "properties": {
+        "element_id": {
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "callable": {
+          "$ref": "#/$defs/GraphCallableReference"
+        },
+        "graph_parameter": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Graph Parameter",
+          "type": "string"
+        },
+        "neighbor_signal_root": {
+          "description": "Exact R2C-084 coindexed root changed by the neighbor probe.",
+          "minLength": 1,
+          "title": "Neighbor Signal Root",
+          "type": "string"
+        },
+        "neighbor_signal_parameter": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Neighbor Signal Parameter",
+          "type": "string"
+        },
+        "output_root": {
+          "description": "Exact R2C-084 coindexed logical root returned by this probeable message-passing helper. It may differ from the final inference output root.",
+          "minLength": 1,
+          "title": "Output Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "element_id",
+        "callable",
+        "graph_parameter",
+        "neighbor_signal_root",
+        "neighbor_signal_parameter",
+        "output_root"
+      ],
+      "title": "HomogeneousGraphMessagePassingContract",
+      "type": "object"
+    },
+    "HomogeneousGraphProbeRefs": {
+      "additionalProperties": false,
+      "description": "Exact graph evidence obligations registered in the taxonomy.",
+      "properties": {
+        "parameter_agreement": {
+          "const": "graph_mechanism.parameter_agreement",
+          "title": "Parameter Agreement",
+          "type": "string"
+        },
+        "construction": {
+          "const": "graph_mechanism.construction_semantics",
+          "title": "Construction",
+          "type": "string"
+        },
+        "topology": {
+          "const": "graph_mechanism.topology_sensitivity",
+          "title": "Topology",
+          "type": "string"
+        },
+        "neighbor_signal": {
+          "const": "graph_mechanism.neighbor_sensitivity",
+          "title": "Neighbor Signal",
+          "type": "string"
+        },
+        "permutation": {
+          "anyOf": [
+            {
+              "const": "graph_mechanism.permutation_equivalence",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Permutation"
+        },
+        "contribution_ablation": {
+          "anyOf": [
+            {
+              "const": "graph_mechanism.contribution_ablation",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contribution Ablation"
+        }
+      },
+      "required": [
+        "parameter_agreement",
+        "construction",
+        "topology",
+        "neighbor_signal",
+        "permutation",
+        "contribution_ablation"
+      ],
+      "title": "HomogeneousGraphProbeRefs",
+      "type": "object"
+    },
+    "MappingItemGraphOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "mapping_item",
+          "title": "Kind",
+          "type": "string"
+        },
+        "key": {
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "key"
+      ],
+      "title": "MappingItemGraphOutput",
+      "type": "object"
+    },
+    "MethodType": {
+      "description": "Classification of what kind of contribution the paper makes.",
+      "enum": [
+        "algorithm",
+        "loss_function",
+        "training_methodology",
+        "pipeline",
+        "architecture"
+      ],
+      "title": "MethodType",
+      "type": "string"
+    },
+    "MethodologyContractElement": {
+      "additionalProperties": false,
+      "description": "One paper-grounded methodology obligation.\n\nElements are more specific than the older high-level feasibility string.\nDownstream producers and reviewers consume these entries as explicit\nidentity constraints for the generated demo-scale method.",
+      "properties": {
+        "element_id": {
+          "description": "Stable kebab-case ID unique within the methodology contract.",
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/MethodologyElementRole"
+        },
+        "replication_status": {
+          "$ref": "#/$defs/ReplicationStatus"
+        },
+        "paper_section": {
+          "description": "Section, algorithm, figure, or equation where the paper grounds this element.",
+          "minLength": 1,
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "paper_evidence": {
+          "description": "Short paper-grounded evidence for why this element belongs in the contract.",
+          "minLength": 1,
+          "title": "Paper Evidence",
+          "type": "string"
+        },
+        "technical_concept": {
+          "description": "Short noun phrase naming the method mechanism or control.",
+          "minLength": 1,
+          "title": "Technical Concept",
+          "type": "string"
+        },
+        "required_behavior": {
+          "description": "Runtime behavior the implementation must preserve.",
+          "minLength": 1,
+          "title": "Required Behavior",
+          "type": "string"
+        },
+        "demo_scale_implementation": {
+          "description": "How the behavior can be implemented in the smoke/demo-scale artifact.",
+          "minLength": 1,
+          "title": "Demo Scale Implementation",
+          "type": "string"
+        },
+        "acceptable_approximations": {
+          "description": "Approved demo-scale approximations. Empty when exact replication is required.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Acceptable Approximations",
+          "type": "array"
+        },
+        "forbidden_substitutions": {
+          "description": "Concrete substitutions that would break methodology identity.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Substitutions",
+          "type": "array"
+        },
+        "required_controls": {
+          "description": "Controls that keep the demo evaluation or comparison fair.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Controls",
+          "type": "array"
+        },
+        "fairness_checks": {
+          "description": "Checks that ensure only allowed variables differ.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Fairness Checks",
+          "type": "array"
+        },
+        "feasibility_rationale": {
+          "description": "Why this element is replicable, approximable, or blocked.",
+          "minLength": 1,
+          "title": "Feasibility Rationale",
+          "type": "string"
+        },
+        "verification_expectations": {
+          "description": "Expected downstream code/review checks for this element.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Verification Expectations",
+          "type": "array"
+        },
+        "verification_probe_refs": {
+          "description": "Exact taxonomy semantic_checks[].probe refs that genuinely verify this obligation. Refs are nonblank and unique; strict spec validation checks them against the matched effective taxonomy node. Optional for archived specs, where an empty list means no probe-to-obligation binding is declared.",
+          "items": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Verification Probe Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "blockers": {
+          "description": "Reasons this element cannot be replicated. Empty unless status is not_replicable.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "paper_element_ids": {
+          "description": "IDs of the paper_map elements this contract element was built from. The machine-readable form of the grounding paper_section and paper_evidence already state in prose. Generated code is annotated with paper_map IDs, so this is the ONLY link that lets a behavioral finding about a piece of code reach the contract obligation it bears on (R2C-072). Every ID is cross-checked against paper_map.json's closed ID set at spec validation. Optional for backward compatibility with specs written before the field existed; an empty list means findings on this element cannot be adjudicated by the contract.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Paper Element Ids",
+          "type": "array"
+        },
+        "relational_structure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationalStructure"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Typed activation for a paper-grounded relational mechanism. Use kind='homogeneous_graph' only for a single homogeneous graph. Use kind='unsupported' plus unsupported_kind for other relational forms so downstream validators report a pipeline coverage gap instead of inferring graph behavior from names or prose. Null for non-relational elements."
+        }
+      },
+      "required": [
+        "element_id",
+        "role",
+        "replication_status",
+        "paper_section",
+        "paper_evidence",
+        "technical_concept",
+        "required_behavior",
+        "demo_scale_implementation",
+        "acceptable_approximations",
+        "forbidden_substitutions",
+        "required_controls",
+        "fairness_checks",
+        "feasibility_rationale",
+        "verification_expectations",
+        "blockers"
+      ],
+      "title": "MethodologyContractElement",
+      "type": "object"
+    },
+    "MethodologyContractPack": {
+      "additionalProperties": false,
+      "description": "Flattened downstream summary of the methodology contract.",
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "summary": {
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "core_methodology_element_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Core Methodology Element Ids",
+          "type": "array"
+        },
+        "implementation_obligations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Implementation Obligations",
+          "type": "array"
+        },
+        "approved_approximations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Approved Approximations",
+          "type": "array"
+        },
+        "forbidden_substitutions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Substitutions",
+          "type": "array"
+        },
+        "required_controls": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Controls",
+          "type": "array"
+        },
+        "verification_expectations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Verification Expectations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary",
+        "core_methodology_element_ids",
+        "implementation_obligations",
+        "approved_approximations",
+        "forbidden_substitutions",
+        "required_controls",
+        "verification_expectations"
+      ],
+      "title": "MethodologyContractPack",
+      "type": "object"
+    },
+    "MethodologyElementRole": {
+      "description": "What role a methodology contract element plays in paper fidelity.",
+      "enum": [
+        "core_methodology",
+        "supporting_mechanism",
+        "paper_scale_detail",
+        "evaluation_control"
+      ],
+      "title": "MethodologyElementRole",
+      "type": "string"
+    },
+    "MethodologyReplicationContract": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "elements": {
+          "items": {
+            "$ref": "#/$defs/MethodologyContractElement"
+          },
+          "minItems": 1,
+          "title": "Elements",
+          "type": "array"
+        },
+        "homogeneous_graph_mechanism": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HomogeneousGraphMechanismContract"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Typed construction, liveness, permutation, and paper-justified ablation contract for the one supported homogeneous graph. Null for graph-free and unsupported relational methods, and optional when reading archived pre-v1.14 method specs. Relational identity and representation remain in arch_contract.relational_indexing."
+        }
+      },
+      "required": [
+        "elements"
+      ],
+      "title": "MethodologyReplicationContract",
+      "type": "object"
+    },
+    "ModelFeature": {
+      "additionalProperties": false,
+      "properties": {
+        "feature": {
+          "title": "Feature",
+          "type": "string"
+        },
+        "why_essential": {
+          "title": "Why Essential",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "paper_section": {
+          "title": "Paper Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feature",
+        "why_essential",
+        "severity",
+        "paper_section"
+      ],
+      "title": "ModelFeature",
+      "type": "object"
+    },
+    "ModelRequirements": {
+      "additionalProperties": false,
+      "properties": {
+        "architecture": {
+          "title": "Architecture",
+          "type": "string"
+        },
+        "paper_section": {
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "specific_features": {
+          "items": {
+            "$ref": "#/$defs/ModelFeature"
+          },
+          "title": "Specific Features",
+          "type": "array"
+        }
+      },
+      "required": [
+        "architecture",
+        "paper_section",
+        "specific_features"
+      ],
+      "title": "ModelRequirements",
+      "type": "object"
+    },
+    "NoNeighborhoodCap": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "none",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "NoNeighborhoodCap",
+      "type": "object"
+    },
+    "OtherCalibrationContext": {
+      "additionalProperties": false,
+      "description": "Evidence-backed calibration context outside the supported observers.",
+      "properties": {
+        "kind": {
+          "const": "other",
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "label",
+        "reason"
+      ],
+      "title": "OtherCalibrationContext",
+      "type": "object"
+    },
+    "Paper": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "authors": {
+          "description": "Free-form author list. Affiliations may be embedded in parentheses.",
+          "title": "Authors",
+          "type": "string"
+        },
+        "repo_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Url"
+        }
+      },
+      "required": [
+        "title",
+        "authors"
+      ],
+      "title": "Paper",
+      "type": "object"
+    },
+    "PaperClaims": {
+      "additionalProperties": false,
+      "properties": {
+        "method_description": {
+          "description": "2-3 sentence researcher-facing description of the method's mechanism (not its results).",
+          "title": "Method Description",
+          "type": "string"
+        },
+        "claimed_results": {
+          "description": "2-3 sentences on what the paper reports \u2014 baselines beaten, datasets, where the advantage shows.",
+          "title": "Claimed Results",
+          "type": "string"
+        },
+        "benchmark_scale": {
+          "description": "Paper's main benchmark in concrete numbers \u2014 used to contextualize demo-scale results.",
+          "title": "Benchmark Scale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method_description",
+        "claimed_results",
+        "benchmark_scale"
+      ],
+      "title": "PaperClaims",
+      "type": "object"
+    },
+    "PaperValueStatus": {
+      "description": "Whether the paper pins a numeric value for a typed quantity.",
+      "enum": [
+        "paper_stated",
+        "paper_unspecified"
+      ],
+      "title": "PaperValueStatus",
+      "type": "string"
+    },
+    "Paradigm": {
+      "additionalProperties": false,
+      "description": "Result of the paradigm-detection sub-step inside the analyzer.\n\nThe analyzer resolves the paper to a taxonomy node and records the node's\nlegacy-compatible id plus detection reasoning. If no taxonomy node matches,\nthe analyzer halts and writes a paradigm-gap report instead of emitting\nmethod_spec.json.",
+      "properties": {
+        "id": {
+          "description": "Taxonomy-backed path-form identifier. Examples: \"active_learning\", \"active_learning/batch_acquisition\".",
+          "title": "Id",
+          "type": "string"
+        },
+        "detection_reasoning": {
+          "description": "One or two sentences explaining why the analyzer classified the paper into this paradigm. Auditable trail for sniff-test review.",
+          "title": "Detection Reasoning",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "detection_reasoning"
+      ],
+      "title": "Paradigm",
+      "type": "object"
+    },
+    "ParamGlossaryEntry": {
+      "additionalProperties": false,
+      "description": "The paper's own explanation of one parameter (param-glossary\ndesign, 2026-07-21 \u2014 the researcher's traceability ask, second half).\n\n`meaning_quote` is the paper's VERBATIM definition sentence; the\nspec validator checks it against paper.md (whitespace-normalized\nsubstring, the equation-floor check), so a paraphrase fails at\nextraction time. Missing entries are honest \u2014 the analyzer only\nrecords parameters the paper actually explains.",
+      "properties": {
+        "name": {
+          "description": "Parameter name as the paper uses it (e.g., \"E\", \"C\").",
+          "title": "Name",
+          "type": "string"
+        },
+        "aliases": {
+          "description": "Other names derivation may use for the same parameter (e.g., \"local_epochs\"). Empty when the paper name is the derived name.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "meaning_quote": {
+          "description": "The paper's own words for what the parameter represents, copied verbatim from the paper.",
+          "title": "Meaning Quote",
+          "type": "string"
+        },
+        "paper_section": {
+          "description": "Where the quote lives (section, equation, or table).",
+          "title": "Paper Section",
+          "type": "string"
+        },
+        "paper_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The literal value the paper states for this parameter, when it states one (e.g. a threshold given in an appendix table). Null when the paper defines the parameter's meaning without pinning a value, which is the common case and stays honest.\n\nThis field plays two roles, split by whether the value depends on the data's scale (R2C-064).\n\nFor a SCALE-FREE stated constant \u2014 a normalized threshold, a cutoff in (0,1), a probability, a ratio \u2014 this IS the blessed carrier. scale_dependent_hyperparameters is defined by data-scale dependence and its consumer (the scale-calibration step) dispatches entries by typed calibration_context, which a scale-free constant has no meaningful value for, so routing one there would fill the lane with entries its own consumer must reject or leave unprobeable.\n\nFor a SCALE-DEPENDENT value \u2014 a physical distance or radius \u2014 critical_requirements.scale_dependent_hyperparameters is the blessed carrier. When that lane entry exists, a corresponding glossary entry is meaning-only and this field MUST be null; putting the value in both carriers is rejected during fresh strict validation (R2C-064). The slip-tolerant R2C-055 backstop still applies when the typed lane is absent: a glossary-only paper_value can create the paper-sourced parameter instead of letting a misrouted value vanish.",
+          "title": "Paper Value"
+        }
+      },
+      "required": [
+        "name",
+        "meaning_quote",
+        "paper_section"
+      ],
+      "title": "ParamGlossaryEntry",
+      "type": "object"
+    },
+    "PerSourceTopSimilarityCap": {
+      "additionalProperties": false,
+      "description": "Closed v1 per-source cap with deterministic mutual undirected selection.\n\nCandidates rank by descending cosine similarity with canonical target-index\ntie-breaks.  For ``undirected_bidirectional`` construction, a non-self pair\nsurvives only when both endpoints select each other; both directions are\nthen emitted.  Self loops are applied after this cap and do not consume it.",
+      "properties": {
+        "kind": {
+          "const": "per_source_top_similarity",
+          "title": "Kind",
+          "type": "string"
+        },
+        "parameter": {
+          "$ref": "#/$defs/GraphParameterBinding"
+        }
+      },
+      "required": [
+        "kind",
+        "parameter"
+      ],
+      "title": "PerSourceTopSimilarityCap",
+      "type": "object"
+    },
+    "PluggableComponent": {
+      "additionalProperties": false,
+      "description": "The minimal piece of code that represents the method's novel contribution.\n\nThe signature MUST include a seed parameter so the caller (notebook \u00a75.1\nacquisition loop in v2) threads a per-round seed through to the method\nfor reproducibility. The `seed_param` field is the machine-checkable name\nof that parameter; the `signature` string is the human-readable form.",
+      "properties": {
+        "name": {
+          "description": "Function/class name (e.g., \"select_batch\").",
+          "title": "Name",
+          "type": "string"
+        },
+        "signature": {
+          "description": "Full signature for human reference, e.g., \"select_batch(model, x_unlabeled, batch_size, seed) -> List[int]\".",
+          "title": "Signature",
+          "type": "string"
+        },
+        "seed_param": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Named parameter that consumes the random seed. The verifier confirms the seed gets threaded through to this parameter from config. Example: \"seed\". null when the component is deterministic and takes no seed (a rule-based knowledge-base population pipeline has nothing to seed).",
+          "title": "Seed Param"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "signature",
+        "description"
+      ],
+      "title": "PluggableComponent",
+      "type": "object"
+    },
+    "PretrainedModel": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "trained_on": {
+          "title": "Trained On",
+          "type": "string"
+        },
+        "auto_download": {
+          "title": "Auto Download",
+          "type": "boolean"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "size_mb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Mb"
+        },
+        "license": {
+          "default": "unknown",
+          "title": "License",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "trained_on",
+        "auto_download"
+      ],
+      "title": "PretrainedModel",
+      "type": "object"
+    },
+    "Provide": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ProvideKind"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The exact importable Python identifier this promise resolves to in the generated package (e.g., \"AvoidanceClassifier\"). Set it when a code/model entry promises ONE concrete importable artifact; omit it when the promise is not a single importable name (a dataset, a behavior). Never guessed \u2014 an entry without a symbol simply gets no naming-bridge enforcement. Stage 2.b resolves every declared symbol to a public top-level name in the generated package (defined public in a module, or re-exported by method/__init__.py).",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+          "title": "Symbol"
+        },
+        "symbol_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "class",
+                "function"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The KIND of surface the declared symbol resolves to: \"class\" when the promise is a class the researcher instantiates, \"function\" when it is a callable they invoke. Set it whenever you set `symbol` and the delivered surface's kind is knowable from the build shape; derive it from how the method is actually delivered, never from what the concept is called in the paper (an optimizer delivered as a pure-function API is a function promise, whatever the paper names it). Requires `symbol`; omission is legal and means name-only bridge enforcement.",
+          "title": "Symbol Kind"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "type"
+      ],
+      "title": "Provide",
+      "type": "object"
+    },
+    "ProvideKind": {
+      "enum": [
+        "code",
+        "data",
+        "model"
+      ],
+      "title": "ProvideKind",
+      "type": "string"
+    },
+    "RelationalStructure": {
+      "additionalProperties": false,
+      "description": "Paper-grounded relational shape carried by one methodology element.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/RelationalStructureKind"
+        },
+        "unsupported_kind": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Concrete relational form when kind='unsupported' (for example, 'heterogeneous_graph'). Null for the supported homogeneous_graph shape. This is a pipeline-coverage declaration, not permission to approximate the paper as a homogeneous graph.",
+          "title": "Unsupported Kind"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "RelationalStructure",
+      "type": "object"
+    },
+    "RelationalStructureKind": {
+      "description": "Whether a methodology element activates relational index contracts.\n\nVersion one deliberately supports only one homogeneous graph.  The\n``unsupported`` arm lets the analyzer preserve paper truth for a\nheterogeneous, bipartite, hypergraph, dynamic, or sampled-neighbor\nmechanism without pretending it fits the homogeneous contract.",
+      "enum": [
+        "homogeneous_graph",
+        "unsupported"
+      ],
+      "title": "RelationalStructureKind",
+      "type": "string"
+    },
+    "ReplicationFeasibility": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/ReplicationFeasibilityVerdict"
+        },
+        "blockers": {
+          "items": {
+            "$ref": "#/$defs/ReplicationFeasibilityBlocker"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "approved_approximations": {
+          "items": {
+            "$ref": "#/$defs/ReplicationFeasibilityApproximation"
+          },
+          "title": "Approved Approximations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "verdict",
+        "blockers",
+        "approved_approximations"
+      ],
+      "title": "ReplicationFeasibility",
+      "type": "object"
+    },
+    "ReplicationFeasibilityApproximation": {
+      "additionalProperties": false,
+      "properties": {
+        "element_id": {
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "technical_concept": {
+          "minLength": 1,
+          "title": "Technical Concept",
+          "type": "string"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "element_id",
+        "technical_concept",
+        "rationale"
+      ],
+      "title": "ReplicationFeasibilityApproximation",
+      "type": "object"
+    },
+    "ReplicationFeasibilityBlocker": {
+      "additionalProperties": false,
+      "properties": {
+        "element_id": {
+          "minLength": 1,
+          "title": "Element Id",
+          "type": "string"
+        },
+        "technical_concept": {
+          "minLength": 1,
+          "title": "Technical Concept",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "element_id",
+        "technical_concept",
+        "reason"
+      ],
+      "title": "ReplicationFeasibilityBlocker",
+      "type": "object"
+    },
+    "ReplicationFeasibilityVerdict": {
+      "description": "Run-level verdict derived from the methodology replication contract.",
+      "enum": [
+        "feasible",
+        "feasible_with_approved_approximations",
+        "not_replicable"
+      ],
+      "title": "ReplicationFeasibilityVerdict",
+      "type": "string"
+    },
+    "ReplicationStatus": {
+      "description": "Whether a methodology element must be exact, approximated, or blocked.",
+      "enum": [
+        "must_replicate",
+        "faithful_approximation_allowed",
+        "not_replicable"
+      ],
+      "title": "ReplicationStatus",
+      "type": "string"
+    },
+    "Repo": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "cloned": {
+          "default": false,
+          "title": "Cloned",
+          "type": "boolean"
+        },
+        "clone_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clone Path"
+        },
+        "key_files": {
+          "items": {
+            "$ref": "#/$defs/RepoFile"
+          },
+          "title": "Key Files",
+          "type": "array"
+        }
+      },
+      "title": "Repo",
+      "type": "object"
+    },
+    "RepoFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "role"
+      ],
+      "title": "RepoFile",
+      "type": "object"
+    },
+    "RepresentationConventionCalibrationContext": {
+      "additionalProperties": false,
+      "description": "Non-magnitude representation convention used by a paper value.",
+      "properties": {
+        "kind": {
+          "const": "representation_convention",
+          "title": "Kind",
+          "type": "string"
+        },
+        "convention": {
+          "const": "target_box_grid",
+          "title": "Convention",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "convention"
+      ],
+      "title": "RepresentationConventionCalibrationContext",
+      "type": "object"
+    },
+    "RequiredModelMethod": {
+      "additionalProperties": false,
+      "description": "A method (in the Python class sense) the architecture must expose\nbeyond `forward()`, because the algorithm explicitly calls it.\n\nCanonical examples: `forward_with_embedding(x) -> (logits, embedding)`\nfor methods that rank in feature space (GBALD geometric representativeness,\nBADGE last-layer-gradient diversity); `predict_with_uncertainty(x)` for\nmethods that need calibrated uncertainty estimates; `forward_features(x)`\nfor any pipeline that operates on penultimate-layer activations.\n\nThis block exists for the same reason as `scale_dependent_hyperparameters`:\na structured catalog the Stage 4 fidelity reviewer can iterate as an\nexplicit checklist. The interface alone is easy to satisfy (the\narchitecture-coder can stub the method); the substance \u2014 does the\nbody actually return what the algorithm needs? \u2014 is what frequently\ndrifts.\n\nThe reviewer's per-entry check is:\n\n  - Does `method/model.py` define a method with this `name`?\n  - Does its signature match `signature` (or a documented superset)?\n  - Does `method/method.py` actually call it (no orphan hooks)?\n  - Does the body return values consistent with `returns_description`?\n\nNon-required model methods (helpers, optional convenience methods,\nmethods used only by training) do NOT belong here. This list is\n*strictly* the methods the algorithm body calls.",
+      "properties": {
+        "name": {
+          "description": "Method name as it must appear on the model class. Examples: \"forward_with_embedding\", \"predict_with_uncertainty\", \"forward_features\".",
+          "title": "Name",
+          "type": "string"
+        },
+        "signature": {
+          "description": "Signature in plain ASCII, e.g., \"forward_with_embedding(self, x: Tensor) -> tuple[Tensor, Tensor]\". The reviewer cross-checks the implemented signature against this.",
+          "title": "Signature",
+          "type": "string"
+        },
+        "returns_description": {
+          "description": "What the return value MUST be, semantically. Example: \"Tuple of (logits, penultimate_embedding) where embedding is the activation from the layer just before the classifier head, shape (B, hidden_dim).\" This is what frequently drifts; the reviewer reads the body and confirms the returned object matches this description.",
+          "title": "Returns Description",
+          "type": "string"
+        },
+        "purpose": {
+          "description": "Why the algorithm needs this method. One sentence. Example: \"Geometric representativeness ranking (Eq. 13) computes L2 distances in feature space, not input space; the algorithm requires access to penultimate-layer activations.\"",
+          "title": "Purpose",
+          "type": "string"
+        },
+        "called_from": {
+          "description": "Where in the algorithm this method is called, in plain prose. Example: \"method/method.py::geometric_ranking and select_batch (both pass x_candidates and x_labeled through it before computing distances).\"",
+          "title": "Called From",
+          "type": "string"
+        },
+        "paper_section": {
+          "description": "Section / equation reference where the requirement is stated.",
+          "title": "Paper Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "signature",
+        "returns_description",
+        "purpose",
+        "called_from",
+        "paper_section"
+      ],
+      "title": "RequiredModelMethod",
+      "type": "object"
+    },
+    "ReturnValueGraphOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "return_value",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ReturnValueGraphOutput",
+      "type": "object"
+    },
+    "ScaleDependentHyperparam": {
+      "additionalProperties": false,
+      "description": "A method-specific hyperparameter whose meaningful value depends on a\ndeclared calibration context (e.g., a feature-distance threshold or a\ntarget-box-grid convention).\n\nThis block exists to prevent silent misconfiguration when the demo's data\npreprocessing differs from the paper's. The canonical example is GBALD's\n`R_0 = 2000` distance threshold \u2014 calibrated for raw [0, 255] pixel\ndistances; nonsense for normalized [-1, 1] data without rescaling.\n\nStage 2's generator consults this list at config-write time:\n\n  - If `formula` is provided, the generator evaluates it in the chosen\n    preset's context (with symbols `d` for input dimension, `n_classes`,\n    and `data_norm` for the typical L2 norm under the preset's\n    preprocessing).\n  - Else, the typed `calibration_context` selects the relevant observer\n    without treating every calibration convention as feature magnitude.\n  - Archived specs may retain the legacy `assumes_data_scale` carrier.\n    A single entry never mixes the legacy and typed carriers.\n\nTemporal counts are not data-scale hyperparameters: context length,\nforecast-call horizon, validation span, and test span live only in\n``comparison.evaluation_protocol``. Other non-scale-dependent\nhyperparameters continue to live in prose (model.specific_features,\nblockers.resolution); this structured field is the surgical fix for the\nscale-dependence failure mode only. A broader hyperparameters restructure\nis deferred (see Stage 3 plan).",
+      "oneOf": [
+        {
+          "properties": {
+            "assumes_data_scale": {
+              "type": "string"
+            },
+            "calibration_context": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "assumes_data_scale"
+          ]
+        },
+        {
+          "properties": {
+            "calibration_context": {
+              "not": {
+                "type": "null"
+              }
+            },
+            "assumes_data_scale": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "calibration_context"
+          ]
+        }
+      ],
+      "properties": {
+        "name": {
+          "description": "Hyperparameter name as it appears in the paper (e.g., \"R_0\", \"sigma\").",
+          "title": "Name",
+          "type": "string"
+        },
+        "paper_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Literal value reported in the paper, if a single number is given. Use null when the paper expresses the value only as a formula or leaves it implicit. At least one of `paper_value` or `formula` must be present.",
+          "title": "Paper Value"
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Symbolic derivation given by the paper, e.g., \"2 * sqrt(d)\". When present, the generator evaluates it instead of using `paper_value`. Available symbols: `d` (input dimension), `n_classes`, `data_norm`. Use null if the paper provides no derivation.",
+          "title": "Formula"
+        },
+        "assumes_data_scale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Legacy pre-v1.13 carrier for the data preprocessing this hyperparameter assumes. Archived specs and specs with an omitted schema_version may retain it, but explicit v1.13+ specs must use calibration_context instead. Examples: \"raw_pixel_unnormalized\" (e.g., MNIST in [0, 255]), \"pixel_zero_one\" (e.g., [0, 1] after /255), \"pixel_centered\" (e.g., [-1, 1] or [-2, 2]), \"unit_norm\" (L2-normalized), \"standardized\" (zero-mean unit-variance). Never combine this field with calibration_context.",
+          "title": "Assumes Data Scale"
+        },
+        "calibration_context": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "feature_magnitude": "#/$defs/FeatureMagnitudeCalibrationContext",
+                  "other": "#/$defs/OtherCalibrationContext",
+                  "representation_convention": "#/$defs/RepresentationConventionCalibrationContext"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/FeatureMagnitudeCalibrationContext"
+                },
+                {
+                  "$ref": "#/$defs/RepresentationConventionCalibrationContext"
+                },
+                {
+                  "$ref": "#/$defs/OtherCalibrationContext"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Typed context against which the paper value is calibrated. feature_magnitude uses a closed numeric-scale vocabulary; representation_convention currently supports target_box_grid; other preserves an evidence-backed context that has no supported observer and must not be silently converted.",
+          "title": "Calibration Context"
+        },
+        "description": {
+          "description": "What the hyperparameter does and why it is scale-dependent. Example: \"Distance threshold for the geometric probability model. Calibrated for unnormalized pixel distances; needs rescaling for normalized data.\"",
+          "title": "Description",
+          "type": "string"
+        },
+        "paper_section": {
+          "title": "Paper Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "paper_section"
+      ],
+      "title": "ScaleDependentHyperparam",
+      "type": "object"
+    },
+    "ScenarioAssumption": {
+      "additionalProperties": false,
+      "description": "One paper-stated constraint on the demonstration scenario.\n\nThe mapping key in ``MethodSpec.scenario_assumptions`` is the matched\ntaxonomy node's dimension id. ``normalized_value`` is intentionally\nsmall JSON data rather than prose so the later detector slice can bind\nit without reparsing a sentence. ``evidence_quote`` keeps the source\nauditable and is checked verbatim against paper.md by the Stage 1\nvalidator.",
+      "properties": {
+        "normalized_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "type": "object"
+            }
+          ],
+          "description": "A compact normalized value following the matched taxonomy dimension's guidance. Scalars, flat scalar lists, and flat scalar mappings are supported.",
+          "title": "Normalized Value"
+        },
+        "evidence_quote": {
+          "description": "A verbatim text passage from the parsed paper that states the scenario assumption. Figure-only evidence is not accepted.",
+          "minLength": 1,
+          "title": "Evidence Quote",
+          "type": "string"
+        },
+        "paper_location": {
+          "description": "Section, remark, example, equation, or table containing the quote.",
+          "minLength": 1,
+          "title": "Paper Location",
+          "type": "string"
+        }
+      },
+      "required": [
+        "normalized_value",
+        "evidence_quote",
+        "paper_location"
+      ],
+      "title": "ScenarioAssumption",
+      "type": "object"
+    },
+    "Severity": {
+      "description": "How load-bearing a model feature is. `essential` = method breaks without it.",
+      "enum": [
+        "essential",
+        "important",
+        "nice-to-have"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SimilarityThresholdContract": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "const": "cosine_similarity",
+          "title": "Metric",
+          "type": "string"
+        },
+        "comparison": {
+          "enum": [
+            "greater_than",
+            "greater_than_or_equal"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        },
+        "parameter": {
+          "$ref": "#/$defs/GraphParameterBinding"
+        }
+      },
+      "required": [
+        "metric",
+        "comparison",
+        "parameter"
+      ],
+      "title": "SimilarityThresholdContract",
+      "type": "object"
+    },
+    "TrainingRequirements": {
+      "additionalProperties": false,
+      "properties": {
+        "optimizer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optimizer the paper trains with. MUST be null for paradigms with no training phase (motion_planning, classical optimization, etc.) \u2014 do NOT write an 'n/a' prose workaround; null is the semantically correct value (pdwa 2026-07-28: the analyzer honestly wrote null here and the then-required str halted a paper that had delivered the day before on invented 'n/a \u2014 algorithmic method' filler).",
+          "title": "Optimizer"
+        },
+        "learning_rate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free string \u2014 papers often report multiple LRs (e.g., per-dataset). The calibrator extracts a numeric value from this prose. MUST be null for paradigms with no training phase, same rule as `optimizer`; the calibrator treats null as absent.",
+          "title": "Learning Rate"
+        },
+        "protocol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retrain from scratch | warm start | fine-tune | etc. MUST be null for paradigms with no training phase, same rule as `optimizer`.",
+          "title": "Protocol"
+        },
+        "mc_samples": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of MC dropout forward passes the paper specifies for Bayesian uncertainty estimation. Required (non-null) for bayesian-AL papers that use MC dropout (e.g., BALD, BatchBALD, GBALD). MUST be null for paradigms that don't use MC dropout (non-bayesian AL, motion_planning, optimization, etc.) \u2014 do NOT write 0 as a 'not applicable' workaround; null is the semantically correct value, and derive_params.py falls back to the signature default when this field is null.",
+          "title": "Mc Samples"
+        },
+        "num_epochs": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of training epochs the paper trains for. Required for fixed-epoch paradigms (knowledge_distillation, supervised classification, etc.); null for paradigms whose training count is expressed differently (e.g., active learning uses `data_setup.num_rounds` instead). If the paper expresses epochs via a schedule label (e.g., '2x schedule = 24 epochs'), record the integer count, not the schedule label.",
+          "title": "Num Epochs"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Random seed reported by the paper, if any. Null if the paper does not specify a single seed (e.g., reports mean over multiple seeds \u2014 in which case the harness chooses seeds and records them per-run).",
+          "title": "Seed"
+        },
+        "paper_section": {
+          "title": "Paper Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paper_section"
+      ],
+      "title": "TrainingRequirements",
+      "type": "object"
+    },
+    "TryItOut": {
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "title": "Definition",
+          "type": "string"
+        },
+        "user_provides": {
+          "items": {
+            "$ref": "#/$defs/Provide"
+          },
+          "title": "User Provides",
+          "type": "array"
+        },
+        "system_provides": {
+          "items": {
+            "$ref": "#/$defs/Provide"
+          },
+          "title": "System Provides",
+          "type": "array"
+        }
+      },
+      "required": [
+        "definition",
+        "user_provides",
+        "system_provides"
+      ],
+      "title": "TryItOut",
+      "type": "object"
+    },
+    "TupleItemGraphOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "tuple_item",
+          "title": "Kind",
+          "type": "string"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "index"
+      ],
+      "title": "TupleItemGraphOutput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.14.0"
+          }
+        },
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "properties": {
+          "critical_requirements": {
+            "properties": {
+              "scale_dependent_hyperparameters": {
+                "items": {
+                  "properties": {
+                    "calibration_context": {
+                      "not": {
+                        "type": "null"
+                      }
+                    },
+                    "assumes_data_scale": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "calibration_context"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.14.0"
+          },
+          "methodology_replication_contract": {
+            "properties": {
+              "elements": {
+                "contains": {
+                  "properties": {
+                    "relational_structure": {
+                      "properties": {
+                        "kind": {
+                          "const": "homogeneous_graph"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "relational_structure"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "elements"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema_version",
+          "methodology_replication_contract"
+        ]
+      },
+      "then": {
+        "properties": {
+          "methodology_replication_contract": {
+            "properties": {
+              "homogeneous_graph_mechanism": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            },
+            "required": [
+              "homogeneous_graph_mechanism"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "description": "The canonical structured representation of a paper's method, claim, and\ncomparison setup. Produced by Stage 1 (Step 3); consumed by every downstream\nstage.",
+  "properties": {
+    "schema_version": {
+      "default": "1.14.0",
+      "description": "Schema version this spec was written against. Validators reject specs whose version they do not understand.",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "paper": {
+      "$ref": "#/$defs/Paper"
+    },
+    "core_method": {
+      "$ref": "#/$defs/CoreMethod"
+    },
+    "paper_claims": {
+      "$ref": "#/$defs/PaperClaims"
+    },
+    "try_it_out": {
+      "$ref": "#/$defs/TryItOut"
+    },
+    "data_requirements": {
+      "$ref": "#/$defs/DataRequirements"
+    },
+    "dependencies": {
+      "$ref": "#/$defs/Dependencies"
+    },
+    "repo": {
+      "$ref": "#/$defs/Repo"
+    },
+    "comparison": {
+      "$ref": "#/$defs/Comparison"
+    },
+    "critical_requirements": {
+      "$ref": "#/$defs/CriticalRequirements"
+    },
+    "scenario_assumptions": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/ScenarioAssumption"
+          },
+          "minProperties": 1,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Paper-stated demo-scenario constraints keyed by dimension ids declared by the matched taxonomy node. Each entry carries a normalized value, verbatim evidence quote, and paper location. Omit when the node declares no capture dimensions or the paper states no assumption on them.",
+      "title": "Scenario Assumptions"
+    },
+    "methodology_replication_contract": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MethodologyReplicationContract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "methodology_contract_pack": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MethodologyContractPack"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "replication_feasibility": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReplicationFeasibility"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "feasibility": {
+      "$ref": "#/$defs/Feasibility"
+    }
+  },
+  "required": [
+    "paper",
+    "core_method",
+    "paper_claims",
+    "try_it_out",
+    "data_requirements",
+    "dependencies",
+    "repo",
+    "comparison",
+    "critical_requirements",
+    "feasibility"
+  ],
+  "title": "MethodSpec",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://r2c.local/schemas/method_spec/v1.14.0"
+}

@@ -1,0 +1,18 @@
+{
+ "candidate_sha256": "527c1614ebbb15764a2708b1b0a6afd5f9ff5b9d3a9d4eefb42e9c30de53ce5a",
+ "case_id": "rfc10008-redirect-imperative",
+ "prohibited_interpretations": [
+  "the client must resend"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "An imperative invented from a suggestion. The source says the server is suggesting that the user agent can accomplish its original request that way; no client obligation exists.",
+ "required_disclosures": [],
+ "required_facts": [],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "rejected"
+}

@@ -1,0 +1,13 @@
+{
+  "applicable": true,
+  "live_max_epochs": 8,
+  "live_batch": 100,
+  "live_dropout": 0.5,
+  "n_labeled_fixture": 100,
+  "live_acc": 0.3333,
+  "chance": 0.3333,
+  "target": 0.5833,
+  "sufficient_at_live": false,
+  "suggested_max_epochs": 200,
+  "reason": "live budget starves (acc 0.333 < 0.583); max_epochs=200 fits to 0.980 with batch and lr unchanged"
+}

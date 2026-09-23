@@ -1,0 +1,39 @@
+# example_data/
+
+This directory is where the notebook reads image data from. On first run,
+the notebook's `load_data()` call will download a subset of CIFAR-10 into
+this directory and save it as `cifar10_subset.pt`. Subsequent runs reload
+that file directly.
+
+CIFAR-10 contains 60,000 32x32 color images across 10 classes at 6,000
+images per class. The smoke subset uses 10,000 training images and 1,000
+test images.
+
+## Use your own data
+
+Drop a `.pt` file into this directory with the following structure:
+
+```python
+torch.save({
+    "x_train": ...,  # (N_train, 3, H, W) float tensor — NCHW format
+    "y_train": ...,  # (N_train,) long tensor of labels in [0, n_classes)
+    "x_test":  ...,  # (N_test, 3, H, W) float tensor
+    "y_test":  ...,  # (N_test,) long tensor of labels
+}, "example_data/my_dataset.pt")
+```
+
+- Images must be 4D tensors `(N, 3, H, W)` in NCHW format (BGR channels,
+  height, width). The normalization in `data.py`'s default transforms uses
+  CIFAR-10 mean/std. For a different dataset, update the ` Normalize(...)`
+  parameters in `build_transforms()`.
+- Labels must be 1D long tensors with values in `[0, n_classes)`.
+- The model in `method/model.py` infers `n_classes` from the paper's spec,
+  so your test set labels must be consistent with that count.
+
+## Paper-scale data
+
+The paper evaluates on ImageNet-1K (1.28M training images, 50,000 validation
+images, 224x224 or higher resolution). ImageNet is too large for smoke runs;
+the notebook uses CIFAR-10 as a proxy to verify the architecture works.
+For paper-faithful evaluation, download ImageNet and create a `.pt` cache
+matching the format above.

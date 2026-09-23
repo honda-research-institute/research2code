@@ -1,0 +1,348 @@
+"""Data loading for cross-modal detection knowledge distillation.
+
+Default behavior: `load_data()` (no args) reads from `method/example_data/`.
+On first run, if no real cross-modal data is present, the loader generates
+a synthetic paired dataset (random RGB images + random point clouds +
+random box targets) and caches it under `_cache/`. This is enough to
+verify the pipeline executes end-to-end; it is NOT a meaningful detection
+benchmark.
+
+The cross-modal data shape:
+  (student_inputs_train, teacher_inputs_train, targets_train,
+   student_inputs_test,  teacher_inputs_test,  targets_test)
+
+- `student_inputs_*`: List[PIL.Image.Image] — RGB images for the camera-based student
+- `teacher_inputs_*`: List[Tensor]            — point clouds (each Tensor: shape `(N_points, 3)`) for the point-cloud teacher
+- `targets_*`:        List[Dict]              — `{"boxes": Tensor[N, 4] xyxy, "labels": Tensor[N]}` per scene
+
+The i-th element across all three lists is the SAME scene observed by the
+two modalities — paired alignment is preserved by the cache file and by
+the synthetic generator's lockstep RNG.
+
+To use your own data, drop one of these into `example_data/` (or pass a
+path explicitly to `load_data("my_data/")`):
+
+- **`.pt`** — single file containing a dict with the six keys above.
+- **Paired-modality directory** — see `example_data/README.md` for the
+  directory layout (typically a `cross_modal_dataset.pt` cache, or
+  three-format split: `images/`, `point_clouds/`, `annotations.json`).
+
+If neither is present, the synthetic-detection generator runs as a fallback
+so smoke runs work out-of-the-box.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import random
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+import torch
+from torch import Tensor
+from PIL import Image as PILImage
+from PIL import ImageDraw
+from PIL.Image import Image
+
+
+# ---------------------------------------------------------------------------
+# Format dispatchers
+# ---------------------------------------------------------------------------
+
+
+def _find_with_ext(p: Path, ext: str) -> Path | None:
+    """Find the first file with the given extension at p (file or directory).
+    Skips `_`-prefixed directories so `_cache/` artifacts are not treated as
+    user-supplied data."""
+    if p.is_file() and p.suffix == ext:
+        return p
+    if p.is_dir():
+        for entry in sorted(p.iterdir()):
+            if entry.name.startswith("_"):
+                continue
+            if entry.is_file() and entry.suffix == ext:
+                return entry
+    return None
+
+
+def _find_paired_dir(p: Path) -> Path | None:
+    """Find a paired-modality directory: contains `images/`, `point_clouds/`,
+    and `annotations.json`. Returns the directory path, or None if not found.
+
+    Checks p itself first, then any non-`_`-prefixed subdir of p."""
+    def _has_paired_layout(d: Path) -> bool:
+        return (
+            (d / "images").is_dir()
+            and (d / "point_clouds").is_dir()
+            and (d / "annotations.json").is_file()
+        )
+    if not p.is_dir():
+        return None
+    if _has_paired_layout(p):
+        return p
+    for entry in sorted(p.iterdir()):
+        if entry.name.startswith("_"):
+            continue
+        if entry.is_dir() and _has_paired_layout(entry):
+            return entry
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Per-format loaders
+# ---------------------------------------------------------------------------
+
+
+def _load_pt(path: Path):
+    d = torch.load(path, weights_only=False)
+    return (
+        d["student_inputs_train"], d["teacher_inputs_train"], d["targets_train"],
+        d["student_inputs_test"],  d["teacher_inputs_test"],  d["targets_test"],
+    )
+
+
+def _load_paired_dir(paired_dir: Path, train_size: int, n_test: int, seed: int):
+    """Load paired (image, point_cloud, target) samples from a directory.
+
+    Expects the layout:
+        <paired_dir>/images/         — image files, one per sample
+        <paired_dir>/point_clouds/   — .pt files with point-cloud tensors, same basenames as images
+        <paired_dir>/annotations.json — COCO-style annotations referencing image filenames
+    """
+    ann_path = paired_dir / "annotations.json"
+    images_dir = paired_dir / "images"
+    pc_dir = paired_dir / "point_clouds"
+
+    with ann_path.open() as f:
+        coco = json.load(f)
+
+    id_to_file = {img["id"]: img["file_name"] for img in coco["images"]}
+    id_to_anns: dict[int, list] = {img_id: [] for img_id in id_to_file}
+    for ann in coco["annotations"]:
+        id_to_anns[ann["image_id"]].append(ann)
+
+    rng = random.Random(seed)
+    image_ids = list(id_to_file.keys())
+    rng.shuffle(image_ids)
+    train_ids = image_ids[:train_size]
+    test_ids = image_ids[train_size : train_size + n_test]
+
+    def _load_split(ids: list[int]):
+        images: list[Image] = []
+        point_clouds: list[torch.Tensor] = []
+        targets: list[dict] = []
+        for img_id in ids:
+            fname = id_to_file[img_id]
+            stem = Path(fname).stem
+            images.append(PILImage.open(images_dir / fname).convert("RGB"))
+            point_clouds.append(torch.load(pc_dir / f"{stem}.pt", weights_only=False))
+            anns = id_to_anns[img_id]
+            if anns:
+                xywh = torch.tensor([a["bbox"] for a in anns], dtype=torch.float)
+                xyxy = xywh.clone()
+                xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
+                xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+                labels = torch.tensor([a["category_id"] for a in anns], dtype=torch.long)
+            else:
+                xyxy = torch.zeros((0, 4), dtype=torch.float)
+                labels = torch.zeros((0,), dtype=torch.long)
+            targets.append({"boxes": xyxy, "labels": labels})
+        return images, point_clouds, targets
+
+    si_train, ti_train, t_train = _load_split(train_ids)
+    si_test,  ti_test,  t_test  = _load_split(test_ids)
+    return si_train, ti_train, t_train, si_test, ti_test, t_test
+
+
+# ---------------------------------------------------------------------------
+# Synthetic cross-modal fallback
+# ---------------------------------------------------------------------------
+
+
+_SYNTHETIC_IMG_SIZE = 64
+_SYNTHETIC_N_CLASSES = 5
+_SYNTHETIC_N_POINTS = 256  # per-sample point count for the teacher's point cloud
+
+
+def _generate_synthetic_cross_modal(
+    save_dir: Path, train_size: int, n_test: int, seed: int
+) -> Tuple[List[Image], List[Tensor], List[Dict],
+           List[Image], List[Tensor], List[Dict]]:
+    """Generate a synthetic cross-modal detection smoke dataset.
+
+    Pure-Python, no external downloads. Produces paired
+    (image, point_cloud, target) tuples per split:
+      - 64x64 RGB image with 1-3 colored rectangles
+      - Point cloud (N_points, 3) sampled from the same 3D box positions
+        (so the modalities are plausibly aligned for distillation)
+      - Target dict with xyxy boxes (in image pixel coords) + class labels
+
+    Sufficient to verify the cross-modal pipeline executes end-to-end and
+    that the shared-space distillation loss has matched shapes; NOT a
+    meaningful detection benchmark.
+
+    Cached under `_cache/`. The cache embeds generation params so a call
+    with different sizes regenerates rather than silently returning stale.
+    """
+    cache_dir = save_dir / "_cache"
+    cache_path = cache_dir / "synthetic_cross_modal.pt"
+    if cache_path.is_file():
+        try:
+            cached = torch.load(cache_path, weights_only=False)
+            meta = cached.get("_meta", {})
+            if (
+                meta.get("train_size") == train_size
+                and meta.get("n_test") == n_test
+                and meta.get("seed") == seed
+            ):
+                return (
+                    cached["student_inputs_train"], cached["teacher_inputs_train"], cached["targets_train"],
+                    cached["student_inputs_test"],  cached["teacher_inputs_test"],  cached["targets_test"],
+                )
+        except Exception:
+            pass  # fall through and regenerate
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    rng = random.Random(seed)
+    torch_gen = torch.Generator().manual_seed(seed)
+
+    def _make_one() -> tuple[Image, torch.Tensor, dict]:
+        # Image background
+        bg = (rng.randint(0, 80), rng.randint(0, 80), rng.randint(0, 80))
+        img = PILImage.new("RGB", (_SYNTHETIC_IMG_SIZE, _SYNTHETIC_IMG_SIZE), color=bg)
+        draw = ImageDraw.Draw(img)
+        n_boxes = rng.randint(1, 3)
+        boxes_2d: list[list[int]] = []
+        labels: list[int] = []
+        box_centers_3d: list[tuple[float, float, float]] = []
+        for _ in range(n_boxes):
+            x1 = rng.randint(0, _SYNTHETIC_IMG_SIZE // 2)
+            y1 = rng.randint(0, _SYNTHETIC_IMG_SIZE // 2)
+            x2 = rng.randint(x1 + 8, min(x1 + 28, _SYNTHETIC_IMG_SIZE - 1))
+            y2 = rng.randint(y1 + 8, min(y1 + 28, _SYNTHETIC_IMG_SIZE - 1))
+            color = (rng.randint(120, 255), rng.randint(120, 255), rng.randint(120, 255))
+            draw.rectangle([x1, y1, x2, y2], fill=color)
+            boxes_2d.append([x1, y1, x2, y2])
+            labels.append(rng.randint(0, _SYNTHETIC_N_CLASSES - 1))
+            # 3D box center: map 2D image coords to a (-1, 1) range plus a
+            # synthetic z (depth). Used to seed the point cloud so the
+            # cross-modal pair is plausibly aligned.
+            cx = (x1 + x2) / 2.0 / _SYNTHETIC_IMG_SIZE * 2.0 - 1.0
+            cy = (y1 + y2) / 2.0 / _SYNTHETIC_IMG_SIZE * 2.0 - 1.0
+            cz = rng.uniform(0.5, 2.5)
+            box_centers_3d.append((cx, cy, cz))
+
+        # Point cloud: scatter most points uniformly in a normalized 3D
+        # volume, then concentrate ~30% near the box centers so the
+        # teacher has "object structure" to detect. Shape: (N_points, 3).
+        n_concentrated = int(_SYNTHETIC_N_POINTS * 0.3)
+        n_background = _SYNTHETIC_N_POINTS - n_concentrated
+        bg_points = torch.empty((n_background, 3)).uniform_(-1.0, 3.0, generator=torch_gen)
+        if box_centers_3d:
+            per_box = max(1, n_concentrated // len(box_centers_3d))
+            cluster_points_list = []
+            for (cx, cy, cz) in box_centers_3d:
+                center = torch.tensor([cx, cy, cz])
+                noise = torch.empty((per_box, 3)).normal_(0.0, 0.1, generator=torch_gen)
+                cluster_points_list.append(center.unsqueeze(0) + noise)
+            cluster_points = torch.cat(cluster_points_list, dim=0)
+            # Pad / truncate to exact n_concentrated
+            if cluster_points.shape[0] > n_concentrated:
+                cluster_points = cluster_points[:n_concentrated]
+            else:
+                pad = torch.empty((n_concentrated - cluster_points.shape[0], 3)).uniform_(-1.0, 3.0, generator=torch_gen)
+                cluster_points = torch.cat([cluster_points, pad], dim=0)
+            point_cloud = torch.cat([cluster_points, bg_points], dim=0)
+        else:
+            point_cloud = bg_points
+
+        target = {
+            "boxes": torch.tensor(boxes_2d, dtype=torch.float),
+            "labels": torch.tensor(labels, dtype=torch.long),
+        }
+        return img, point_cloud, target
+
+    si_train: list[Image] = []
+    ti_train: list[torch.Tensor] = []
+    t_train: list[dict] = []
+    for _ in range(train_size):
+        img, pc, tgt = _make_one()
+        si_train.append(img)
+        ti_train.append(pc)
+        t_train.append(tgt)
+
+    si_test: list[Image] = []
+    ti_test: list[torch.Tensor] = []
+    t_test: list[dict] = []
+    for _ in range(n_test):
+        img, pc, tgt = _make_one()
+        si_test.append(img)
+        ti_test.append(pc)
+        t_test.append(tgt)
+
+    torch.save(
+        {
+            "student_inputs_train": si_train,
+            "teacher_inputs_train": ti_train,
+            "targets_train": t_train,
+            "student_inputs_test": si_test,
+            "teacher_inputs_test": ti_test,
+            "targets_test": t_test,
+            "_meta": {"train_size": train_size, "n_test": n_test, "seed": seed},
+        },
+        cache_path,
+    )
+    return si_train, ti_train, t_train, si_test, ti_test, t_test
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+
+DEFAULT_DATA_DIR = Path(__file__).parent / "example_data"
+
+
+def load_data(
+    path: str | os.PathLike | None = None,
+    *,
+    train_size: int = 200,
+    n_test: int = 50,
+    seed: int = 0,
+) -> Tuple[List[Image], List[Tensor], List[Dict],
+           List[Image], List[Tensor], List[Dict]]:
+    """Return (student_inputs_train, teacher_inputs_train, targets_train,
+                student_inputs_test,  teacher_inputs_test,  targets_test).
+
+    Paired cross-modal samples:
+      - student_inputs_*: List[PIL.Image.Image] — student's modality (RGB)
+      - teacher_inputs_*: List[Tensor]    — teacher's modality (point clouds)
+      - targets_*:        List[Dict]            — {"boxes": Tensor[N, 4], "labels": Tensor[N]}
+
+    Dispatches in priority order:
+      1. `.pt` file containing the six-key dict
+      2. Paired-modality directory (`images/` + `point_clouds/` + `annotations.json`)
+      3. Synthetic cross-modal fallback (random images + point clouds + boxes)
+
+    `train_size`, `n_test`, and `seed` apply to the synthetic fallback and to
+    sampling from a paired directory. User-supplied `.pt` files load their
+    full contents regardless of these args.
+    """
+    p = DEFAULT_DATA_DIR if path is None else Path(path)
+
+    # 1. .pt — fastest path
+    pt = _find_with_ext(p, ".pt")
+    if pt is not None:
+        return _load_pt(pt)
+
+    # 2. Paired-modality directory
+    paired_dir = _find_paired_dir(p)
+    if paired_dir is not None:
+        return _load_paired_dir(paired_dir, train_size, n_test, seed)
+
+    # 3. Synthetic cross-modal fallback
+    return _generate_synthetic_cross_modal(
+        p if (p.is_dir() or not p.exists()) else p.parent,
+        train_size, n_test, seed,
+    )

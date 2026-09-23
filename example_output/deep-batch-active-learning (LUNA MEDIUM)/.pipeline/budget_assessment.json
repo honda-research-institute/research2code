@@ -1,0 +1,13 @@
+{
+  "applicable": true,
+  "live_max_epochs": 8,
+  "live_batch": 100,
+  "live_dropout": 0.5,
+  "n_labeled_fixture": 100,
+  "live_acc": 0.1616,
+  "chance": 0.3333,
+  "target": 0.5833,
+  "sufficient_at_live": false,
+  "suggested_max_epochs": null,
+  "reason": "the live config cannot fit a separable 100-sample fixture even at max_epochs=400 (acc stays below 0.583). This is not just a budget shortfall \u2014 the learning rate (0.001) or the architecture (dropout 0.5) needs attention."
+}

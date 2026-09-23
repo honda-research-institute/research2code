@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-softmax-definition": {
+      "what": "For an input logit vector z, where z_i is the score for class i, this equation produces a probability p_i for each of the K classes. It exponentiates each class score and normalizes by the sum of all exponentiated scores, so the resulting probabilities sum to one. In BADGE, these class probabilities provide the predictive quantities used when representing an unlabeled point in the hallucinated gradient space.",
+      "why_novel": "This is standard softmax machinery, not a novel contribution of BADGE. Its role is to turn the network's output scores into probabilities that can support BADGE's combination of predictive uncertainty and diversity in gradient embeddings.",
+      "intuition": "Exponentiation makes larger logits receive more weight, while division by the total converts those weights into a competition among the K classes. Thus a point with one dominant class probability is confident, whereas a point with probabilities spread across classes is uncertain; BADGE can use that predictive information together with representation geometry when selecting a batch."
+    }
+  }
+}

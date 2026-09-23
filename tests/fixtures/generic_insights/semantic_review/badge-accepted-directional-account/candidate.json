@@ -1,0 +1,50 @@
+{
+ "case_id": "badge-accepted-directional-account",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "Our algorithm, Batch Active learning by Diverse Gradient Embeddings (BADGE), samples groups of points that are disparate and high magnitude when represented in a hallucinated gradient space, a strategy designed to incorporate both predictive uncertainty and sample diversity into every selected batch.",
+   "span": {
+    "end": 669,
+    "start": 368
+   }
+  },
+  {
+   "id": "c02",
+   "quote": "We measure uncertainty as the gradient magnitude with respect to parameters in the final (output) layer, which is computed using the most likely label according to the model.",
+   "span": {
+    "end": 4511,
+    "start": 4337
+   }
+  },
+  {
+   "id": "c03",
+   "quote": "More specifically, we build up the batch of query points based on these hallucinated gradients using the *k*-MEANS++ initialization (Arthur and Vassilvitskii) [2007), which simultaneously captures both the magnitude of a candidate gradient and its distance from previously included points in the batch.",
+   "span": {
+    "end": 4923,
+    "start": 4621
+   }
+  },
+  {
+   "id": "c04",
+   "quote": "We show in Proposition I that, assuming a common structure satisfied by most natural neural networks, the gradient norm with respect to the last layer using this label provides a lower bound on the gradient norm induced by any other label.",
+   "span": {
+    "end": 10507,
+    "start": 10268
+   }
+  },
+  {
+   "id": "c05",
+   "quote": "The algorithm queries the labels of these examples, retrains the model, and repeats.",
+   "span": {
+    "end": 9607,
+    "start": 9523
+   }
+  }
+ ],
+ "source": {
+  "path": "input_papers/deep-batch-active-learning.md",
+  "sha256": "2aa2899ae9d8d682dd75ca1da861691ebc545a4c45bb005998dec400d47644dc"
+ },
+ "statement": "BADGE selects each batch through a directional pipeline: the current model supplies a hallucinated label for each unlabeled candidate; a gradient embedding of the loss is computed with respect to the network's last (output) layer using that hallucinated label; the k-MEANS++ seeding algorithm samples a batch intended to be diverse in that embedding space; the selected examples' labels are queried; and the model retrains on the enlarged labeled set. Uncertainty enters through the gradient embedding's magnitude and diversity through embedding-space geometry. The magnitude-as-uncertainty reading is conditioned on the common network structure assumed by the paper's Proposition I about the last layer; it is not an architecture-free guarantee, and sampled batches are intended to be diverse rather than guaranteed diverse."
+}

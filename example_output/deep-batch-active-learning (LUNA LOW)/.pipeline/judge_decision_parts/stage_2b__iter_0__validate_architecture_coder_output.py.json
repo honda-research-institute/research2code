@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2b",
+  "iteration": 0,
+  "validator_label": "validate_architecture_coder_output.py",
+  "classification": "producer_fixable",
+  "action": "dispatch_fix",
+  "target_agent": "r2c-architecture-coder",
+  "finding": {
+    "id": "JUDGE001",
+    "severity": "critical",
+    "description": "The architecture coder emitted schema-2 constructor and scalar dimension references with the legacy shorthand shape. In arch_contract.json, architecture.model.constructor_args.input_dim, n_classes, and hidden_dim, plus pluggable_component.input.batch_size.source, use a string-valued dimension where schema 2 requires a nested DimensionUse object.",
+    "proposed_fix": "Re-emit arch_contract.json with every affected constructor value shaped as {\"dimension\": {\"dimension\": \"<name>\"}} and batch_size.source shaped as {\"dimension\": {\"dimension\": \"selection_count\"}}; preserve the existing dimension names and all other contract content. Specifically repair input_dim→feature_width, n_classes→class_count, hidden_dim→hidden_width, and batch_size→selection_count, then re-check the complete contract against schema 2.0.0."
+  },
+  "rationale": "The validator's schema failure is legitimate: schemas/arch_contract_v2.py defines DimensionConstructorValue.dimension and ScalarDimensionSource.dimension as DimensionUse objects, while the artifact supplies bare strings. The taxonomy node and method spec require the BADGE classifier and selection-count interface represented by these same dimensions, so this is a local producer serialization error rather than an upstream classification or validator bug.",
+  "confidence": "high",
+  "files_examined": [
+    "scripts/validate_architecture_coder_output.py",
+    "schemas/arch_contract_v2.py",
+    "r2c_runs/deep-batch-active-learning/.pipeline/arch_contract.json",
+    "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+    "docs/ssot/taxonomies.yaml#TE-TS/active_learning/batch_acquisition"
+  ]
+}

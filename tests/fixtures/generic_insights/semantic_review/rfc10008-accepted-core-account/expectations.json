@@ -1,0 +1,27 @@
+{
+ "candidate_sha256": "400037ab142bc1e3b2a5ce068c2239ebfebd37511fc69c4e7fa966d93e1fb000",
+ "case_id": "rfc10008-accepted-core-account",
+ "prohibited_interpretations": [
+  "can never produce a different result",
+  "exactly like a GET request",
+  "hash(request content + metadata)"
+ ],
+ "provenance": {
+  "recorded_by": "Claude Code corpus transcription, 2026-07-16",
+  "semantic_owner": "external review; production validation never emits accepted or rejected and always reports semantic_status=unreviewed",
+  "signed_off_by": "the maintainer, contract approval 2026-07-16 (plan-of-record decision log)",
+  "verdict_basis": "the generic insight artifact contract note (internal, not shipped), known-good expectations and known-bad corruption table for RFC 10008 and the BADGE/PDWA accepted-account sections"
+ },
+ "rationale": "Matches the contract's known-good expectations: safety scoped with the additional-resources exception preserved, idempotence as retry semantics without a result-equality promise, and caching as a separate behavior without an invented key algorithm.",
+ "required_disclosures": [],
+ "required_facts": [
+  "scoped to the target resource",
+  "additional information",
+  "retried or repeated",
+  "does not promise identical response representations",
+  "separate caching rules",
+  "incorporates request content and related metadata"
+ ],
+ "source_sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58",
+ "verdict": "accepted"
+}

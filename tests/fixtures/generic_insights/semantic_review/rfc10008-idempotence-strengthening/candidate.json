@@ -1,0 +1,18 @@
+{
+ "case_id": "rfc10008-idempotence-strengthening",
+ "citations": [
+  {
+   "id": "c01",
+   "quote": "Furthermore, QUERY requests are idempotent ([HTTP], Section 9.2.2); they can be retried or repeated when needed, for instance, after a connection failure.",
+   "span": {
+    "end": 10231,
+    "start": 10077
+   }
+  }
+ ],
+ "source": {
+  "path": "tests/fixtures/generic_insights/rfc10008/paper.md",
+  "sha256": "207b8794f62b5ffdfdf2f89e39d6cca3697763510140957cafc30a5f8169be58"
+ },
+ "statement": "Idempotence guarantees that repeating an identical QUERY request can never produce a different result."
+}

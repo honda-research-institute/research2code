@@ -1,0 +1,280 @@
+"""Data loading for detection knowledge distillation.
+
+Default behavior: `load_data()` (no args) reads from `method/example_data/` —
+the directory bundled inside this package. On first run, if no real detection
+data is present, the loader generates a small synthetic detection dataset
+(random colored rectangles on noise backgrounds) and caches it under
+`example_data/_cache/`. This is enough to verify the pipeline executes
+end-to-end; it is NOT a meaningful detection benchmark.
+
+To use your own data, drop one of these into `example_data/` (or pass a path
+explicitly to `load_data("my_data/")`):
+
+- **`.pt`** — single file containing a dict
+  `{"images_train": list[PIL.Image], "targets_train": list[dict],
+    "images_test":  list[PIL.Image], "targets_test":  list[dict]}`.
+  Each target dict has keys `"boxes"` (Tensor[N, 4] in xyxy format) and
+  `"labels"` (Tensor[N] of integer class indices).
+
+- **COCO-format directory** — a directory containing `images/` (image files)
+  and `annotations.json` (COCO-format JSON with `images`, `annotations`,
+  `categories` keys). The loader maps each annotation to its image, converts
+  COCO `xywh` boxes to `xyxy`, and returns the standard list-of-dicts format.
+
+If neither is present, the synthetic-detection generator runs as a fallback so
+smoke runs work out-of-the-box.
+
+The returned `Image` type is `PIL.Image.Image` (the standard input format for
+torchvision detection models). Conversion to tensors happens inside the
+model's `forward` or via a preprocessing transform in `method/model.py`.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import random
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+import torch
+from PIL import Image as PILImage
+from PIL import ImageDraw
+from PIL.Image import Image
+
+
+# ---------------------------------------------------------------------------
+# Format dispatchers
+# ---------------------------------------------------------------------------
+
+
+def _find_with_ext(p: Path, ext: str) -> Path | None:
+    """Find the first file with the given extension at p (file or directory).
+    Skips `_`-prefixed directories so `_cache/` artifacts are not treated as
+    user-supplied data."""
+    if p.is_file() and p.suffix == ext:
+        return p
+    if p.is_dir():
+        for entry in sorted(p.iterdir()):
+            if entry.name.startswith("_"):
+                continue
+            if entry.is_file() and entry.suffix == ext:
+                return entry
+    return None
+
+
+def _find_coco_dir(p: Path) -> Path | None:
+    """Find a COCO-format directory: contains `images/` and `annotations.json`.
+    Checks p itself first, then any non-`_`-prefixed subdir of p."""
+    if not p.is_dir():
+        return None
+    if (p / "images").is_dir() and (p / "annotations.json").is_file():
+        return p
+    for entry in sorted(p.iterdir()):
+        if entry.name.startswith("_"):
+            continue
+        if entry.is_dir() and (entry / "images").is_dir() and (entry / "annotations.json").is_file():
+            return entry
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Per-format loaders
+# ---------------------------------------------------------------------------
+
+
+def _load_pt(path: Path):
+    d = torch.load(path, weights_only=False)
+    return d["images_train"], d["targets_train"], d["images_test"], d["targets_test"]
+
+
+def _load_coco(coco_dir: Path, train_size: int, n_test: int, seed: int):
+    """Load images + targets from a COCO-format directory.
+
+    Expects `<coco_dir>/images/` (image files) and `<coco_dir>/annotations.json`
+    in standard COCO format. Samples `train_size + n_test` images
+    deterministically (seeded shuffle) and splits the result.
+    """
+    ann_path = coco_dir / "annotations.json"
+    images_dir = coco_dir / "images"
+
+    with ann_path.open() as f:
+        coco = json.load(f)
+
+    id_to_file = {img["id"]: img["file_name"] for img in coco["images"]}
+    id_to_anns: dict[int, list] = {img_id: [] for img_id in id_to_file}
+    for ann in coco["annotations"]:
+        id_to_anns[ann["image_id"]].append(ann)
+
+    rng = random.Random(seed)
+    image_ids = list(id_to_file.keys())
+    rng.shuffle(image_ids)
+
+    train_ids = image_ids[:train_size]
+    test_ids = image_ids[train_size : train_size + n_test]
+
+    def _load_split(ids: list[int]) -> tuple[list[Image], list[dict]]:
+        images: list[Image] = []
+        targets: list[dict] = []
+        for img_id in ids:
+            img_path = images_dir / id_to_file[img_id]
+            images.append(PILImage.open(img_path).convert("RGB"))
+            anns = id_to_anns[img_id]
+            if anns:
+                # COCO bboxes are [x, y, w, h] in pixels; convert to xyxy.
+                xywh = torch.tensor([a["bbox"] for a in anns], dtype=torch.float)
+                xyxy = xywh.clone()
+                xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
+                xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+                labels = torch.tensor([a["category_id"] for a in anns], dtype=torch.long)
+            else:
+                xyxy = torch.zeros((0, 4), dtype=torch.float)
+                labels = torch.zeros((0,), dtype=torch.long)
+            targets.append({"boxes": xyxy, "labels": labels})
+        return images, targets
+
+    images_train, targets_train = _load_split(train_ids)
+    images_test, targets_test = _load_split(test_ids)
+    return images_train, targets_train, images_test, targets_test
+
+
+# ---------------------------------------------------------------------------
+# Synthetic-detection fallback
+# ---------------------------------------------------------------------------
+
+
+_SYNTHETIC_IMG_SIZE = 64
+_SYNTHETIC_N_CLASSES = 5
+
+
+def _generate_synthetic_detection(
+    save_dir: Path, train_size: int, n_test: int, seed: int
+) -> Tuple[List[Image], List[Dict], List[Image], List[Dict]]:
+    """Generate a synthetic detection smoke dataset.
+
+    Pure-Python, no external downloads. Produces 64x64 RGB images with 1-3
+    random colored rectangles on a dark background; targets are the bounding
+    boxes (xyxy) around those rectangles with random class labels in
+    [0, 5). Sufficient for verifying the algorithm executes end-to-end;
+    NOT a meaningful detection benchmark.
+
+    Cached under `_cache/` so repeat calls with the same params reuse the
+    cached data. The cache embeds the generation params so a call with
+    different sizes regenerates rather than silently returning a stale set.
+    """
+    cache_dir = save_dir / "_cache"
+    cache_path = cache_dir / "synthetic_detection.pt"
+    if cache_path.is_file():
+        try:
+            cached = torch.load(cache_path, weights_only=False)
+            meta = cached.get("_meta", {})
+            if (
+                meta.get("train_size") == train_size
+                and meta.get("n_test") == n_test
+                and meta.get("seed") == seed
+            ):
+                return (
+                    cached["images_train"], cached["targets_train"],
+                    cached["images_test"], cached["targets_test"],
+                )
+        except Exception:
+            pass  # fall through and regenerate
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    rng = random.Random(seed)
+
+    def _make_one() -> tuple[Image, dict]:
+        bg = (rng.randint(0, 80), rng.randint(0, 80), rng.randint(0, 80))
+        img = PILImage.new("RGB", (_SYNTHETIC_IMG_SIZE, _SYNTHETIC_IMG_SIZE), color=bg)
+        draw = ImageDraw.Draw(img)
+        n_boxes = rng.randint(1, 3)
+        boxes: list[list[int]] = []
+        labels: list[int] = []
+        for _ in range(n_boxes):
+            x1 = rng.randint(0, _SYNTHETIC_IMG_SIZE // 2)
+            y1 = rng.randint(0, _SYNTHETIC_IMG_SIZE // 2)
+            x2 = rng.randint(x1 + 8, min(x1 + 28, _SYNTHETIC_IMG_SIZE - 1))
+            y2 = rng.randint(y1 + 8, min(y1 + 28, _SYNTHETIC_IMG_SIZE - 1))
+            color = (rng.randint(120, 255), rng.randint(120, 255), rng.randint(120, 255))
+            draw.rectangle([x1, y1, x2, y2], fill=color)
+            boxes.append([x1, y1, x2, y2])
+            labels.append(rng.randint(0, _SYNTHETIC_N_CLASSES - 1))
+        target = {
+            "boxes": torch.tensor(boxes, dtype=torch.float),
+            "labels": torch.tensor(labels, dtype=torch.long),
+        }
+        return img, target
+
+    images_train: list[Image] = []
+    targets_train: list[dict] = []
+    for _ in range(train_size):
+        img, tgt = _make_one()
+        images_train.append(img)
+        targets_train.append(tgt)
+
+    images_test: list[Image] = []
+    targets_test: list[dict] = []
+    for _ in range(n_test):
+        img, tgt = _make_one()
+        images_test.append(img)
+        targets_test.append(tgt)
+
+    torch.save(
+        {
+            "images_train": images_train,
+            "targets_train": targets_train,
+            "images_test": images_test,
+            "targets_test": targets_test,
+            "_meta": {"train_size": train_size, "n_test": n_test, "seed": seed},
+        },
+        cache_path,
+    )
+    return images_train, targets_train, images_test, targets_test
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+
+DEFAULT_DATA_DIR = Path(__file__).parent / "example_data"
+
+
+def load_data(
+    path: str | os.PathLike | None = None,
+    *,
+    train_size: int = 200,
+    n_test: int = 50,
+    seed: int = 0,
+) -> Tuple[List[Image], List[Dict], List[Image], List[Dict]]:
+    """Return (images_train, targets_train, images_test, targets_test).
+
+    Each `targets_*` element is a dict `{"boxes": Tensor[N, 4],
+    "labels": Tensor[N]}` in COCO `xyxy` format with integer class labels.
+
+    Dispatches in priority order:
+      1. `.pt` file containing the dict {images_*, targets_*}
+      2. COCO-format directory (`images/` + `annotations.json`)
+      3. Synthetic-detection fallback (random rectangles on noise)
+
+    `train_size`, `n_test`, and `seed` apply to the synthetic fallback and to
+    sampling from a COCO directory. User-supplied `.pt` files load their full
+    contents regardless of these args.
+    """
+    p = DEFAULT_DATA_DIR if path is None else Path(path)
+
+    # 1. .pt — fastest path
+    pt = _find_with_ext(p, ".pt")
+    if pt is not None:
+        return _load_pt(pt)
+
+    # 2. COCO-format directory
+    coco_dir = _find_coco_dir(p)
+    if coco_dir is not None:
+        return _load_coco(coco_dir, train_size, n_test, seed)
+
+    # 3. Synthetic fallback
+    return _generate_synthetic_detection(
+        p if (p.is_dir() or not p.exists()) else p.parent,
+        train_size, n_test, seed,
+    )

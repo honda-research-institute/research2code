@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "review_status": "passed",
+  "summary": "The package and notebook form a coherent single-method BADGE tutorial: the public API, live acquisition path, notebook loop, and documented smoke-scale departures agree. The structured methodology contract and required model hook are preserved, with no scale-dependent or graph-mechanism entries to audit.",
+  "findings": [
+    {
+      "id": "F001",
+      "severity": "nice-to-have",
+      "target_agent": "package-scaffolder",
+      "issue_type": "stale_documentation",
+      "file": "method/example_data/README.md",
+      "location": "lines 3-6 and 27-28",
+      "description": "The README says the notebook calls load_data(\"example_data/\") and that the MNIST fallback saves mnist_subset.pt at the example_data root. The notebook uses load_data() with its default directory, and data.py stores the fallback at example_data/_cache/mnist_subset.pt, so the suggested deletion or filename workaround does not describe the live loader.",
+      "proposed_fix": "Describe the default load_data() call and the _cache/mnist_subset.pt location; explain that top-level user files take precedence over the cache.",
+      "resolution_status": "pending"
+    }
+  ]
+}

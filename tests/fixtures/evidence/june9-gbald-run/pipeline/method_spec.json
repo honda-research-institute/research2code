@@ -1,0 +1,190 @@
+{
+  "schema_version": "1.2.0",
+  "paper": {
+    "title": "Bayesian Active Learning by Disagreements: A Geometric Perspective",
+    "authors": "Xiaofeng Cao and Ivor W. Tsang (University of Technology Sydney)",
+    "repo_url": null
+  },
+  "core_method": {
+    "name": "GBALD (Geometric Bayesian Active Learning by Disagreements)",
+    "summary": "GBALD is a two-stage active learning framework that constructs a core-set on an ellipsoid geometry to initialize representative acquisitions, then ranks batch BALD-scores by geometric representativeness to select informative and diverse samples.",
+    "type": "algorithm",
+    "paper_sections": [
+      "Section 4",
+      "Section 5, Algorithm 1"
+    ],
+    "key_elements": [
+      "concept-gbald-framework",
+      "concept-ellipsoid-core-set",
+      "concept-mc-dropout-inference",
+      "eq-geometric-prior",
+      "eq-coreset-acquisition",
+      "eq-ellipsoid-geodesic",
+      "eq-batch-returns",
+      "eq-ranking-criterion",
+      "eq-batch-output",
+      "alg-gbald",
+      "hyp-gbald-defaults"
+    ]
+  },
+  "paper_claims": {
+    "method_description": "GBALD performs active learning in two stages. Stage 1 constructs a core-set on an ellipsoid geometry using a distance-based geometric prior (Eq. 5) and ellipsoid geodesic rescaling (Eq. 11) to initialize representative samples that cover the input distribution. Stage 2 uses MC dropout to score unlabeled candidates by BALD mutual information (Eq. 12), then ranks those candidates by their geometric representativeness relative to the labeled set (Eq. 13-14) to avoid redundant selections.",
+    "claimed_results": "GBALD outperforms BALD, BatchBALD, Entropy, Variation Ratio, k-medoids, and k-centers on MNIST, SVHN, and CIFAR-10, achieving the highest mean accuracy across all three datasets. It reaches desired accuracy thresholds faster and shows less degradation on repeated and noisy samples than the baselines.",
+    "benchmark_scale": "MNIST: 70,000 total, 20 initial labeled, batch_size=100 per round, 6 rounds, batch returns b=300; SVHN: 100,000 total, 1000 initial labeled, batch_size=100 per round, 90 rounds; CIFAR-10: 50,000 total, 1000 initial labeled, batch_size=100 per round, 190 rounds; 2000 MC dropout samples per scoring pass; 3 random seeds averaged."
+  },
+  "try_it_out": {
+    "definition": "A researcher brings an unlabeled image dataset and initial labeled pool, then uses GBALD's select_batch function to iteratively query the most informative and representative unlabeled samples for labeling, using MC dropout over a trained DNN.",
+    "user_provides": [
+      {
+        "name": "Unlabeled image dataset",
+        "description": "A pool of unlabeled images with their ground-truth labels available for later annotation (simulated by the framework).",
+        "type": "data"
+      },
+      {
+        "name": "Initial labeled pool",
+        "description": "A small set of initially labeled images to bootstrap the AL process.",
+        "type": "data"
+      },
+      {
+        "name": "Trained DNN classification model",
+        "description": "A CNN or MLP classifier with dropout layers, used for MC dropout Bayesian inference.",
+        "type": "model"
+      }
+    ],
+    "system_provides": [
+      {
+        "name": "GBALD select_batch implementation",
+        "description": "The core two-stage acquisition algorithm: ellipsoid core-set construction and geometric BALD ranking.",
+        "type": "code"
+      },
+      {
+        "name": "Model training procedure",
+        "description": "Retrain-from-scratch wrapper that trains the classification model on the current labeled pool each round.",
+        "type": "code"
+      }
+    ]
+  },
+  "data_requirements": {
+    "format": "Image classification data: x_pool of shape (N_pool, C, H, W) for convolutional models or (N_pool, n_features) for flattened/MLP models; y_pool of shape (N_pool,) with integer class labels in [0, n_classes-1].",
+    "example_datasets": [
+      "MNIST",
+      "SVHN",
+      "CIFAR-10"
+    ],
+    "auto_download_feasible": true,
+    "auto_download_details": "MNIST and CIFAR-10 available via torchvision.datasets; SVHN available via torchvision.datasets with split='train' and download=True.",
+    "synthetic_feasible": true,
+    "synthetic_description": "Randomly generated image-like tensors with K distinct clusters can serve as synthetic classification data for demonstration. Each cluster maps to one class label."
+  },
+  "dependencies": {
+    "frameworks": [
+      "pytorch",
+      "numpy",
+      "scikit-learn",
+      "torchvision"
+    ],
+    "pretrained_models": [],
+    "compute": "CPU sufficient",
+    "estimated_time": "30 minutes for a small demo with ~20 MC samples on MNIST"
+  },
+  "repo": {
+    "url": null,
+    "cloned": false,
+    "clone_path": null,
+    "key_files": []
+  },
+  "comparison": {
+    "paradigm": {
+      "id": "active_learning/bayesian",
+      "field_guide_path": "paradigms/supervised_ml/active_learning/bayesian/FIELD_GUIDE.md",
+      "detection_reasoning": "GBALD is a Bayesian active learning method that uses MC dropout for posterior approximation and estimates mutual information (BALD) for acquisition scoring. It extends BALD with geometric core-set initialization and representativeness ranking, placing it squarely in the bayesian AL sub-paradigm."
+    },
+    "description": "GBALD is compared against standard active learning baselines (Random, BALD, BatchBALD, Entropy, Variation Ratio, k-medoids, k-centers) on image classification datasets. Each method shares the same model architecture, training protocol, MC sample count, and data preprocessing. The acquisition function is the sole independent variable.",
+    "pluggable_component": {
+      "name": "select_batch",
+      "signature": "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, mc_samples: int = 100, core_set_size: int = 100, R_0: float = 2000.0, eta: float = 0.9, batch_returns: int = 300) -> List[int]",
+      "seed_param": "seed",
+      "description": "Returns batch_size indices into x_unlabeled for the most informative and representative samples. mc_samples controls the number of MC dropout forward passes; core_set_size is the Stage 1 core-set size N_M; R_0 is the geometric prior radius (scale-dependent); eta is the ellipsoid affine factor in (0,1); batch_returns is b, the number of BALD-ranked candidates from which to select the top batch_returns."
+    },
+    "controlled_variables": {
+      "model_architecture": "Same architecture across methods; the paper uses a 3-layer MLP with dropout rate 0.5.",
+      "mc_samples": "Same MC dropout sample count ensures fair uncertainty estimation across Bayesian methods.",
+      "training_protocol": "Retrain from scratch each round on the current labeled set. No warm-starting.",
+      "data_preprocessing": "Same input normalization across methods."
+    },
+    "independent_variable": "The acquisition function / selection strategy used each AL round.",
+    "evaluation_checkpoints": "Test accuracy evaluated at each acquisition breakpoint (every 10 samples for MNIST, every 100 for SVHN/CIFAR-10).",
+    "primary_metric": "Classification accuracy on the held-out test set.",
+    "visualization": "Learning curves: test accuracy vs. total number of labeled samples acquired. Single line per method."
+  },
+  "critical_requirements": {
+    "model": {
+      "architecture": "Three-layer MLP with dropout layers. The paper calls it 'MLP' but actually uses three blocks of [convolution, dropout, max-pooling, relu] with 32/64/128 filters of size 3x3, 5x5 max pooling, and dropout rate 0.5. This is CNN-like but used on image data. For the demo, a standard MLP or ResNet18 with dropout is acceptable.",
+      "paper_section": "Section 7.4",
+      "specific_features": [
+        {
+          "feature": "Dropout layers active at inference",
+          "why_essential": "MC dropout requires dropout layers to remain active during forward passes for uncertainty estimation. Without active dropout at inference, every MC sample produces identical predictions, BALD scores collapse to zero, and the algorithm degrades to random sampling.",
+          "severity": "essential",
+          "paper_section": "Section 4.3"
+        },
+        {
+          "feature": "Dropout rate 0.5",
+          "why_essential": "The paper uses dropout rate 0.5. This calibrates the uncertainty estimates used for BALD scoring. A different rate changes the uncertainty calibration and invalidates comparison results.",
+          "severity": "important",
+          "paper_section": "Section 7.4"
+        },
+        {
+          "feature": "Standard classifier head (logits output)",
+          "why_essential": "BALD scoring requires per-class probabilities from the model's output. Standard softmax over logits provides this.",
+          "severity": "essential",
+          "paper_section": "Section 4.3"
+        }
+      ]
+    },
+    "training": {
+      "optimizer": "Adam",
+      "learning_rate": "Paper does not explicitly state the optimizer or learning rate. The paper follows [5] (BatchBALD) which uses Adam with dataset-dependent learning rates. System inferred.",
+      "protocol": "retrain from scratch",
+      "mc_samples": 2000,
+      "num_epochs": null,
+      "seed": null,
+      "paper_section": "Section 7.4"
+    },
+    "data_setup": {
+      "initial_labeled": 20,
+      "batch_size": 100,
+      "total_budget": 620,
+      "num_rounds": 6,
+      "benchmark_name": "MNIST main benchmark, batch_size=100 (b'=100 from ranked b=300)",
+      "special_protocol": "GBALD Stage 1 constructs a core-set via k-means + ellipsoid geodesic from the unlabeled pool, augmenting the initial D_0. Stage 2 ranks batch_returns (b=300) BALD-scored candidates per round and selects the top batch_size (b'=100) most representative. Initial D_0 comes from core-set construction, not random sampling.",
+      "paper_section": "Section 7.4"
+    },
+    "blockers": [
+      {
+        "requirement": "MC dropout must be active during BALD scoring (model.train() mode)",
+        "status": "must_implement",
+        "reason": "Without dropout active at inference, MC samples are identical, BALD scores are zero, and the method silently degenerates to random sampling. This is the canonical silent-failure mode for Bayesian AL.",
+        "resolution": "The method.py BALD-scoring function must explicitly call model.train() before MC forward passes and restore eval() afterward (try/finally pattern)."
+      },
+      {
+        "requirement": "Distance threshold R_0 calibrated for data preprocessing scale",
+        "status": "can_approximate",
+        "reason": "R_0 = 2000 is calibrated for raw unnormalized [0,255] pixel distances on MNIST. Under different preprocessing (e.g., [0,1] normalization), the threshold becomes meaningless. The generator must detect scale mismatch.",
+        "resolution": "Record R_0 in scale_dependent_hyperparameters with assumes_data_scale='raw_pixel_unnormalized'. The generator uses the paper value if preprocessing matches or halts on mismatch."
+      }
+    ],
+    "scale_dependent_hyperparameters": [
+      {
+        "name": "R_0",
+        "paper_value": 2000.0,
+        "formula": null,
+        "assumes_data_scale": "raw_pixel_unnormalized",
+        "description": "Distance threshold for the geometric prior probability model p(y|x,theta) = 1 if ||x - Dj|| <= R_0 else R_0 / ||x - Dj||. The value 2000 is calibrated for raw [0, 255] pixel distances on MNIST. Under [0,1] normalization, distances scale by 1/255 and this threshold becomes ~7.8. Under [-1,1] preprocessing, it becomes ~15.6. The generator must not silently use the raw value with normalized data.",
+        "paper_section": "Section 4.2, Eq. (5), Section 7.9"
+      }
+    ],
+    "required_model_methods": []
+  },
+  "feasibility": "reproducible"
+}

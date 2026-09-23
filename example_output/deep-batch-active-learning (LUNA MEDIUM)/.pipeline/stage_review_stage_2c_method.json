@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2c_method",
+  "review_status": "passed",
+  "summary": "All stage-specific semantic checks passed. The live selector computes hallucinated final-layer gradient embeddings and performs k-MEANS++ seeding with incremental nearest-center distances; the annotated equations match the paper's softmax residual and embedding construction.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "AL-kmeanspp-incremental-distances",
+      "status": "pass",
+      "note": "kmeans_plus_plus_seeding maintains nearest_sq and updates it incrementally with np.minimum rather than materializing all center distances."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-gradient-embedding",
+      "status": "pass",
+      "note": "compute_gradient_embeddings uses one fixed model snapshot, predicted-label cross-entropy residuals, and per-example final-layer embedding blocks."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-gradient-block",
+      "status": "pass",
+      "note": "The residual scatter operation implements (p_i - I(yhat=i)) and multiplies each class block by the penultimate feature vector."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-softmax-model",
+      "status": "pass",
+      "note": "The architecture supplies a linear classifier over penultimate features and the method applies softmax to its logits."
+    },
+    {
+      "check_id": "equation_matches_paper:eq-softmax-definition",
+      "status": "pass",
+      "note": "F.softmax(logits, dim=-1) is the paper's classwise softmax definition."
+    },
+    {
+      "check_id": "methodology_contract:gradient-embedding-acquisition",
+      "status": "pass",
+      "note": "The live select_batch path preserves uncertainty-aware final-layer gradient embeddings and batch k-MEANS++ seeding, with unique bounded indices and a fixed model snapshot."
+    }
+  ],
+  "caveats": [
+    "The shipped classifier is an MLP demonstration architecture rather than the paper's benchmark-specific CNN backbones; the reviewed method path nevertheless preserves the required final-layer gradient-embedding mechanism."
+  ]
+}

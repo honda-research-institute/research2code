@@ -1,0 +1,9 @@
+{
+  "status": "halted",
+  "stage": "stage_1",
+  "reason": "validate_paper_map.py failed after 3 fix-mode retries (error signature changed each iteration \u2014 cascading progress that did not converge within the cap)",
+  "retry_count": 3,
+  "context": {
+    "stderr": "equation verbatim-quote check failed (3 element(s)):\n  - eq-objective: source_text is not a verbatim passage of the paper (whitespace-normalized substring check failed). Quote equations EXACTLY as the paper writes them, LaTeX and delimiters included; remember every backslash in the JSON file must be doubled (\\\\theta, not \\theta). Got: 'argmin_{pi(s, ~so)} E [tg|s0, ~so_0, pi]'\n  - eq-constraint-collision: source_text is not a verbatim passage of the paper (whitespace-normalized substring check failed). Quote equations EXACTLY as the paper writes them, LaTeX and delimiters included; remember every backslash in the JSON file must be doubled (\\\\theta, not \\theta). Got: '||pt - ~pt||_2 >= r + ~r forall t'\n  - eq-value-function: source_text is not a verbatim passage of the paper (whitespace-normalized substring check failed). Quote equations EXACTLY as the paper writes them, LaTeX and delimiters included; remember every backslash in the JSON file must be doubled (\\\\theta, not \\theta). Got: 'V \u2217(sjn 0 ) = E \u201c T X t=0 \u03b3t\u00b7vpref Rcol(sjn t , \u03c0\u2217(sjn t )) | sjn 0 #'\n"
+  }
+}

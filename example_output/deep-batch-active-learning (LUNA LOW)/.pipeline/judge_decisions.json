@@ -1,0 +1,157 @@
+[
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_1",
+    "iteration": 0,
+    "validator_label": "validate_method_spec.py --strict",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-method-analyzer",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The MethodSpec binds element 'kmeanspp-gradient-selection' to the non-existent verification probe 'AL-kmeanspp-incremental-distances'. The matched taxonomy node declares the exact probe 'al_loop.microharness' for this methodology verification surface, so the analyzer must repair the probe binding rather than alter generated code or the taxonomy. Re-check the complete methodology-fidelity invariant while re-emitting: the element's acceptable_approximations and replication_status, methodology_contract_pack.approved_approximations, and replication_feasibility.verdict/approved_approximations must remain mutually consistent.",
+      "proposed_fix": "Replace the unknown verification_probe_refs value with an exact taxonomy-declared probe that genuinely verifies the k-MEANS++ obligation (most directly the applicable declared probe for the method path), or use [] if no declared probe genuinely verifies it. Re-emit the full MethodSpec and preserve agreement across every methodology acceptable-approximations and replication-feasibility field; do not fix only the first reported field or invent a taxonomy reference."
+    },
+    "rationale": "The validator explicitly computes the closed set of semantic_checks[].probe values from the resolved populated taxonomy node and rejects the authored ref before downstream generation. The artifact's classification resolves to the populated batch_acquisition node, whose allowed refs do not include 'AL-kmeanspp-incremental-distances'; this is a local Stage 1 analyzer output error, not a validator bug or upstream taxonomy failure. The related methodology fields currently show empty approved-approximation sets and feasible/must-replicate declarations, so the analyzer can repair the binding while preserving that whole invariant.",
+    "confidence": "high",
+    "files_examined": [
+      "scripts/validate_method_spec.py",
+      "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+      "docs/ssot/taxonomies.yaml"
+    ]
+  },
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_2b",
+    "iteration": 0,
+    "validator_label": "validate_architecture_coder_output.py",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-architecture-coder",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The architecture coder emitted schema-2 constructor and scalar dimension references with the legacy shorthand shape. In arch_contract.json, architecture.model.constructor_args.input_dim, n_classes, and hidden_dim, plus pluggable_component.input.batch_size.source, use a string-valued dimension where schema 2 requires a nested DimensionUse object.",
+      "proposed_fix": "Re-emit arch_contract.json with every affected constructor value shaped as {\"dimension\": {\"dimension\": \"<name>\"}} and batch_size.source shaped as {\"dimension\": {\"dimension\": \"selection_count\"}}; preserve the existing dimension names and all other contract content. Specifically repair input_dim\u2192feature_width, n_classes\u2192class_count, hidden_dim\u2192hidden_width, and batch_size\u2192selection_count, then re-check the complete contract against schema 2.0.0."
+    },
+    "rationale": "The validator's schema failure is legitimate: schemas/arch_contract_v2.py defines DimensionConstructorValue.dimension and ScalarDimensionSource.dimension as DimensionUse objects, while the artifact supplies bare strings. The taxonomy node and method spec require the BADGE classifier and selection-count interface represented by these same dimensions, so this is a local producer serialization error rather than an upstream classification or validator bug.",
+    "confidence": "high",
+    "files_examined": [
+      "scripts/validate_architecture_coder_output.py",
+      "schemas/arch_contract_v2.py",
+      "r2c_runs/deep-batch-active-learning/.pipeline/arch_contract.json",
+      "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json",
+      "docs/ssot/taxonomies.yaml#TE-TS/active_learning/batch_acquisition"
+    ]
+  },
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_2d",
+    "iteration": 0,
+    "validator_label": "validate_arch_contract.py",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-architecture-coder",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The architecture contract's data_loader.load_data_returns declares the training keys x_train and y_train and omits the exact four-key active-learning loader surface required by the matched build plan. Re-emit this block with exactly x_pool, y_pool, x_test, and y_test, using descriptors consistent with the scaffolded loader and the existing pool/test dimensions; preserve the rest of the contract.",
+      "proposed_fix": "Update arch_contract.json data_loader.load_data_returns so its key set is exactly ['x_pool', 'y_pool', 'x_test', 'y_test']; do not leave x_train or y_train in that loader-return block. Keep training inputs under training_loop.input, where the build plan separately requires x_train and y_train."
+    },
+    "rationale": "The validator explicitly enforces AL_ARCH_CONTRACT_REQUIREMENTS in scripts/build_plan.py: data_loader.load_data_returns has exact_keys x_pool, y_pool, x_test, y_test, while training_loop.input_shapes independently requires x_train and y_train. The failing artifact has the wrong loader key set but otherwise represents the declared active-learning paradigm, so the architecture-coder can repair the contract without upstream re-analysis or validator changes.",
+    "confidence": "high",
+    "files_examined": [
+      "scripts/validate_arch_contract.py",
+      "scripts/build_plan.py",
+      "docs/ssot/taxonomies.yaml",
+      "r2c_runs/deep-batch-active-learning/.pipeline/arch_contract.json",
+      "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json"
+    ]
+  },
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_2d",
+    "iteration": 0,
+    "validator_label": "element_tests:test_eq_classifier_cross_entropy.py",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-test-generator",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The test's final numeric assertion is not entailed by the paper element: with the test's explicitly assigned logits [2, -1], cross-entropy is log(1 + exp(-3)) \u2248 0.048587, not 0.126928. The element only specifies the cross-entropy formula, which the preceding probability-equivalence assertion correctly checks; this hard-coded expected value is a test defect.",
+      "proposed_fix": "Regenerate test_eq_classifier_cross_entropy.py to remove or correct the unjustified hard-coded numeric assertion, while retaining an assertion grounded in the stated cross-entropy identity and the configured logits if desired. Do not change BADGEClassifier.forward for this failure."
+    },
+    "rationale": "The implementation returns raw classifier logits, and the test's first two assertions correctly verify the paper's stated CE identity. The failing constant conflicts with the test setup itself: logits 2 and -1 give a three-unit margin and CE about 0.0486; 0.126928 corresponds to a different margin. Because the paper element does not state that numeric value, ownership belongs to the generated test, and no prior decision routed this module to the test generator.",
+    "confidence": "high",
+    "files_examined": [
+      "method/tests/test_eq_classifier_cross_entropy.py",
+      "method/model.py",
+      ".pipeline/arch_contract.json",
+      "scripts/validate_arch_contract.py"
+    ]
+  },
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_2d",
+    "iteration": 0,
+    "validator_label": "element_tests:test_eq_softmax_cross_entropy.py",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-test-generator",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The test assertion is inconsistent with the paper's stated gradient expression. For logits (0, ln 3), the predicted class is 1 and embedding z=2, so (p-one_hot)z equals [-0.5, 0.5], whose components sum to zero; the expected [-0.5, -0.5] and sum -1 are test defects.",
+      "proposed_fix": "Regenerate test_eq_softmax_cross_entropy.py with the paper-grounded expected gradient tensor [[-0.5, 0.5]] and a zero-sum assertion, or otherwise assert the stated log-sum-exp minus target-logit relationship without imposing the incorrect signs. Do not change compute_gradient_embeddings."
+    },
+    "rationale": "The element explicitly gives the softmax cross-entropy formula, and the implementation computes its gradient as (probabilities - one_hot) times the embedding. With the test's logits and embedding, that produces [-0.5, 0.5], so the failing negative second component and sum -1 are not entailed by the element. No prior decision routed this module to the test generator, so its one regeneration remains available.",
+    "confidence": "high",
+    "files_examined": [
+      "method/tests/test_eq_softmax_cross_entropy.py",
+      "method/method.py",
+      ".pipeline/arch_contract.json"
+    ]
+  },
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_2d",
+    "iteration": 1,
+    "validator_label": "element_tests:test_eq_softmax_cross_entropy.py",
+    "classification": "unclear",
+    "action": "halt",
+    "target_agent": null,
+    "finding": null,
+    "rationale": "The implementation follows the paper's stated gradient: with logits [0, ln 3], the predicted class is 1 and embedding z=2, so (p-one_hot)z is [0.5, -0.5] in class order. The test expects the reversed signs, so the test remains the apparent defect; however, the prior decision already routed this same module to r2c-test-generator and the identical failure persists, triggering the one-regeneration/oscillation guard rather than another dispatch.",
+    "confidence": "high",
+    "files_examined": [
+      "method/tests/test_eq_softmax_cross_entropy.py",
+      "method/method.py"
+    ]
+  },
+  {
+    "schema_version": "1.0.0",
+    "stage_id": "stage_3a",
+    "iteration": 0,
+    "validator_label": "render_notebook.py + validate_notebook_output.py",
+    "classification": "producer_fixable",
+    "action": "dispatch_fix",
+    "target_agent": "r2c-notebook-generator",
+    "finding": {
+      "id": "JUDGE001",
+      "severity": "critical",
+      "description": "The rendered notebook has the setup-pieces section heading as `## 3. Setup pieces`, but the matched taxonomy layout requires the exact heading prefix `## 3. The setup pieces`. The draft carries the same drift, so the notebook generator must correct the section title in its output (and preserve the declared 3.1\u20133.4 subsections).",
+      "proposed_fix": "Update the notebook draft/rendered section heading to `## 3. The setup pieces` so it matches the taxonomy `setup_pieces` title; do not rely on the Contents entry alone, and keep the setup-pieces overview plus all declared subsections intact."
+    },
+    "rationale": "The validator checks actual markdown cell headings, not the table of contents. The taxonomy declares `setup_pieces` with title `## 3. The setup pieces`, while both notebook.ipynb and notebook_draft.py contain `## 3. Setup pieces`; this is a localized producer output mismatch, not an upstream spec or validator defect.",
+    "confidence": "high",
+    "files_examined": [
+      "scripts/validate_notebook_output.py",
+      "r2c_runs/deep-batch-active-learning/notebook.ipynb",
+      "r2c_runs/deep-batch-active-learning/.pipeline/notebook_draft.py",
+      "docs/ssot/taxonomies.yaml",
+      "r2c_runs/deep-batch-active-learning/.pipeline/method_spec.json"
+    ]
+  }
+]

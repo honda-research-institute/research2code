@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+_cache/
+.ipynb_checkpoints/
+.pipeline/_lock/
+.pipeline/run_events.jsonl.lock

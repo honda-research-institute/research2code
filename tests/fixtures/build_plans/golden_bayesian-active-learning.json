@@ -1,0 +1,215 @@
+{
+  "arch_contract_requirements": {
+    "description": "Spec-derived active-learning architecture contract requirements. Concrete shapes remain paper/code-derived; this only validates the universal AL contract surface.",
+    "required_blocks": {
+      "architecture.model": {
+        "required_subblocks": [
+          "class_name",
+          "forward.input",
+          "forward.output_type"
+        ]
+      },
+      "data_loader.load_data_returns": {
+        "exact_keys": [
+          "x_pool",
+          "y_pool",
+          "x_test",
+          "y_test"
+        ],
+        "min_keys": [
+          "x_pool",
+          "y_pool",
+          "x_test",
+          "y_test"
+        ],
+        "type": "dict[str, shape_string]"
+      },
+      "pluggable_component.input_shapes": {
+        "min_keys": [
+          "x_unlabeled"
+        ],
+        "type": "dict[str, shape_string]"
+      },
+      "pluggable_component.name": {
+        "must_equal": "spec.comparison.pluggable_component.name"
+      },
+      "pluggable_component.output_shape": {
+        "type": "shape_string"
+      },
+      "training_loop.function_name": {
+        "must_equal": "train_from_scratch"
+      },
+      "training_loop.input_shapes": {
+        "min_keys": [
+          "x_train",
+          "y_train"
+        ],
+        "type": "dict[str, shape_string]"
+      }
+    },
+    "symbol_conventions": {
+      "B": "runtime batch size inside model forward",
+      "N": "training-set size",
+      "N_pool": "unlabeled pool size",
+      "N_test": "test-set size",
+      "hidden_dim": "model hidden width when applicable",
+      "n_classes": "number of classes",
+      "n_features": "input feature dim"
+    }
+  },
+  "interface_hint": "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, *paradigm_extras_by_name) -> List[int]",
+  "package_manifest": {
+    "dependency_graph": {
+      "method/__init__.py": [
+        "method/data.py",
+        "method/method.py",
+        "method/model.py",
+        "method/training.py"
+      ],
+      "method/data.py": [],
+      "method/method.py": [
+        "method/model.py"
+      ],
+      "method/model.py": [],
+      "method/training.py": [
+        "method/model.py"
+      ]
+    },
+    "description": "Spec-derived structural contract for method/ files. Producer ownership is fixed by the pipeline; pluggable names/signatures and additional model methods come from method_spec.json.",
+    "files": [
+      {
+        "kind": "paradigm_fixed",
+        "path": "method/data.py",
+        "produced_by": "package_scaffolder",
+        "public_symbols": [
+          {
+            "kind": "function",
+            "name": "load_data",
+            "signature": "load_data(path: str | os.PathLike | None = None, *, pool_size: int = 5000, n_test: int = 1000, seed: int = 0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]"
+          }
+        ]
+      },
+      {
+        "kind": "paradigm_fixed",
+        "path": "method/example_data/README.md",
+        "produced_by": "package_scaffolder"
+      },
+      {
+        "kind": "paradigm_shaped",
+        "path": "method/model.py",
+        "produced_by": "architecture_coder",
+        "public_symbols": [
+          {
+            "inherits": "torch.nn.Module",
+            "kind": "class",
+            "name": "<ArchitectureClass>",
+            "required_methods": [
+              "forward(self, x: torch.Tensor) -> torch.Tensor"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "paradigm_fixed",
+        "path": "method/training.py",
+        "produced_by": "architecture_coder",
+        "public_symbols": [
+          {
+            "kind": "function",
+            "name": "build_model",
+            "signature": "build_model(input_dim: int, n_classes: int, **arch_kwargs) -> <ArchitectureClass>"
+          },
+          {
+            "kind": "function",
+            "name": "train_from_scratch",
+            "signature": "train_from_scratch(model: <ArchitectureClass>, x_train: torch.Tensor, y_train: torch.Tensor, *, learning_rate: float, max_epochs: int, train_until_accuracy: float, seed: int) -> <ArchitectureClass>"
+          }
+        ]
+      },
+      {
+        "kind": "method_shaped",
+        "path": "method/method.py",
+        "produced_by": "method_coder",
+        "public_symbols": [
+          {
+            "contract": {
+              "fixed_positional_args": [
+                "model",
+                "x_unlabeled",
+                "x_labeled",
+                "batch_size"
+              ],
+              "forbidden_param_names": [
+                "config",
+                "batch_output",
+                "batch_outputs"
+              ],
+              "paradigm_extras_forwarding": "by_name_from_config",
+              "seed_param": "seed"
+            },
+            "kind": "function",
+            "name": "select_batch",
+            "signature": "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, mc_samples: int = 100, batch_returns: int = 300, R_0: float = 2000.0) -> List[int]"
+          },
+          {
+            "all_top_level_functions_are_public": true,
+            "kind": "function",
+            "name": "<method_helpers>"
+          }
+        ]
+      },
+      {
+        "content_rule": "Re-export every public symbol declared above. __all__ ordering: [pluggable_component.name, *method_helpers, *architecture_classes, *training_functions, load_data].",
+        "kind": "derived",
+        "path": "method/__init__.py",
+        "produced_by": "init_finalizer"
+      },
+      {
+        "content_rule": "Computed by AST-walking imports across method/ and notebook imports; base requirements are owned by finalize_package_init.py.",
+        "kind": "derived",
+        "path": "requirements.txt",
+        "produced_by": "init_finalizer"
+      },
+      {
+        "kind": "paradigm_fixed",
+        "path": "method/README.md",
+        "produced_by": "package_scaffolder"
+      }
+    ],
+    "validators": {
+      "after_architecture_coder": "scripts/validate_architecture_coder_output.py",
+      "after_init_finalizer": [
+        "scripts/validate_package_imports.py",
+        "scripts/validate_arch_contract.py",
+        "scripts/validate_arch_contract_runtime.py"
+      ],
+      "after_method_coder": "scripts/validate_method_coder_output.py",
+      "after_package_scaffolder": "scripts/validate_scaffolder_output.py"
+    }
+  },
+  "paradigm_id": "active_learning/bayesian",
+  "plan_key": "active_learning/bayesian",
+  "pluggable_component": {
+    "contract": {
+      "fixed_positional_args": [
+        "model",
+        "x_unlabeled",
+        "x_labeled",
+        "batch_size"
+      ],
+      "forbidden_param_names": [
+        "config",
+        "batch_output",
+        "batch_outputs"
+      ],
+      "paradigm_extras_forwarding": "by_name_from_config",
+      "seed_param": "seed"
+    },
+    "name": "select_batch",
+    "seed_param": "seed",
+    "signature": "select_batch(model, x_unlabeled, x_labeled, batch_size, seed, mc_samples: int = 100, batch_returns: int = 300, R_0: float = 2000.0) -> List[int]"
+  },
+  "schema_version": "1.0",
+  "source": "spec+taxonomy",
+  "taxonomy_id": "TE-TS/active_learning/bayesian"
+}

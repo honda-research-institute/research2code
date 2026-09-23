@@ -1,0 +1,20 @@
+{
+  "claims": [
+    {
+      "claim_type": "equivalence",
+      "quote": "The residual p_i - I(ŷ = i) scales that representation, giving the derivative of the cross-entropy loss with respect to the class-specific weights W_i.",
+      "formulas": ["Gradient embedding block formula"],
+      "formal": {
+        "lhs": "g_x_i",
+        "rhs": "(p_i - indicator) * z",
+        "relation": "algebraic_identity",
+        "variables": [
+          {"name": "g_x_i", "domain": [-100, 100], "role": "variable"},
+          {"name": "p_i", "domain": [0, 1], "role": "variable"},
+          {"name": "indicator", "domain": [0, 1], "role": "variable"},
+          {"name": "z", "domain": [-100, 100], "role": "variable"}
+        ]
+      }
+    }
+  ]
+}

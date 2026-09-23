@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "explanations": {
+    "eq-gradient-norm": {
+      "what": "This equation computes the squared Euclidean norm of the last-layer gradient embedding g_x^y for input x under a chosen label y. It multiplies the squared norm of the penultimate representation z(x;V) by a probability-dependent factor: the sum of squared class probabilities p_i^2, plus 1, minus twice the probability p_y assigned to y. Thus both the feature scale and how the model scores the selected label determine the gradient's magnitude.",
+      "why_novel": "The norm identity itself is standard algebra from the last-layer softmax-gradient blocks, rather than a new loss or optimization objective. Its role in BADGE is to make explicit why a hallucinated-label gradient can encode uncertainty: choosing a label y with low p_y increases the displayed factor, while the gradient embedding can also be used for batch diversity.",
+      "intuition": "Think of the gradient magnitude as how strongly the final classifier would need to move if this point were assigned label y. If the network already gives y high probability, the negative term -2p_y makes that hypothetical correction smaller; if y has low probability, the correction is larger. The representation norm then scales this signal by how large the point's last hidden-layer feature vector is."
+    }
+  }
+}

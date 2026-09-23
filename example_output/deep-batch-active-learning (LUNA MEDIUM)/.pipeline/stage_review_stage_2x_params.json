@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "stage_id": "stage_2x_params",
+  "review_status": "passed",
+  "summary": "All parameter provenance, batch-regime, and demo-reachability checks passed. Paper-stated values are supported by the paper, and smoke-scale reductions are explicitly explained.",
+  "findings": [],
+  "checks_summary": [
+    {
+      "check_id": "paper_source_values_match_paper",
+      "status": "pass",
+      "note": "batch_size, initial_labeled, and train_until_accuracy are supported by the cited paper sections; inferred values are not mislabeled as paper values."
+    },
+    {
+      "check_id": "system_default_reasoning_explains_deviation",
+      "status": "pass",
+      "note": "system_default values num_rounds and pool_size include explicit paper values and smoke-scale/runtime rationale."
+    },
+    {
+      "check_id": "AL-batch-size-preserved",
+      "status": "pass",
+      "note": "batch_size is 100, which is one of the paper's claimed acquisition batch regimes."
+    },
+    {
+      "check_id": "AL-params-demo-reachability",
+      "status": "pass",
+      "note": "The pool has 12,000 examples, starts with 100 labeled examples, and supports five 100-example acquisition rounds without exhaustion."
+    }
+  ],
+  "caveats": [
+    "The paper's learning-rate value is conditional on image versus non-image data; the generic parameter entry uses the image-data value 0.001 and documents it as system_inferred rather than encoding a dataset-specific map."
+  ]
+}

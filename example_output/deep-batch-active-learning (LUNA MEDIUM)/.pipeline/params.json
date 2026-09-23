@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.3.0",
+  "params": {
+    "batch_size": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Experimental setup",
+      "note": "Paper uses batch_size=100 per data_setup."
+    },
+    "num_rounds": {
+      "value": 5,
+      "source": "system_default",
+      "paper_value": 349,
+      "reasoning": "Paper runs 349 rounds (~34,900 labels at batch_size=100). At smoke scale we run 5 rounds at runtime batch_size=100 (~500 labels) \u2014 enough to see a learning curve emerge while keeping the acquisition loop (which re-trains and re-scores the pool every round) cheap to run on a laptop CPU at smoke scale.",
+      "unused_by_method": true
+    },
+    "initial_labeled": {
+      "value": 100,
+      "source": "paper",
+      "paper_section": "Experimental setup",
+      "note": "Paper bootstraps with 100 uniformly-random labeled examples.",
+      "unused_by_method": true
+    },
+    "pool_size": {
+      "value": 12000,
+      "source": "system_default",
+      "paper_value": "full training set",
+      "reasoning": "Paper uses the full training set (typically 60k\u201373k samples) as the unlabeled pool. We subsample to 12,000 to keep each round's acquisition-scoring pass over the whole pool cheap (the pool is re-scored every round, so this is the dominant cost of the acquisition loop). Raised further to 12,000 to satisfy the taxonomy smoke_economics max_budget_to_pool_ratio floor (0.05); a smaller pool would over-consume the unlabeled set and weaken diversity-sensitive acquisition checks. Note: this is a smoke-scale default, not a runtime estimate \u2014 the smoke gate is what actually verifies the notebook fits its per-cell time budget. Pool ratio (total_budget / pool_size) \u2248 0.05. This is at or below the taxonomy smoke_economics `max_budget_to_pool_ratio` of 0.05 \u2014 diversity baselines are still meaningfully tested at this scale."
+    },
+    "learning_rate": {
+      "value": 0.001,
+      "source": "system_inferred",
+      "reasoning": "Paper does not explicitly specify the learning rate (spec.training.learning_rate: 'The paper uses benchmark-specific training settings.'). Selected 0.001 as the Adam-default convention."
+    },
+    "max_epochs": {
+      "value": 8,
+      "source": "system_inferred",
+      "reasoning": "Paper trains to an explicit training-accuracy threshold with no stated epoch cap. At smoke scale the labeled sets are tiny (\u2264 ~500 examples) and `train_until_accuracy` usually stops well before the cap; 8 is a low safety bound that keeps per-round training fast at smoke scale. Increase it for full-scale training."
+    },
+    "train_until_accuracy": {
+      "value": 0.99,
+      "source": "paper",
+      "paper_section": "Section 4 EXPERIMENTS",
+      "note": "Paper-stated training threshold: 'models using cross-entropy loss and the Adam variant of SGD until training accuracy exceeds 99%'."
+    },
+    "hidden_dim": {
+      "value": 256,
+      "source": "system_inferred",
+      "reasoning": "Paper states no data-type-keyed MLP width. We use hidden_dim=256 as the taxonomy-typical AL convention."
+    }
+  }
+}
